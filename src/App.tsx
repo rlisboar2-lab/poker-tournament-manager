@@ -2,8 +2,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import SetupPanel from './components/SetupPanel';
 import PlayersPanel from './components/PlayersPanel';
-import BlindClock from './components/BlindClock';
+import Clock from './components/Clock';
 import PayoutsPanel from './components/PayoutsPanel';
+import ResultsPanel from './components/ResultsPanel';
 import StatsPanel from './components/StatsPanel';
 import {
   useTournamentEngine,
@@ -13,6 +14,7 @@ import {
   defaultSetup,
   initialStack,
   type BaseSetup,
+  type BreakConfig,
 } from './utils/poker-math';
 import { saveTournament, type LocalEntry } from './services/tournaments';
 import { supabase, isSupabaseConfigured } from './lib/supabase';
@@ -30,6 +32,9 @@ export interface AppConfig {
   addon_value: number;
   chips_per_rebuy: number;
   chips_per_addon: number;
+  late_checkin_level: number;
+  ante_enabled: boolean;
+  breaks: BreakConfig[];
 }
 
 function nowLocal(): string {
@@ -38,8 +43,15 @@ function nowLocal(): string {
   return d.toISOString().slice(0, 16);
 }
 
-const TABS = ['Setup', 'Relógio', 'Jogadores', 'Premiação', 'Estatísticas'] as const;
-type Tab = (typeof TABS)[number];
+const STAGES = [
+  { id: 'setup', label: '1. Torneio' },
+  { id: 'players', label: '2. Jogadores' },
+  { id: 'payouts', label: '3. Premiação' },
+  { id: 'live', label: '4. Ao vivo' },
+  { id: 'results', label: '5. Resultado' },
+  { id: 'stats', label: '6. Estatísticas' },
+] as const;
+type Stage = (typeof STAGES)[number]['id'];
 
 export default function App() {
   // Auth gate: quando o Supabase está configurado, exige login (RLS no banco).
@@ -67,20 +79,23 @@ export default function App() {
     addon_value: 50,
     chips_per_rebuy: initialStack(initialSetup),
     chips_per_addon: initialStack(initialSetup),
+    late_checkin_level: 4,
+    ante_enabled: true,
+    breaks: [],
   });
   const [entries, setEntries] = useState<LocalEntry[]>([]);
   const [payoutPct, setPayoutPct] = useState<number[]>([0.5, 0.3, 0.2]);
-  const [tab, setTab] = useState<Tab>('Setup');
+  const [stage, setStage] = useState<Stage>('setup');
+  const [liveTab, setLiveTab] = useState<'clock' | 'mesa'>('clock');
 
-  const totals = useMemo(() => {
-    const buyins = entries.reduce((s, e) => s + e.buyins, 0);
-    const rebuys = entries.reduce((s, e) => s + e.rebuys, 0);
-    const addons = entries.reduce((s, e) => s + e.addons, 0);
-    return { buyins, rebuys, addons };
-  }, [entries]);
+  const totals = useMemo(() => ({
+    buyins: entries.reduce((s, e) => s + e.buyins, 0),
+    rebuys: entries.reduce((s, e) => s + e.rebuys, 0),
+    addons: entries.reduce((s, e) => s + e.addons, 0),
+  }), [entries]);
 
   const valorInicial = initialStack(config.setup);
-  const playersRemaining = Math.max(1, entries.length);
+  const playersRemaining = Math.max(1, entries.filter((e) => !e.eliminated).length);
 
   const derivedParams: EngineParams = useMemo(() => ({
     qnt_entradas_primarias: Math.max(1, totals.buyins),
@@ -94,6 +109,9 @@ export default function App() {
     initial_bb: config.setup.initial_bb,
     smallest_chip: config.setup.smallest_chip,
     players_remaining: playersRemaining,
+    late_checkin_level: config.late_checkin_level,
+    ante_enabled: config.ante_enabled,
+    breaks: config.breaks,
   }), [totals, valorInicial, config, playersRemaining]);
 
   const engine = useTournamentEngine(derivedParams);
@@ -101,12 +119,21 @@ export default function App() {
   // Feedback loop: qualquer mudança de fichas/parâmetros relança a curva
   // e recalcula os níveis futuros, preservando o tempo já decorrido.
   const sig = JSON.stringify(derivedParams);
-  useEffect(() => { engine.update_curve(derivedParams); /* eslint-disable-next-line */ }, [sig]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { engine.update_curve(derivedParams); }, [sig]);
 
   const prizePool =
     totals.buyins * config.buy_in_value +
     totals.rebuys * config.rebuy_value +
     totals.addons * config.addon_value;
+
+  const patchConfig = (p: Partial<AppConfig>) => setConfig((c) => ({ ...c, ...p }));
+
+  const inserirIntervaloAgora = () => {
+    const afterLvl = Math.max(1, engine.state.level_number);
+    if (config.breaks.some((b) => b.after_level === afterLvl)) return;
+    patchConfig({ breaks: [...config.breaks, { after_level: afterLvl, minutes: 10 }] });
+  };
 
   const onSave = async () => {
     const start = new Date(config.start_time);
@@ -128,9 +155,9 @@ export default function App() {
       payout_structure: payoutPct.map((p, i) => ({
         posicao: i + 1, percentual: p, premio: prizePool * p,
       })),
-      status: engine.state.status === 'finished' ? 'finished' : 'running',
+      status: 'finished',
       entries,
-      levels: engine.levels,
+      levels: engine.curve.niveis,
       level_duration_seconds: Math.round(config.duracao_bloco_nivel * 60),
     });
   };
@@ -138,33 +165,70 @@ export default function App() {
   if (!authReady) return <div className="app"><p className="notice">Carregando…</p></div>;
   if (isSupabaseConfigured && !session) return <Login />;
 
+  const stageIdx = STAGES.findIndex((s) => s.id === stage);
+  const go = (d: number) => {
+    const i = Math.min(Math.max(0, stageIdx + d), STAGES.length - 1);
+    setStage(STAGES[i].id);
+  };
+
   return (
     <div className="app">
       <div className="row" style={{ justifyContent: 'space-between' }}>
-        <h1>♠ Gerenciador Paramétrico de Torneios — Texas Hold'em</h1>
+        <h1>♠ Gerenciador de Torneios — Texas Hold'em</h1>
         {session && (
           <button className="ghost" onClick={() => supabase?.auth.signOut()}>Sair</button>
         )}
       </div>
       <p className="notice">
         {totals.buyins} entradas · {totals.rebuys} rebuys · {totals.addons} add-ons ·
-        curva de {engine.levels.length} níveis (r={engine.curve.multiplicador_r.toFixed(3)})
+        {' '}{playersRemaining} na mesa · curva de {engine.curve.niveis.length} níveis
+        {' '}(r={engine.curve.multiplicador_r.toFixed(3)})
       </p>
 
-      <div className="tabs">
-        {TABS.map((t) => (
-          <button key={t} className={tab === t ? 'active' : ''} onClick={() => setTab(t)}>{t}</button>
+      <div className="tabs stepper">
+        {STAGES.map((s) => (
+          <button key={s.id} className={stage === s.id ? 'active' : ''} onClick={() => setStage(s.id)}>
+            {s.label}
+          </button>
         ))}
       </div>
 
-      {tab === 'Setup' && <SetupPanel config={config} onChange={(p) => setConfig({ ...config, ...p })} />}
-      {tab === 'Relógio' && <BlindClock engine={engine} />}
-      {tab === 'Jogadores' && <PlayersPanel entries={entries} onChange={setEntries} />}
-      {tab === 'Premiação' && (
+      {stage === 'setup' && <SetupPanel config={config} onChange={patchConfig} />}
+
+      {stage === 'players' && <PlayersPanel entries={entries} onChange={setEntries} mode="setup" />}
+
+      {stage === 'payouts' && (
         <PayoutsPanel prizePool={prizePool} playerCount={entries.length}
           percentuais={payoutPct} onChange={setPayoutPct} />
       )}
-      {tab === 'Estatísticas' && <StatsPanel onSave={onSave} />}
+
+      {stage === 'live' && (
+        <>
+          <div className="tabs">
+            <button className={liveTab === 'clock' ? 'active' : ''} onClick={() => setLiveTab('clock')}>Relógio</button>
+            <button className={liveTab === 'mesa' ? 'active' : ''} onClick={() => setLiveTab('mesa')}>Mesa</button>
+            <button className="ghost" onClick={inserirIntervaloAgora}>+ Intervalo após nível atual</button>
+          </div>
+          {liveTab === 'clock'
+            ? <Clock engine={engine} />
+            : <PlayersPanel entries={entries} onChange={setEntries} mode="live" />}
+        </>
+      )}
+
+      {stage === 'results' && (
+        <ResultsPanel entries={entries} onChange={setEntries}
+          payoutPct={payoutPct} prizePool={prizePool}
+          buyInValue={config.buy_in_value} rebuyValue={config.rebuy_value} addonValue={config.addon_value} />
+      )}
+
+      {stage === 'stats' && <StatsPanel onSave={onSave} />}
+
+      <div className="row nav-row">
+        <button className="ghost" disabled={stageIdx === 0} onClick={() => go(-1)}>← Voltar</button>
+        <button className="primary" disabled={stageIdx === STAGES.length - 1} onClick={() => go(1)}>
+          Avançar →
+        </button>
+      </div>
     </div>
   );
 }

@@ -39,9 +39,45 @@ th { color: var(--muted); font-weight: 600; }
 
 .clock-big { font-size: 72px; font-weight: 800; text-align: center; letter-spacing: .03em; font-variant-numeric: tabular-nums; }
 .blinds { font-size: 40px; font-weight: 700; text-align: center; color: var(--gold); }
+.ante { text-align: center; color: var(--accent-2); font-weight: 600; margin-top: 2px; }
+.break-label { text-align: center; font-size: 28px; font-weight: 800; color: var(--accent); letter-spacing: .05em; }
 .sub { text-align: center; color: var(--muted); }
-.row { display: flex; gap: 8px; align-items: center; }
+.row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .kpi { font-size: 28px; font-weight: 700; }
 .notice { color: var(--muted); font-size: 13px; }
 .warn { color: var(--gold); }
 .pill { display:inline-block; padding:2px 8px; border:1px solid var(--border); border-radius:999px; font-size:12px; color:var(--muted); }
+.pill.late { border-color: var(--gold); color: var(--gold); }
+
+.stepper button { font-size: 13px; }
+.nav-row { justify-content: space-between; margin-top: 8px; }
+.table-wrap { overflow-x: auto; }
+
+/* Relógio */
+.clock-panel { text-align: center; }
+.clock-top { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-bottom: 10px; }
+.kpis { display: flex; gap: 12px; justify-content: center; margin: 16px 0; flex-wrap: wrap; }
+.kpi-box { background: var(--panel-2); border: 1px solid var(--border); border-radius: 10px; padding: 10px 18px; }
+.clock-controls { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 10px; }
+.clock-controls button { min-width: 56px; }
+button.ghost.on { border-color: var(--accent); color: var(--accent); }
+
+/* QR PIX discreto */
+.pix-qr { display: inline-flex; flex-direction: column; align-items: center; gap: 4px; margin-top: 16px; opacity: .9; }
+.pix-qr img { border-radius: 8px; background: #fff; padding: 4px; }
+.pix-qr-label { font-size: 11px; color: var(--muted); }
+
+/* Tela cheia do relógio */
+.clock-panel.fs { display: flex; flex-direction: column; justify-content: center; align-items: center;
+  background: var(--bg); width: 100vw; height: 100vh; margin: 0; border: none; }
+.clock-panel.fs .clock-big { font-size: clamp(90px, 22vw, 240px); }
+.clock-panel.fs .blinds { font-size: clamp(40px, 9vw, 90px); }
+
+/* Responsivo / mobile */
+@media (max-width: 640px) {
+  .app { padding: 12px; }
+  h1 { font-size: 18px; }
+  .clock-big { font-size: clamp(56px, 18vw, 96px); }
+  .blinds { font-size: clamp(28px, 9vw, 44px); }
+  .tabs button { padding: 7px 10px; font-size: 12px; }
+}

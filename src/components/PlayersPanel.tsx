@@ -5,10 +5,12 @@ import type { LocalEntry } from '../services/tournaments';
 interface Props {
   entries: LocalEntry[];
   onChange: (entries: LocalEntry[]) => void;
+  mode?: 'setup' | 'live';
 }
 
-export default function PlayersPanel({ entries, onChange }: Props) {
+export default function PlayersPanel({ entries, onChange, mode = 'setup' }: Props) {
   const [name, setName] = useState('');
+  const live = mode === 'live';
 
   const add = () => {
     const n = name.trim();
@@ -25,46 +27,54 @@ export default function PlayersPanel({ entries, onChange }: Props) {
   const step = (i: number, key: 'rebuys' | 'addons' | 'buyins', d: number) =>
     patch(i, { [key]: Math.max(0, entries[i][key] + d) } as Partial<LocalEntry>);
 
+  const remaining = entries.filter((e) => !e.eliminated).length;
+
   return (
     <div className="panel">
-      <h2>Participantes & Entradas</h2>
+      <h2>
+        {live ? 'Mesa ao vivo' : 'Participantes & Entradas'}
+        {live && <span className="pill" style={{ marginLeft: 8 }}>{remaining} na mesa</span>}
+      </h2>
       <div className="row" style={{ marginBottom: 12 }}>
-        <input placeholder="Nome do jogador" value={name}
+        <input placeholder={live ? 'Entrada tardia (nome)' : 'Nome do jogador'} value={name}
           onChange={(e) => setName(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && add()} />
-        <button className="primary" onClick={add}>Adicionar</button>
+        <button className="primary" onClick={add}>{live ? 'Entrar agora' : 'Adicionar'}</button>
       </div>
 
       {entries.length === 0 ? (
-        <p className="notice">Nenhum jogador ainda. As alterações de rebuy/add-on recalculam os blinds automaticamente.</p>
+        <p className="notice">Nenhum jogador ainda.</p>
       ) : (
-        <table>
-          <thead>
-            <tr>
-              <th>Jogador</th><th>Buy-ins</th><th>Rebuys</th><th>Add-ons</th>
-              <th>Colocação</th><th>Prêmio (R$)</th><th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {entries.map((e, i) => (
-              <tr key={i}>
-                <td>{e.name}</td>
-                <td><Stepper value={e.buyins} onMinus={() => step(i, 'buyins', -1)} onPlus={() => step(i, 'buyins', 1)} /></td>
-                <td><Stepper value={e.rebuys} onMinus={() => step(i, 'rebuys', -1)} onPlus={() => step(i, 'rebuys', 1)} /></td>
-                <td><Stepper value={e.addons} onMinus={() => step(i, 'addons', -1)} onPlus={() => step(i, 'addons', 1)} /></td>
-                <td style={{ width: 90 }}>
-                  <input type="number" value={e.final_placement ?? ''} placeholder="-"
-                    onChange={(ev) => patch(i, { final_placement: ev.target.value ? Number(ev.target.value) : undefined })} />
-                </td>
-                <td style={{ width: 120 }}>
-                  <input type="number" value={e.payout_amount ?? ''} placeholder="0"
-                    onChange={(ev) => patch(i, { payout_amount: ev.target.value ? Number(ev.target.value) : undefined })} />
-                </td>
-                <td><button className="danger" onClick={() => remove(i)}>✕</button></td>
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Jogador</th><th>Buy-ins</th><th>Rebuys</th><th>Add-ons</th>
+                {live && <th>Status</th>}
+                <th></th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {entries.map((e, i) => (
+                <tr key={i} style={e.eliminated ? { opacity: 0.5 } : undefined}>
+                  <td>{e.name}</td>
+                  <td><Stepper value={e.buyins} onMinus={() => step(i, 'buyins', -1)} onPlus={() => step(i, 'buyins', 1)} /></td>
+                  <td><Stepper value={e.rebuys} onMinus={() => step(i, 'rebuys', -1)} onPlus={() => step(i, 'rebuys', 1)} /></td>
+                  <td><Stepper value={e.addons} onMinus={() => step(i, 'addons', -1)} onPlus={() => step(i, 'addons', 1)} /></td>
+                  {live && (
+                    <td>
+                      <button className={e.eliminated ? 'ghost' : 'danger'}
+                        onClick={() => patch(i, { eliminated: !e.eliminated })}>
+                        {e.eliminated ? '↩ Reentrar' : '✗ Eliminar'}
+                      </button>
+                    </td>
+                  )}
+                  <td><button className="danger" onClick={() => remove(i)}>✕</button></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   );

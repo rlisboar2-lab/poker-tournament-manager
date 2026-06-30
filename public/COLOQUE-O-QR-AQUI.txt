@@ -1,0 +1,9 @@
+Salve a imagem do seu QR Code PIX nesta pasta com o nome EXATO:
+
+    pix-qr.png
+
+(pode ser .png) — o relógio mostra essa imagem automaticamente num canto discreto,
+com botão de mostrar/ocultar. Se o arquivo não existir, o QR simplesmente não aparece.
+
+Depois de adicionar o arquivo, faça commit/push normalmente (GitHub Desktop) que o
+Netlify publica junto.

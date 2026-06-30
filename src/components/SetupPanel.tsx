@@ -93,6 +93,48 @@ export default function SetupPanel({ config, onChange }: Props) {
         </div>
       </div>
       <p className="notice">Maletas disponíveis: fichas de {CHIP_DENOMINATIONS.join(', ')}.</p>
+
+      <h2 style={{ marginTop: 20 }}>Late check-in & Ante</h2>
+      <div className="grid">
+        <div>
+          <label>Nível em que o late check-in fecha</label>
+          <input type="number" min={1} value={config.late_checkin_level}
+            onChange={(e) => onChange({ late_checkin_level: Math.max(1, num(e.target.value)) })} />
+        </div>
+        <div>
+          <label>Ante (BB paga dobrado) a partir do late check-in</label>
+          <select value={config.ante_enabled ? '1' : '0'}
+            onChange={(e) => onChange({ ante_enabled: e.target.value === '1' })}>
+            <option value="1">Ativado</option>
+            <option value="0">Desativado</option>
+          </select>
+        </div>
+      </div>
+
+      <h2 style={{ marginTop: 20 }}>Intervalos</h2>
+      {config.breaks.length === 0 && (
+        <p className="notice">Nenhum intervalo. Adicione um abaixo (ex.: depois do nível 4, 10 min).</p>
+      )}
+      {config.breaks.map((b, i) => (
+        <div className="row" key={i} style={{ marginBottom: 8 }}>
+          <span className="notice">Depois do nível</span>
+          <input type="number" min={1} style={{ width: 80 }} value={b.after_level}
+            onChange={(e) => {
+              const breaks = config.breaks.map((x, idx) => idx === i ? { ...x, after_level: Math.max(1, num(e.target.value)) } : x);
+              onChange({ breaks });
+            }} />
+          <input type="number" min={1} style={{ width: 90 }} value={b.minutes}
+            onChange={(e) => {
+              const breaks = config.breaks.map((x, idx) => idx === i ? { ...x, minutes: Math.max(1, num(e.target.value)) } : x);
+              onChange({ breaks });
+            }} />
+          <span className="notice">min</span>
+          <button className="danger" onClick={() => onChange({ breaks: config.breaks.filter((_, idx) => idx !== i) })}>✕</button>
+        </div>
+      ))}
+      <button className="ghost" onClick={() => onChange({ breaks: [...config.breaks, { after_level: 4, minutes: 10 }] })}>
+        + Adicionar intervalo
+      </button>
     </div>
   );
 }

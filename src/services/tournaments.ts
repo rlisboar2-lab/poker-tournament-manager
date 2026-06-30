@@ -14,6 +14,7 @@ export interface LocalEntry {
   buyins: number;   // entradas primárias deste jogador (normalmente 1)
   rebuys: number;
   addons: number;
+  eliminated?: boolean;
   final_placement?: number;
   payout_amount?: number;
 }

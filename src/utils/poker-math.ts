@@ -2,7 +2,7 @@
 // Núcleo matemático puro — sem side-effects, sem I/O, sem dependências externas.
 
 // ── Denominações físicas reais das maletas ──────────────────────────────
-export const CHIP_DENOMINATIONS = [25, 50, 100, 1000] as const;
+export const CHIP_DENOMINATIONS = [5, 25, 50, 100, 1000] as const;
 export type ChipDenomination = (typeof CHIP_DENOMINATIONS)[number];
 
 // ── Setup paramétrico base (todos sobrescrevíveis pela UI) ───────────────
@@ -91,19 +91,20 @@ function bandStep(bb: number): number {
 
 // ── Cálculo de Curva e Recálculo (Feedback Loop) ────────────────────────
 export function calcularCurvaBlinds(p: CurveParams): CurveResult {
-  const initial_bb = p.initial_bb ?? DEFAULTS.initial_bb;
-  const ratio = p.end_bb_ratio ?? DEFAULTS.end_bb_ratio;
-  const chip = p.smallest_chip ?? DEFAULTS.smallest_chip;
+  const chip = Math.max(1, p.smallest_chip || DEFAULTS.smallest_chip);
+  const initial_bb = Math.max(chip * 2, p.initial_bb || DEFAULTS.initial_bb);
+  const ratio = p.end_bb_ratio || DEFAULTS.end_bb_ratio;
+  const dur = Math.max(1, p.duracao_bloco_nivel || 1);
 
   const c_total =
-    p.qnt_entradas_primarias * p.valor_fichas_inicial +
+    Math.max(1, p.qnt_entradas_primarias) * p.valor_fichas_inicial +
     p.qnt_acumulada_rebuys * p.fichas_por_rebuy +
     p.qnt_acumulada_addons * p.fichas_por_addon;
 
   const alvo_big_blind = c_total * ratio;
   const qnt_niveis_projetados = Math.max(
     2,
-    Math.round(p.target_time_minutos / p.duracao_bloco_nivel)
+    Math.round((p.target_time_minutos || dur) / dur)
   );
 
   const multiplicador_r = Math.pow(
@@ -157,4 +158,61 @@ export function calcularPayouts(
   total_jogadores: number
 ): PayoutSlice[] {
   return aplicarPayouts(total_arrecadado, tabelaPadraoPayouts(total_jogadores));
+}
+
+// ── Cronograma (níveis + intervalos + ante + late check-in) ──────────────
+export interface BreakConfig {
+  after_level: number; // intervalo inserido depois deste nível
+  minutes: number;
+}
+
+export interface ScheduleParams {
+  level_duration_minutes: number;
+  late_checkin_level: number; // late check-in fecha ao fim deste nível
+  ante_enabled: boolean;      // BB paga dobrado (ante = BB) a partir do late check-in
+  breaks: BreakConfig[];
+}
+
+export interface ScheduleLevel {
+  kind: 'level';
+  level: number;
+  small_blind: number;
+  big_blind: number;
+  ante: number;
+  duration_seconds: number;
+  is_late_checkin: boolean; // último nível com late check-in aberto
+}
+
+export interface ScheduleBreak {
+  kind: 'break';
+  label: string;
+  duration_seconds: number;
+}
+
+export type ScheduleItem = ScheduleLevel | ScheduleBreak;
+
+export function buildSchedule(niveis: BlindLevel[], sp: ScheduleParams): ScheduleItem[] {
+  const dur = Math.round(Math.max(1, sp.level_duration_minutes) * 60);
+  const items: ScheduleItem[] = [];
+  for (const n of niveis) {
+    const ante = sp.ante_enabled && n.nivel >= sp.late_checkin_level ? n.big_blind : 0;
+    items.push({
+      kind: 'level',
+      level: n.nivel,
+      small_blind: n.small_blind,
+      big_blind: n.big_blind,
+      ante,
+      duration_seconds: dur,
+      is_late_checkin: n.nivel === sp.late_checkin_level,
+    });
+    const brk = sp.breaks.find((b) => b.after_level === n.nivel && b.minutes > 0);
+    if (brk) {
+      items.push({
+        kind: 'break',
+        label: 'Intervalo',
+        duration_seconds: Math.round(brk.minutes * 60),
+      });
+    }
+  }
+  return items;
 }
