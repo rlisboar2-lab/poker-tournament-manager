@@ -206,8 +206,24 @@ export function useTournamentEngine(initial: EngineParams) {
     setParams((p) => ({ ...p, ...patch }));
   }, []);
 
+  // Persistência do relógio (retomar após fechar): ancora em epoch absoluto.
+  const snapshot = useCallback(
+    () => ({ status, anchorMs: anchorRef.current, pausedElapsedMs: pausedElapsedRef.current }),
+    [status]
+  );
+  const restore = useCallback(
+    (s: { status: ClockStatus; anchorMs: number; pausedElapsedMs: number }) => {
+      anchorRef.current = s.anchorMs;
+      pausedElapsedRef.current = s.pausedElapsedMs;
+      setStatus(s.status);
+      setNow(Date.now());
+    },
+    []
+  );
+
   return {
     state, items, curve, params,
     start, pause, reset, addSeconds, goToIndex, next, prev, update_curve,
+    snapshot, restore,
   };
 }

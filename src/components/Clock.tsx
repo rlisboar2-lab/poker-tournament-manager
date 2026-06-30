@@ -7,32 +7,50 @@ import PixQr from './PixQr';
 
 type Engine = ReturnType<typeof useTournamentEngine>;
 
-// Beeps via Web Audio (sem arquivos externos).
-function makeBeeper() {
+// Alarme sonoro via Web Audio + vibração. Toca por vários segundos.
+function makeAlarm() {
   let ctx: AudioContext | null = null;
+  let timers: number[] = [];
   const ensure = () => {
     if (!ctx) ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
     if (ctx.state === 'suspended') ctx.resume();
     return ctx;
   };
-  const beep = (freq: number, t0: number, dur: number) => {
+  const tone = (freq: number, at: number, dur: number, vol = 0.3) => {
     const c = ensure();
     const o = c.createOscillator();
     const g = c.createGain();
+    o.type = 'square';
     o.frequency.value = freq;
-    o.connect(g);
-    g.connect(c.destination);
-    g.gain.setValueAtTime(0.0001, c.currentTime + t0);
-    g.gain.exponentialRampToValueAtTime(0.25, c.currentTime + t0 + 0.02);
-    g.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + t0 + dur);
-    o.start(c.currentTime + t0);
-    o.stop(c.currentTime + t0 + dur);
+    o.connect(g); g.connect(c.destination);
+    g.gain.setValueAtTime(0.0001, c.currentTime + at);
+    g.gain.exponentialRampToValueAtTime(vol, c.currentTime + at + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + at + dur);
+    o.start(c.currentTime + at);
+    o.stop(c.currentTime + at + dur);
+  };
+  const vibrate = (pattern: number[]) => {
+    try { navigator.vibrate?.(pattern); } catch { /* noop */ }
+  };
+  const stop = () => {
+    timers.forEach(clearTimeout);
+    timers = [];
+    vibrate(0 as unknown as number[]);
+  };
+  // Sequência de bips alternados por `seconds` segundos.
+  const siren = (seconds: number, f1: number, f2: number) => {
+    ensure();
+    stop();
+    const beeps = Math.floor(seconds / 0.5);
+    for (let i = 0; i < beeps; i++) tone(i % 2 ? f2 : f1, i * 0.5, 0.4);
+    vibrate(Array.from({ length: beeps }, () => 250).flatMap(() => [250, 150]));
   };
   return {
     arm: () => ensure(),
-    oneMinute: () => beep(880, 0, 0.25),
-    levelChange: () => { beep(660, 0, 0.2); beep(990, 0.25, 0.3); },
-    lateWarning: () => { beep(520, 0, 0.18); beep(520, 0.22, 0.18); beep(520, 0.44, 0.3); },
+    stop,
+    oneMinute: () => { ensure(); stop(); tone(900, 0, 0.25); tone(900, 0.35, 0.25); vibrate([200, 100, 200]); },
+    levelChange: () => siren(8, 700, 1050),
+    lateWarning: () => siren(10, 520, 780),
   };
 }
 
@@ -40,56 +58,74 @@ export default function Clock({ engine }: { engine: Engine }) {
   const { state, items, start, pause, reset, addSeconds, next, prev } = engine;
   const wake = useWakeLock();
   const [alarms, setAlarms] = useState(true);
-  const [showQr, setShowQr] = useState(true);
+  const [showQr, setShowQr] = useState(false);
   const [isFs, setIsFs] = useState(false);
+  const [alarming, setAlarming] = useState(false);
   const fsRef = useRef<HTMLDivElement>(null);
-  const beeperRef = useRef<ReturnType<typeof makeBeeper> | null>(null);
+  const alarmRef = useRef<ReturnType<typeof makeAlarm> | null>(null);
+  const wasNativeRef = useRef(false);
 
-  // Refs de transição para alarmes.
   const prevIndexRef = useRef(state.item_index);
   const minuteFiredRef = useRef<number>(-1);
   const lateFiredRef = useRef<number>(-1);
+
+  const fireAlarm = (kind: 'oneMinute' | 'levelChange' | 'lateWarning') => {
+    const a = alarmRef.current;
+    if (!a) return;
+    a[kind]();
+    setAlarming(true);
+    window.setTimeout(() => setAlarming(false), kind === 'oneMinute' ? 1500 : 9000);
+  };
 
   useEffect(() => {
     if (!alarms || state.status !== 'running') {
       prevIndexRef.current = state.item_index;
       return;
     }
-    const b = beeperRef.current;
-    if (!b) return;
-
-    if (state.item_index > prevIndexRef.current) b.levelChange();
+    if (state.item_index > prevIndexRef.current) fireAlarm('levelChange');
     prevIndexRef.current = state.item_index;
 
-    if (state.kind === 'level' && state.seconds_until_next <= 60 && state.seconds_until_next > 0) {
-      if (minuteFiredRef.current !== state.item_index) {
-        minuteFiredRef.current = state.item_index;
-        b.oneMinute();
-      }
+    if (state.kind === 'level' && state.seconds_until_next <= 60 && state.seconds_until_next > 0
+        && minuteFiredRef.current !== state.item_index) {
+      minuteFiredRef.current = state.item_index;
+      fireAlarm('oneMinute');
     }
     if (state.is_late_checkin && lateFiredRef.current !== state.item_index) {
       lateFiredRef.current = state.item_index;
-      b.lateWarning();
+      fireAlarm('lateWarning');
     }
   }, [state.item_index, state.seconds_until_next, state.kind, state.is_late_checkin, state.status, alarms]);
 
   const onStart = () => {
-    if (!beeperRef.current) beeperRef.current = makeBeeper();
-    beeperRef.current.arm();
+    if (!alarmRef.current) alarmRef.current = makeAlarm();
+    alarmRef.current.arm();
     start();
   };
 
+  const stopAlarm = () => { alarmRef.current?.stop(); setAlarming(false); };
+
+  // Tela cheia: tenta a API nativa (desktop) e SEMPRE aplica overlay CSS
+  // (necessário no celular, onde a API nativa não cobre a tela).
   const toggleFs = async () => {
-    if (!document.fullscreenElement) {
-      await fsRef.current?.requestFullscreen?.();
-      setIsFs(true);
-    } else {
-      await document.exitFullscreen?.();
-      setIsFs(false);
-    }
+    const nextFs = !isFs;
+    setIsFs(nextFs);
+    try {
+      if (nextFs && fsRef.current?.requestFullscreen) {
+        await fsRef.current.requestFullscreen();
+        wasNativeRef.current = true;
+      } else if (!nextFs && document.fullscreenElement) {
+        await document.exitFullscreen();
+        wasNativeRef.current = false;
+      }
+    } catch { /* celular sem API nativa: overlay CSS já cobre */ }
   };
   useEffect(() => {
-    const h = () => setIsFs(!!document.fullscreenElement);
+    const h = () => {
+      if (!document.fullscreenElement && wasNativeRef.current) {
+        wasNativeRef.current = false;
+        setIsFs(false);
+      }
+    };
     document.addEventListener('fullscreenchange', h);
     return () => document.removeEventListener('fullscreenchange', h);
   }, []);
@@ -135,6 +171,10 @@ export default function Clock({ engine }: { engine: Engine }) {
         </>
       )}
 
+      {alarming && (
+        <button className="danger alarm-stop" onClick={stopAlarm}>🔔 Parar alarme</button>
+      )}
+
       <div className="kpis">
         <div className="kpi-box">
           <label>Stack médio</label>
@@ -146,7 +186,6 @@ export default function Clock({ engine }: { engine: Engine }) {
         </div>
       </div>
 
-      {/* Controles */}
       <div className="clock-controls">
         <button className="ghost" onClick={prev} title="Voltar nível">⏮</button>
         {state.status !== 'running'
@@ -155,7 +194,7 @@ export default function Clock({ engine }: { engine: Engine }) {
         <button className="ghost" onClick={next} title="Avançar nível">⏭</button>
         <button className="ghost" onClick={() => addSeconds(-60)} title="−1 min">−1m</button>
         <button className="ghost" onClick={() => addSeconds(60)} title="+1 min">+1m</button>
-        <button className="danger" onClick={reset}>↺</button>
+        <button className="danger" onClick={reset} title="Reiniciar">↺</button>
       </div>
       <div className="clock-controls">
         <button className="ghost" onClick={toggleFs}>{isFs ? '✕ Sair tela cheia' : '⛶ Tela cheia'}</button>
@@ -167,44 +206,43 @@ export default function Clock({ engine }: { engine: Engine }) {
             {wake.enabled ? '📱 Tela ligada' : '📱 Manter tela'}
           </button>
         )}
-        <button className="ghost qr-toggle" onClick={() => setShowQr((v) => !v)}>
-          {showQr ? 'Ocultar QR' : 'Mostrar QR'}
-        </button>
+        <button className="ghost qr-toggle" onClick={() => setShowQr(true)}>Mostrar QR</button>
       </div>
 
-      {showQr && <PixQr size={isFs ? 120 : 88} />}
+      {showQr && <PixQr onClose={() => setShowQr(false)} />}
 
-      {/* Cronograma com marcação de intervalos e late check-in */}
       {!isFs && (
         <>
           <h2 style={{ marginTop: 22 }}>Cronograma</h2>
-          <table>
-            <thead><tr><th>#</th><th>Nível</th><th>SB</th><th>BB</th><th>Ante</th><th></th></tr></thead>
-            <tbody>
-              {items.map((it, i) => {
-                const cls = i === state.item_index ? { color: 'var(--gold)', fontWeight: 700 } : undefined;
-                if (it.kind === 'break') {
+          <div className="table-wrap">
+            <table>
+              <thead><tr><th>#</th><th>Nível</th><th>SB</th><th>BB</th><th>Ante</th><th></th></tr></thead>
+              <tbody>
+                {items.map((it, i) => {
+                  const cls = i === state.item_index ? { color: 'var(--gold)', fontWeight: 700 } : undefined;
+                  if (it.kind === 'break') {
+                    return (
+                      <tr key={i} style={cls}>
+                        <td>{i + 1}</td>
+                        <td colSpan={4}>☕ Intervalo ({clock(it.duration_seconds)})</td>
+                        <td></td>
+                      </tr>
+                    );
+                  }
                   return (
                     <tr key={i} style={cls}>
                       <td>{i + 1}</td>
-                      <td colSpan={4}>☕ Intervalo ({clock(it.duration_seconds)})</td>
-                      <td></td>
+                      <td>{it.level}</td>
+                      <td>{chips(it.small_blind)}</td>
+                      <td>{chips(it.big_blind)}</td>
+                      <td>{it.ante ? chips(it.ante) : '—'}</td>
+                      <td>{it.is_late_checkin ? '⚑ late' : ''}</td>
                     </tr>
                   );
-                }
-                return (
-                  <tr key={i} style={cls}>
-                    <td>{i + 1}</td>
-                    <td>{it.level}</td>
-                    <td>{chips(it.small_blind)}</td>
-                    <td>{chips(it.big_blind)}</td>
-                    <td>{it.ante ? chips(it.ante) : '—'}</td>
-                    <td>{it.is_late_checkin ? '⚑ late' : ''}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                })}
+              </tbody>
+            </table>
+          </div>
         </>
       )}
     </div>

@@ -15,6 +15,8 @@ export interface LocalEntry {
   rebuys: number;
   addons: number;
   eliminated?: boolean;
+  table?: number;   // mesa atribuída (1-based)
+  seat?: number;    // assento na mesa (1-based)
   final_placement?: number;
   payout_amount?: number;
 }

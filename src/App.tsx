@@ -1,5 +1,5 @@
 // src/App.tsx
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import SetupPanel from './components/SetupPanel';
 import PlayersPanel from './components/PlayersPanel';
 import Clock from './components/Clock';
@@ -9,6 +9,7 @@ import StatsPanel from './components/StatsPanel';
 import {
   useTournamentEngine,
   type EngineParams,
+  type ClockStatus,
 } from './hooks/useTournamentEngine';
 import {
   defaultSetup,
@@ -16,6 +17,7 @@ import {
   type BaseSetup,
   type BreakConfig,
 } from './utils/poker-math';
+import { addAndSeat, rebalanceSeating } from './utils/seating';
 import { saveTournament, type LocalEntry } from './services/tournaments';
 import { supabase, isSupabaseConfigured } from './lib/supabase';
 import Login from './components/Login';
@@ -37,10 +39,49 @@ export interface AppConfig {
   breaks: BreakConfig[];
 }
 
+interface ClockSnap { status: ClockStatus; anchorMs: number; pausedElapsedMs: number; }
+interface SavedState {
+  config: AppConfig;
+  entries: LocalEntry[];
+  payoutPct: number[];
+  stage: Stage;
+  clock?: ClockSnap;
+}
+
+const SAVE_KEY = 'ptm_state_v2';
+
 function nowLocal(): string {
   const d = new Date();
   d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
   return d.toISOString().slice(0, 16);
+}
+
+function defaultConfig(): AppConfig {
+  const setup = defaultSetup();
+  return {
+    name: 'Home Game',
+    start_time: nowLocal(),
+    setup,
+    target_time_minutos: 240,
+    duracao_bloco_nivel: 20,
+    buy_in_value: 50,
+    rebuy_value: 50,
+    addon_value: 50,
+    chips_per_rebuy: initialStack(setup),
+    chips_per_addon: initialStack(setup),
+    late_checkin_level: 4,
+    ante_enabled: true,
+    breaks: [{ after_level: 4, minutes: 15 }], // intervalo após o último nível pré-late
+  };
+}
+
+function loadSaved(): SavedState | null {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    return raw ? (JSON.parse(raw) as SavedState) : null;
+  } catch {
+    return null;
+  }
 }
 
 const STAGES = [
@@ -54,7 +95,7 @@ const STAGES = [
 type Stage = (typeof STAGES)[number]['id'];
 
 export default function App() {
-  // Auth gate: quando o Supabase está configurado, exige login (RLS no banco).
+  // Auth gate.
   const [session, setSession] = useState<Session | null>(null);
   const [authReady, setAuthReady] = useState(!isSupabaseConfigured);
   useEffect(() => {
@@ -67,25 +108,11 @@ export default function App() {
     return () => sub.subscription.unsubscribe();
   }, []);
 
-  const initialSetup = defaultSetup();
-  const [config, setConfig] = useState<AppConfig>({
-    name: 'Home Game',
-    start_time: nowLocal(),
-    setup: initialSetup,
-    target_time_minutos: 240,
-    duracao_bloco_nivel: 20,
-    buy_in_value: 50,
-    rebuy_value: 50,
-    addon_value: 50,
-    chips_per_rebuy: initialStack(initialSetup),
-    chips_per_addon: initialStack(initialSetup),
-    late_checkin_level: 4,
-    ante_enabled: true,
-    breaks: [],
-  });
-  const [entries, setEntries] = useState<LocalEntry[]>([]);
-  const [payoutPct, setPayoutPct] = useState<number[]>([0.5, 0.3, 0.2]);
-  const [stage, setStage] = useState<Stage>('setup');
+  const saved = useRef<SavedState | null>(loadSaved()).current;
+  const [config, setConfig] = useState<AppConfig>(saved?.config ?? defaultConfig());
+  const [entries, setEntries] = useState<LocalEntry[]>(saved?.entries ?? []);
+  const [payoutPct, setPayoutPct] = useState<number[]>(saved?.payoutPct ?? [0.5, 0.3, 0.2]);
+  const [stage, setStage] = useState<Stage>(saved?.stage ?? 'setup');
   const [liveTab, setLiveTab] = useState<'clock' | 'mesa'>('clock');
 
   const totals = useMemo(() => ({
@@ -96,6 +123,12 @@ export default function App() {
 
   const valorInicial = initialStack(config.setup);
   const playersRemaining = Math.max(1, entries.filter((e) => !e.eliminated).length);
+  const sumBreakMin = config.breaks.reduce((s, b) => s + (b.minutes || 0), 0);
+  // Mantém o torneio dentro do tempo máximo: desconta os intervalos do orçamento.
+  const effectiveTarget = Math.max(
+    config.duracao_bloco_nivel * 2,
+    config.target_time_minutos - sumBreakMin
+  );
 
   const derivedParams: EngineParams = useMemo(() => ({
     qnt_entradas_primarias: Math.max(1, totals.buyins),
@@ -104,7 +137,7 @@ export default function App() {
     fichas_por_rebuy: config.chips_per_rebuy,
     qnt_acumulada_addons: totals.addons,
     fichas_por_addon: config.chips_per_addon,
-    target_time_minutos: config.target_time_minutos,
+    target_time_minutos: effectiveTarget,
     duracao_bloco_nivel: config.duracao_bloco_nivel,
     initial_bb: config.setup.initial_bb,
     smallest_chip: config.setup.smallest_chip,
@@ -112,15 +145,41 @@ export default function App() {
     late_checkin_level: config.late_checkin_level,
     ante_enabled: config.ante_enabled,
     breaks: config.breaks,
-  }), [totals, valorInicial, config, playersRemaining]);
+  }), [totals, valorInicial, config, playersRemaining, effectiveTarget]);
 
   const engine = useTournamentEngine(derivedParams);
 
-  // Feedback loop: qualquer mudança de fichas/parâmetros relança a curva
-  // e recalcula os níveis futuros, preservando o tempo já decorrido.
+  // Restaura o relógio salvo uma única vez (retomar após fechar).
+  const restoredRef = useRef(false);
+  useEffect(() => {
+    if (!restoredRef.current && saved?.clock) {
+      engine.restore(saved.clock);
+    }
+    restoredRef.current = true;
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const sig = JSON.stringify(derivedParams);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { engine.update_curve(derivedParams); }, [sig]);
+
+  // Autosave: estado geral + snapshot do relógio (a cada 2s e ao fechar).
+  useEffect(() => {
+    const write = () => {
+      const s: SavedState = { config, entries, payoutPct, stage, clock: engine.snapshot() };
+      try { localStorage.setItem(SAVE_KEY, JSON.stringify(s)); } catch { /* quota */ }
+    };
+    write();
+    const id = window.setInterval(write, 2000);
+    window.addEventListener('beforeunload', write);
+    return () => { clearInterval(id); window.removeEventListener('beforeunload', write); };
+  }, [config, entries, payoutPct, stage, engine]);
+
+  // Posições aleatórias ao iniciar a fase ao vivo (se ninguém sentado ainda).
+  useEffect(() => {
+    if (stage === 'live' && entries.some((e) => !e.eliminated) && !entries.some((e) => e.table)) {
+      setEntries((prev) => rebalanceSeating(prev));
+    }
+  }, [stage]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const prizePool =
     totals.buyins * config.buy_in_value +
@@ -133,6 +192,16 @@ export default function App() {
     const afterLvl = Math.max(1, engine.state.level_number);
     if (config.breaks.some((b) => b.after_level === afterLvl)) return;
     patchConfig({ breaks: [...config.breaks, { after_level: afterLvl, minutes: 10 }] });
+  };
+
+  const novoTorneio = () => {
+    if (!confirm('Começar um torneio novo? Os dados atuais serão apagados.')) return;
+    localStorage.removeItem(SAVE_KEY);
+    engine.reset();
+    setConfig(defaultConfig());
+    setEntries([]);
+    setPayoutPct([0.5, 0.3, 0.2]);
+    setStage('setup');
   };
 
   const onSave = async () => {
@@ -166,18 +235,16 @@ export default function App() {
   if (isSupabaseConfigured && !session) return <Login />;
 
   const stageIdx = STAGES.findIndex((s) => s.id === stage);
-  const go = (d: number) => {
-    const i = Math.min(Math.max(0, stageIdx + d), STAGES.length - 1);
-    setStage(STAGES[i].id);
-  };
+  const go = (d: number) => setStage(STAGES[Math.min(Math.max(0, stageIdx + d), STAGES.length - 1)].id);
 
   return (
     <div className="app">
       <div className="row" style={{ justifyContent: 'space-between' }}>
         <h1>♠ Gerenciador de Torneios — Texas Hold'em</h1>
-        {session && (
-          <button className="ghost" onClick={() => supabase?.auth.signOut()}>Sair</button>
-        )}
+        <div className="row">
+          <button className="ghost" onClick={novoTorneio}>Novo torneio</button>
+          {session && <button className="ghost" onClick={() => supabase?.auth.signOut()}>Sair</button>}
+        </div>
       </div>
       <p className="notice">
         {totals.buyins} entradas · {totals.rebuys} rebuys · {totals.addons} add-ons ·
@@ -211,7 +278,9 @@ export default function App() {
           </div>
           {liveTab === 'clock'
             ? <Clock engine={engine} />
-            : <PlayersPanel entries={entries} onChange={setEntries} mode="live" />}
+            : <PlayersPanel entries={entries} onChange={setEntries} mode="live"
+                onAddLive={(name) => setEntries((prev) => addAndSeat(prev, name))}
+                onRebalance={() => setEntries((prev) => rebalanceSeating(prev))} />}
         </>
       )}
 

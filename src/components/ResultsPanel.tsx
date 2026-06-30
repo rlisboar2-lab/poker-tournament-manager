@@ -74,18 +74,26 @@ export default function ResultsPanel({
         <button className="primary" onClick={calcular}>Calcular prêmios</button>
       </div>
 
-      <h2 style={{ marginTop: 22 }}>Pódio</h2>
+      <h2 style={{ marginTop: 22 }}>Ranking do torneio</h2>
       {ranked.filter((e) => e.final_placement).length === 0 ? (
-        <p className="notice">Defina as colocações acima.</p>
+        <p className="notice">Defina as colocações acima e clique em Calcular prêmios.</p>
       ) : (
-        <ol>
-          {ranked.filter((e) => e.final_placement).map((e) => (
-            <li key={e.name}>
-              <b>{e.name}</b> — {e.payout_amount ? brl(e.payout_amount) : 'sem prêmio'}
-            </li>
-          ))}
+        <ol className="ranking">
+          {ranked.filter((e) => e.final_placement).map((e) => {
+            const net = (e.payout_amount ?? 0) - invested(e);
+            return (
+              <li key={e.name}>
+                <b>{e.name}</b> — {e.payout_amount ? brl(e.payout_amount) : 'sem prêmio'}
+                <span className="notice"> (saldo {brl(net)})</span>
+              </li>
+            );
+          })}
         </ol>
       )}
+      <p className="notice">
+        O ranking histórico por nome (acumulado entre torneios) fica na aba <b>6. Estatísticas</b>,
+        após salvar.
+      </p>
     </div>
   );
 }

@@ -6,16 +6,19 @@ interface Props {
   entries: LocalEntry[];
   onChange: (entries: LocalEntry[]) => void;
   mode?: 'setup' | 'live';
+  onAddLive?: (name: string) => void;   // adiciona + acomoda na mesa (live)
+  onRebalance?: () => void;              // recalcula posições nas mesas
 }
 
-export default function PlayersPanel({ entries, onChange, mode = 'setup' }: Props) {
+export default function PlayersPanel({ entries, onChange, mode = 'setup', onAddLive, onRebalance }: Props) {
   const [name, setName] = useState('');
   const live = mode === 'live';
 
   const add = () => {
     const n = name.trim();
     if (!n) return;
-    onChange([...entries, { name: n, buyins: 1, rebuys: 0, addons: 0 }]);
+    if (live && onAddLive) onAddLive(n);
+    else onChange([...entries, { name: n, buyins: 1, rebuys: 0, addons: 0 }]);
     setName('');
   };
 
@@ -28,18 +31,25 @@ export default function PlayersPanel({ entries, onChange, mode = 'setup' }: Prop
     patch(i, { [key]: Math.max(0, entries[i][key] + d) } as Partial<LocalEntry>);
 
   const remaining = entries.filter((e) => !e.eliminated).length;
+  const tables = Array.from(
+    new Set(entries.filter((e) => !e.eliminated && e.table).map((e) => e.table as number))
+  ).sort((a, b) => a - b);
 
   return (
     <div className="panel">
       <h2>
         {live ? 'Mesa ao vivo' : 'Participantes & Entradas'}
         {live && <span className="pill" style={{ marginLeft: 8 }}>{remaining} na mesa</span>}
+        {live && tables.length > 0 && <span className="pill" style={{ marginLeft: 6 }}>{tables.length} mesa(s)</span>}
       </h2>
       <div className="row" style={{ marginBottom: 12 }}>
         <input placeholder={live ? 'Entrada tardia (nome)' : 'Nome do jogador'} value={name}
           onChange={(e) => setName(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && add()} />
         <button className="primary" onClick={add}>{live ? 'Entrar agora' : 'Adicionar'}</button>
+        {live && onRebalance && (
+          <button className="ghost" onClick={onRebalance}>🎲 Calcular posições na mesa</button>
+        )}
       </div>
 
       {entries.length === 0 ? (
@@ -49,7 +59,10 @@ export default function PlayersPanel({ entries, onChange, mode = 'setup' }: Prop
           <table>
             <thead>
               <tr>
-                <th>Jogador</th><th>Buy-ins</th><th>Rebuys</th><th>Add-ons</th>
+                <th>Jogador</th>
+                {live && <th>Mesa</th>}
+                {live && <th>Assento</th>}
+                <th>Buy-ins</th><th>Rebuys</th><th>Add-ons</th>
                 {live && <th>Status</th>}
                 <th></th>
               </tr>
@@ -58,13 +71,15 @@ export default function PlayersPanel({ entries, onChange, mode = 'setup' }: Prop
               {entries.map((e, i) => (
                 <tr key={i} style={e.eliminated ? { opacity: 0.5 } : undefined}>
                   <td>{e.name}</td>
+                  {live && <td>{e.table ? `Mesa ${e.table}` : '—'}</td>}
+                  {live && <td>{e.seat ?? '—'}</td>}
                   <td><Stepper value={e.buyins} onMinus={() => step(i, 'buyins', -1)} onPlus={() => step(i, 'buyins', 1)} /></td>
                   <td><Stepper value={e.rebuys} onMinus={() => step(i, 'rebuys', -1)} onPlus={() => step(i, 'rebuys', 1)} /></td>
                   <td><Stepper value={e.addons} onMinus={() => step(i, 'addons', -1)} onPlus={() => step(i, 'addons', 1)} /></td>
                   {live && (
                     <td>
                       <button className={e.eliminated ? 'ghost' : 'danger'}
-                        onClick={() => patch(i, { eliminated: !e.eliminated })}>
+                        onClick={() => patch(i, { eliminated: !e.eliminated, table: undefined, seat: undefined })}>
                         {e.eliminated ? '↩ Reentrar' : '✗ Eliminar'}
                       </button>
                     </td>
@@ -74,6 +89,24 @@ export default function PlayersPanel({ entries, onChange, mode = 'setup' }: Prop
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {live && tables.length > 0 && (
+        <div className="seating">
+          {tables.map((t) => {
+            const seated = entries
+              .filter((e) => !e.eliminated && e.table === t)
+              .sort((a, b) => (a.seat ?? 0) - (b.seat ?? 0));
+            return (
+              <div className="seating-table" key={t}>
+                <h3>Mesa {t} <span className="notice">({seated.length})</span></h3>
+                <ol>
+                  {seated.map((e) => <li key={e.name}>{e.name}</li>)}
+                </ol>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

@@ -1,21 +1,23 @@
 // src/components/PixQr.tsx
-// QR de pagamento (PIX) exibido discretamente no relógio.
-// A imagem deve ficar em public/pix-qr.png — se faltar, o componente some.
+// QR de pagamento (PIX) em overlay centralizado e grande.
+// A imagem deve ficar em public/pix-qr.png — se faltar, mostra aviso.
 import { useState } from 'react';
 
-export default function PixQr({ size = 96 }: { size?: number }) {
+export default function PixQr({ onClose }: { onClose: () => void }) {
   const [ok, setOk] = useState(true);
-  if (!ok) return null;
   return (
-    <div className="pix-qr" title="Pague aqui buy-in / rebuy / add-on (PIX)">
-      <img
-        src="/pix-qr.png"
-        alt="QR PIX para pagamentos"
-        width={size}
-        height={size}
-        onError={() => setOk(false)}
-      />
-      <span className="pix-qr-label">PIX · buy-in / rebuy / add-on</span>
+    <div className="qr-overlay" onClick={onClose}>
+      <div className="qr-card" onClick={(e) => e.stopPropagation()}>
+        <h2>PIX · buy-in / rebuy / add-on</h2>
+        {ok ? (
+          <img src="/pix-qr.png" alt="QR PIX para pagamentos" onError={() => setOk(false)} />
+        ) : (
+          <p className="warn">
+            Adicione a imagem em <code>public/pix-qr.png</code> e faça o push.
+          </p>
+        )}
+        <button className="primary" onClick={onClose}>Fechar</button>
+      </div>
     </div>
   );
 }
