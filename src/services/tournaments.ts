@@ -114,11 +114,18 @@ export async function saveTournament(input: SaveTournamentInput): Promise<string
     for (let i = 0; i < Math.max(0, e.addons); i++) {
       rows.push({ tournament_id, player_id, amount: input.addon_value, is_rebuy: false, is_addon: true, payout_amount: 0 });
     }
-    // Acumula ROI histórico do jogador.
-    if (e.payout_amount) {
-      const { data: p } = await supabase.from('sub_players').select('total_winnings').eq('id', player_id).single();
-      const acc = Number(p?.total_winnings ?? 0) + e.payout_amount;
-      await supabase.from('sub_players').update({ total_winnings: acc }).eq('id', player_id);
+    // Acumula histórico do jogador: ganhos + pontos do ranking.
+    // Pontos: 1º lugar = nº de participantes, 2º = nº-1, ... (mínimo 0).
+    const totalPlayers = input.entries.length;
+    const pts = e.final_placement ? Math.max(0, totalPlayers - e.final_placement + 1) : 0;
+    const win = e.payout_amount ?? 0;
+    if (pts > 0 || win > 0) {
+      const { data: p } = await supabase
+        .from('sub_players').select('total_winnings, total_points').eq('id', player_id).single();
+      await supabase.from('sub_players').update({
+        total_winnings: Number(p?.total_winnings ?? 0) + win,
+        total_points: Number(p?.total_points ?? 0) + pts,
+      }).eq('id', player_id);
     }
   }
   if (rows.length) {
@@ -141,6 +148,7 @@ export async function listTournaments(): Promise<BaseTournament[]> {
 
 export interface PlayerStat {
   display_name: string;
+  points: number;
   total_winnings: number;
   total_invested: number;
   roi: number;
@@ -149,7 +157,8 @@ export interface PlayerStat {
 
 export async function playerLeaderboard(): Promise<PlayerStat[]> {
   if (!isSupabaseConfigured || !supabase) return [];
-  const { data: players, error } = await supabase.from('sub_players').select('id, display_name, total_winnings');
+  const { data: players, error } = await supabase
+    .from('sub_players').select('id, display_name, total_winnings, total_points');
   if (error) throw error;
 
   const out: PlayerStat[] = [];
@@ -163,11 +172,15 @@ export async function playerLeaderboard(): Promise<PlayerStat[]> {
     const winnings = Number(p.total_winnings ?? 0);
     out.push({
       display_name: p.display_name,
+      points: Number(p.total_points ?? 0),
       total_winnings: winnings,
       total_invested: invested,
       roi: invested > 0 ? (winnings - invested) / invested : 0,
       events,
     });
   }
-  return out.sort((a, b) => b.roi - a.roi);
+  // Ordena por pontos (desempate por líquido).
+  return out.sort(
+    (a, b) => b.points - a.points || (b.total_winnings - b.total_invested) - (a.total_winnings - a.total_invested)
+  );
 }

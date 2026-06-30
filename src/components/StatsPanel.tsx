@@ -62,17 +62,19 @@ export default function StatsPanel({ onSave }: Props) {
       </div>
       {msg && <p className="notice">{msg}</p>}
 
-      <h2 style={{ marginTop: 20 }}>Ranking de jogadores</h2>
+      <h2 style={{ marginTop: 20 }}>Ranking de jogadores (por pontos)</h2>
       {board.length === 0 ? <p className="notice">Sem dados.</p> : (
         <div className="table-wrap">
           <table>
-            <thead><tr><th>Jogador</th><th>Eventos</th><th>Investido</th><th>Ganhos</th><th>Líquido</th><th>ROI</th></tr></thead>
+            <thead><tr><th>#</th><th>Jogador</th><th>Pontos</th><th>Eventos</th><th>Investido</th><th>Ganhos</th><th>Líquido</th><th>ROI</th></tr></thead>
             <tbody>
-              {board.map((p) => {
+              {board.map((p, i) => {
                 const net = p.total_winnings - p.total_invested;
                 return (
                   <tr key={p.display_name}>
+                    <td>{i + 1}º</td>
                     <td>{p.display_name}</td>
+                    <td style={{ fontWeight: 700, color: 'var(--gold)' }}>{p.points}</td>
                     <td>{p.events}</td>
                     <td>{brl(p.total_invested)}</td>
                     <td>{brl(p.total_winnings)}</td>
