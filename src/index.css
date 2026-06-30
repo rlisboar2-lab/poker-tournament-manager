@@ -64,6 +64,9 @@ button.ghost.on { border-color: var(--accent); color: var(--accent); }
 
 .alarm-stop { display: block; margin: 12px auto 0; animation: pulse 1s infinite; font-weight: 700; }
 @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .45; } }
+.enable-audio { display: block; width: 100%; margin-bottom: 14px; animation: pulse 1.6s infinite; }
+
+.table-wrap table { min-width: 480px; }
 
 /* QR PIX em overlay central grande */
 .qr-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.8); z-index: 2000;
@@ -95,4 +98,14 @@ button.ghost.on { border-color: var(--accent); color: var(--accent); }
   .clock-big { font-size: clamp(56px, 18vw, 96px); }
   .blinds { font-size: clamp(28px, 9vw, 44px); }
   .tabs button { padding: 7px 10px; font-size: 12px; }
+}
+
+/* Celular deitado (landscape): dimensiona pela ALTURA pra não estourar a tela */
+@media (orientation: landscape) and (max-height: 560px) {
+  .clock-big { font-size: clamp(48px, 26vh, 150px); }
+  .blinds { font-size: clamp(26px, 12vh, 70px); }
+  .clock-panel.fs { padding: 8px; }
+  .clock-panel.fs .clock-big { font-size: clamp(60px, 34vh, 200px); }
+  .clock-panel.fs .blinds { font-size: clamp(28px, 14vh, 90px); }
+  .kpis { margin: 8px 0; }
 }

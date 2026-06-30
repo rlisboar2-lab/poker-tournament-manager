@@ -70,7 +70,7 @@ export interface PayoutSlice {
 }
 
 // ── Quantização (arredondamento por faixa) ──────────────────────────────
-function quantizeBlind(bb: number, chip: number): number {
+export function quantizeBlind(bb: number, chip: number): number {
   let v: number;
   if (bb < 200) v = Math.round(bb / 50) * 50;
   else if (bb < 1000) v = Math.round(bb / 100) * 100;
@@ -87,6 +87,23 @@ function bandStep(bb: number): number {
   if (bb < 200) return 50;
   if (bb < 1000) return 100;
   return 500;
+}
+
+export function sbForBb(bb: number, chip: number): number {
+  return Math.max(chip, Math.round(bb / 2 / chip) * chip);
+}
+
+// Gera um nível para inserir manualmente entre dois níveis (ou após o último).
+export function novoNivelEntre(
+  cur: BlindLevel,
+  next: BlindLevel | undefined,
+  chip: number
+): { small_blind: number; big_blind: number } {
+  let bb = next
+    ? quantizeBlind((cur.big_blind + next.big_blind) / 2, chip)
+    : quantizeBlind(cur.big_blind * 1.4, chip);
+  if (bb <= cur.big_blind) bb = quantizeBlind(cur.big_blind + bandStep(cur.big_blind), chip);
+  return { small_blind: sbForBb(bb, chip), big_blind: bb };
 }
 
 // ── Cálculo de Curva e Recálculo (Feedback Loop) ────────────────────────

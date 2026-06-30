@@ -62,39 +62,47 @@ export default function StatsPanel({ onSave }: Props) {
       </div>
       {msg && <p className="notice">{msg}</p>}
 
-      <h2 style={{ marginTop: 20 }}>Ranking de jogadores (ROI)</h2>
+      <h2 style={{ marginTop: 20 }}>Ranking de jogadores</h2>
       {board.length === 0 ? <p className="notice">Sem dados.</p> : (
-        <table>
-          <thead><tr><th>Jogador</th><th>Eventos</th><th>Investido</th><th>Ganhos</th><th>ROI</th></tr></thead>
-          <tbody>
-            {board.map((p) => (
-              <tr key={p.display_name}>
-                <td>{p.display_name}</td>
-                <td>{p.events}</td>
-                <td>{brl(p.total_invested)}</td>
-                <td>{brl(p.total_winnings)}</td>
-                <td style={{ color: p.roi >= 0 ? 'var(--accent)' : 'var(--danger)' }}>{pct(p.roi)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div className="table-wrap">
+          <table>
+            <thead><tr><th>Jogador</th><th>Eventos</th><th>Investido</th><th>Ganhos</th><th>Líquido</th><th>ROI</th></tr></thead>
+            <tbody>
+              {board.map((p) => {
+                const net = p.total_winnings - p.total_invested;
+                return (
+                  <tr key={p.display_name}>
+                    <td>{p.display_name}</td>
+                    <td>{p.events}</td>
+                    <td>{brl(p.total_invested)}</td>
+                    <td>{brl(p.total_winnings)}</td>
+                    <td style={{ color: net >= 0 ? 'var(--accent)' : 'var(--danger)' }}>{brl(net)}</td>
+                    <td style={{ color: p.roi >= 0 ? 'var(--accent)' : 'var(--danger)' }}>{pct(p.roi)}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       )}
 
       <h2 style={{ marginTop: 20 }}>Torneios anteriores</h2>
       {tournaments.length === 0 ? <p className="notice">Sem dados.</p> : (
-        <table>
-          <thead><tr><th>Nome</th><th>Início</th><th>Prêmio</th><th>Status</th></tr></thead>
-          <tbody>
-            {tournaments.map((t) => (
-              <tr key={t.id}>
-                <td>{t.name}</td>
-                <td>{new Date(t.start_time).toLocaleString('pt-BR')}</td>
-                <td>{brl(Number(t.total_prize_pool))}</td>
-                <td><span className="pill">{t.status}</span></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div className="table-wrap">
+          <table>
+            <thead><tr><th>Nome</th><th>Início</th><th>Prêmio</th><th>Status</th></tr></thead>
+            <tbody>
+              {tournaments.map((t) => (
+                <tr key={t.id}>
+                  <td>{t.name}</td>
+                  <td>{new Date(t.start_time).toLocaleString('pt-BR')}</td>
+                  <td>{brl(Number(t.total_prize_pool))}</td>
+                  <td><span className="pill">{t.status}</span></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   );

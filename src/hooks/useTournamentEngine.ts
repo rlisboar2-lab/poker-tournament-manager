@@ -8,6 +8,7 @@ import {
   buildSchedule,
   type CurveParams,
   type BreakConfig,
+  type BlindLevel,
   type ScheduleItem,
 } from '../utils/poker-math';
 
@@ -19,6 +20,7 @@ export interface EngineParams extends CurveParams {
   late_checkin_level: number;
   ante_enabled: boolean;
   breaks: BreakConfig[];
+  override_levels?: BlindLevel[] | null; // estrutura editada manualmente (ao vivo)
 }
 
 export interface EngineState {
@@ -66,9 +68,12 @@ export function useTournamentEngine(initial: EngineParams) {
   }, []);
 
   const curve = useMemo(() => calcularCurvaBlinds(params), [params]);
+  const niveis = params.override_levels && params.override_levels.length
+    ? params.override_levels
+    : curve.niveis;
   const items: ScheduleItem[] = useMemo(
     () =>
-      buildSchedule(curve.niveis, {
+      buildSchedule(niveis, {
         level_duration_minutes: params.duracao_bloco_nivel,
         late_checkin_level: params.late_checkin_level,
         ante_enabled: params.ante_enabled,

@@ -14,8 +14,10 @@ import {
 import {
   defaultSetup,
   initialStack,
+  novoNivelEntre,
   type BaseSetup,
   type BreakConfig,
+  type BlindLevel,
 } from './utils/poker-math';
 import { addAndSeat, rebalanceSeating } from './utils/seating';
 import { saveTournament, type LocalEntry } from './services/tournaments';
@@ -46,6 +48,7 @@ interface SavedState {
   payoutPct: number[];
   stage: Stage;
   clock?: ClockSnap;
+  manualLevels?: BlindLevel[] | null;
 }
 
 const SAVE_KEY = 'ptm_state_v2';
@@ -114,6 +117,8 @@ export default function App() {
   const [payoutPct, setPayoutPct] = useState<number[]>(saved?.payoutPct ?? [0.5, 0.3, 0.2]);
   const [stage, setStage] = useState<Stage>(saved?.stage ?? 'setup');
   const [liveTab, setLiveTab] = useState<'clock' | 'mesa'>('clock');
+  // Estrutura editada manualmente ao vivo (null = usar a curva calculada).
+  const [manualLevels, setManualLevels] = useState<BlindLevel[] | null>(saved?.manualLevels ?? null);
 
   const totals = useMemo(() => ({
     buyins: entries.reduce((s, e) => s + e.buyins, 0),
@@ -145,7 +150,8 @@ export default function App() {
     late_checkin_level: config.late_checkin_level,
     ante_enabled: config.ante_enabled,
     breaks: config.breaks,
-  }), [totals, valorInicial, config, playersRemaining, effectiveTarget]);
+    override_levels: manualLevels,
+  }), [totals, valorInicial, config, playersRemaining, effectiveTarget, manualLevels]);
 
   const engine = useTournamentEngine(derivedParams);
 
@@ -165,14 +171,14 @@ export default function App() {
   // Autosave: estado geral + snapshot do relógio (a cada 2s e ao fechar).
   useEffect(() => {
     const write = () => {
-      const s: SavedState = { config, entries, payoutPct, stage, clock: engine.snapshot() };
+      const s: SavedState = { config, entries, payoutPct, stage, manualLevels, clock: engine.snapshot() };
       try { localStorage.setItem(SAVE_KEY, JSON.stringify(s)); } catch { /* quota */ }
     };
     write();
     const id = window.setInterval(write, 2000);
     window.addEventListener('beforeunload', write);
     return () => { clearInterval(id); window.removeEventListener('beforeunload', write); };
-  }, [config, entries, payoutPct, stage, engine]);
+  }, [config, entries, payoutPct, stage, manualLevels, engine]);
 
   // Posições aleatórias ao iniciar a fase ao vivo (se ninguém sentado ainda).
   useEffect(() => {
@@ -194,6 +200,34 @@ export default function App() {
     patchConfig({ breaks: [...config.breaks, { after_level: afterLvl, minutes: 10 }] });
   };
 
+  // Congela a estrutura atual em níveis editáveis manualmente.
+  const materialize = (): BlindLevel[] =>
+    (manualLevels ?? engine.curve.niveis).map((n) => ({ ...n }));
+  const renumber = (arr: BlindLevel[]) => arr.map((n, i) => ({ ...n, nivel: i + 1 }));
+
+  // Adiciona um nível logo abaixo do nível `levelNumber` (aumenta o tempo total).
+  const addLevelAfter = (levelNumber: number) => {
+    const base = materialize();
+    const idx = base.findIndex((n) => n.nivel === levelNumber);
+    if (idx < 0) return;
+    const novo = novoNivelEntre(base[idx], base[idx + 1], config.setup.smallest_chip);
+    base.splice(idx + 1, 0, { nivel: 0, ...novo });
+    setManualLevels(renumber(base));
+  };
+
+  // Remove um nível (recalcula o tempo total, que diminui).
+  const deleteLevel = (levelNumber: number) => {
+    const base = materialize().filter((n) => n.nivel !== levelNumber);
+    if (base.length < 2) return;
+    setManualLevels(renumber(base));
+  };
+
+  // Remove um intervalo — sem alterar o tempo total de jogo (níveis ficam iguais).
+  const deleteBreak = (afterLevelNumber: number) => {
+    setManualLevels(materialize()); // congela níveis para o total não mudar
+    patchConfig({ breaks: config.breaks.filter((b) => b.after_level !== afterLevelNumber) });
+  };
+
   const novoTorneio = () => {
     if (!confirm('Começar um torneio novo? Os dados atuais serão apagados.')) return;
     localStorage.removeItem(SAVE_KEY);
@@ -201,6 +235,7 @@ export default function App() {
     setConfig(defaultConfig());
     setEntries([]);
     setPayoutPct([0.5, 0.3, 0.2]);
+    setManualLevels(null);
     setStage('setup');
   };
 
@@ -248,8 +283,8 @@ export default function App() {
       </div>
       <p className="notice">
         {totals.buyins} entradas · {totals.rebuys} rebuys · {totals.addons} add-ons ·
-        {' '}{playersRemaining} na mesa · curva de {engine.curve.niveis.length} níveis
-        {' '}(r={engine.curve.multiplicador_r.toFixed(3)})
+        {' '}{playersRemaining} na mesa · {engine.state.total_levels} níveis
+        {manualLevels ? ' (editado)' : ` (r=${engine.curve.multiplicador_r.toFixed(3)})`}
       </p>
 
       <div className="tabs stepper">
@@ -277,7 +312,8 @@ export default function App() {
             <button className="ghost" onClick={inserirIntervaloAgora}>+ Intervalo após nível atual</button>
           </div>
           {liveTab === 'clock'
-            ? <Clock engine={engine} />
+            ? <Clock engine={engine} editable
+                onAddLevelAfter={addLevelAfter} onDeleteLevel={deleteLevel} onDeleteBreak={deleteBreak} />
             : <PlayersPanel entries={entries} onChange={setEntries} mode="live"
                 onAddLive={(name) => setEntries((prev) => addAndSeat(prev, name))}
                 onRebalance={() => setEntries((prev) => rebalanceSeating(prev))} />}
