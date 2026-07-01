@@ -83,7 +83,7 @@ export function quantizeBlind(bb: number, chip: number): number {
   return Math.max(chip * 2, Math.round(v / chip) * chip);
 }
 
-function bandStep(bb: number): number {
+export function bandStep(bb: number): number {
   if (bb < 200) return 50;
   if (bb < 1000) return 100;
   return 500;
@@ -104,6 +104,38 @@ export function novoNivelEntre(
     : quantizeBlind(cur.big_blind * 1.4, chip);
   if (bb <= cur.big_blind) bb = quantizeBlind(cur.big_blind + bandStep(cur.big_blind), chip);
   return { small_blind: sbForBb(bb, chip), big_blind: bb };
+}
+
+// Adiciona um nível após `afterLevelNumber` e RE-PROJETA toda a cauda:
+// mantém os níveis até o clicado, e recalcula os seguintes como uma nova
+// progressão geométrica (com +1 nível) até o mesmo BB final. Assim o torneio
+// ganha um nível de duração e a curva continua suave até o encerramento.
+export function inserirNivelContinuando(
+  levels: BlindLevel[],
+  afterLevelNumber: number,
+  chip: number
+): BlindLevel[] {
+  const i = levels.findIndex((l) => l.nivel === afterLevelNumber);
+  if (i < 0) return levels;
+
+  const kept = levels.slice(0, i + 1).map((l) => ({ ...l }));
+  const startBB = kept[kept.length - 1].big_blind;
+  const tail = levels.slice(i + 1);
+  const finalBB = tail.length ? tail[tail.length - 1].big_blind : quantizeBlind(startBB * 1.5, chip);
+  const newCount = tail.length + 1; // um nível a mais que antes
+  const ratio = finalBB > startBB ? Math.pow(finalBB / startBB, 1 / newCount) : 1;
+
+  const rebuilt: BlindLevel[] = [];
+  let prev = startBB;
+  for (let k = 1; k <= newCount; k++) {
+    let bb = quantizeBlind(startBB * Math.pow(ratio, k), chip);
+    if (bb <= prev) bb = quantizeBlind(prev + bandStep(prev), chip);
+    if (bb <= prev) bb = prev + bandStep(prev);
+    prev = bb;
+    rebuilt.push({ nivel: 0, small_blind: sbForBb(bb, chip), big_blind: bb });
+  }
+
+  return [...kept, ...rebuilt].map((l, idx) => ({ ...l, nivel: idx + 1 }));
 }
 
 // ── Cálculo de Curva e Recálculo (Feedback Loop) ────────────────────────

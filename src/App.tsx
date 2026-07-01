@@ -12,15 +12,14 @@ import {
   type ClockStatus,
 } from './hooks/useTournamentEngine';
 import {
-  defaultSetup,
   initialStack,
-  novoNivelEntre,
+  inserirNivelContinuando,
   type BaseSetup,
   type BreakConfig,
   type BlindLevel,
 } from './utils/poker-math';
 import { addAndSeat, rebalanceSeating } from './utils/seating';
-import { saveTournament, type LocalEntry } from './services/tournaments';
+import { saveTournament, listKnownPlayers, type LocalEntry } from './services/tournaments';
 import { supabase, isSupabaseConfigured } from './lib/supabase';
 import Login from './components/Login';
 import type { Session } from '@supabase/supabase-js';
@@ -60,21 +59,21 @@ function nowLocal(): string {
 }
 
 function defaultConfig(): AppConfig {
-  const setup = defaultSetup();
+  const setup: BaseSetup = { smallest_chip: 5, initial_sb: 5, initial_bb: 10, stack_bb: 300 };
   return {
     name: 'Home Game',
     start_time: nowLocal(),
     setup,
     target_time_minutos: 240,
     duracao_bloco_nivel: 20,
-    buy_in_value: 50,
-    rebuy_value: 50,
-    addon_value: 50,
-    chips_per_rebuy: initialStack(setup),
+    buy_in_value: 10,
+    rebuy_value: 15,
+    addon_value: 20,
+    chips_per_rebuy: initialStack(setup), // 3000
     chips_per_addon: initialStack(setup),
-    late_checkin_level: 4,
+    late_checkin_level: 9,
     ante_enabled: true,
-    breaks: [{ after_level: 4, minutes: 15 }], // intervalo após o último nível pré-late
+    breaks: [{ after_level: 9, minutes: 15 }], // intervalo após o último nível pré-late
   };
 }
 
@@ -119,6 +118,11 @@ export default function App() {
   const [liveTab, setLiveTab] = useState<'clock' | 'mesa'>('clock');
   // Estrutura editada manualmente ao vivo (null = usar a curva calculada).
   const [manualLevels, setManualLevels] = useState<BlindLevel[] | null>(saved?.manualLevels ?? null);
+  // Jogadores já cadastrados (para reaproveitar nomes ao adicionar buy-in).
+  const [knownPlayers, setKnownPlayers] = useState<string[]>([]);
+  useEffect(() => {
+    listKnownPlayers().then((ps) => setKnownPlayers(ps.map((p) => p.display_name))).catch(() => {});
+  }, [session]);
 
   const totals = useMemo(() => ({
     buyins: entries.reduce((s, e) => s + e.buyins, 0),
@@ -205,14 +209,10 @@ export default function App() {
     (manualLevels ?? engine.curve.niveis).map((n) => ({ ...n }));
   const renumber = (arr: BlindLevel[]) => arr.map((n, i) => ({ ...n, nivel: i + 1 }));
 
-  // Adiciona um nível logo abaixo do nível `levelNumber` (aumenta o tempo total).
+  // Adiciona um nível após `levelNumber`, reprojetando a cauda da curva
+  // (a progressão continua suave até o BB final e o tempo total aumenta).
   const addLevelAfter = (levelNumber: number) => {
-    const base = materialize();
-    const idx = base.findIndex((n) => n.nivel === levelNumber);
-    if (idx < 0) return;
-    const novo = novoNivelEntre(base[idx], base[idx + 1], config.setup.smallest_chip);
-    base.splice(idx + 1, 0, { nivel: 0, ...novo });
-    setManualLevels(renumber(base));
+    setManualLevels(inserirNivelContinuando(materialize(), levelNumber, config.setup.smallest_chip));
   };
 
   // Remove um nível (recalcula o tempo total, que diminui).
@@ -297,7 +297,7 @@ export default function App() {
 
       {stage === 'setup' && <SetupPanel config={config} onChange={patchConfig} />}
 
-      {stage === 'players' && <PlayersPanel entries={entries} onChange={setEntries} mode="setup" />}
+      {stage === 'players' && <PlayersPanel entries={entries} onChange={setEntries} mode="setup" knownPlayers={knownPlayers} />}
 
       {stage === 'payouts' && (
         <PayoutsPanel prizePool={prizePool} playerCount={entries.length}
@@ -314,7 +314,7 @@ export default function App() {
           {liveTab === 'clock'
             ? <Clock engine={engine} editable
                 onAddLevelAfter={addLevelAfter} onDeleteLevel={deleteLevel} onDeleteBreak={deleteBreak} />
-            : <PlayersPanel entries={entries} onChange={setEntries} mode="live"
+            : <PlayersPanel entries={entries} onChange={setEntries} mode="live" knownPlayers={knownPlayers}
                 onAddLive={(name) => setEntries((prev) => addAndSeat(prev, name))}
                 onRebalance={() => setEntries((prev) => rebalanceSeating(prev))} />}
         </>

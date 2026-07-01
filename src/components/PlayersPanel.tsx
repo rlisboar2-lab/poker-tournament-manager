@@ -6,11 +6,12 @@ interface Props {
   entries: LocalEntry[];
   onChange: (entries: LocalEntry[]) => void;
   mode?: 'setup' | 'live';
+  knownPlayers?: string[];               // nomes já cadastrados (autocompletar)
   onAddLive?: (name: string) => void;   // adiciona + acomoda na mesa (live)
   onRebalance?: () => void;              // recalcula posições nas mesas
 }
 
-export default function PlayersPanel({ entries, onChange, mode = 'setup', onAddLive, onRebalance }: Props) {
+export default function PlayersPanel({ entries, onChange, mode = 'setup', knownPlayers = [], onAddLive, onRebalance }: Props) {
   const [name, setName] = useState('');
   const live = mode === 'live';
 
@@ -42,8 +43,11 @@ export default function PlayersPanel({ entries, onChange, mode = 'setup', onAddL
         {live && <span className="pill" style={{ marginLeft: 8 }}>{remaining} na mesa</span>}
         {live && tables.length > 0 && <span className="pill" style={{ marginLeft: 6 }}>{tables.length} mesa(s)</span>}
       </h2>
+      <datalist id="known-players">
+        {knownPlayers.map((n) => <option key={n} value={n} />)}
+      </datalist>
       <div className="row" style={{ marginBottom: 12 }}>
-        <input placeholder={live ? 'Entrada tardia (nome)' : 'Nome do jogador'} value={name}
+        <input list="known-players" placeholder={live ? 'Entrada tardia (nome)' : 'Nome do jogador'} value={name}
           onChange={(e) => setName(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && add()} />
         <button className="primary" onClick={add}>{live ? 'Entrar agora' : 'Adicionar'}</button>

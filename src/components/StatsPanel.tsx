@@ -4,7 +4,12 @@ import { isSupabaseConfigured } from '../lib/supabase';
 import {
   listTournaments,
   playerLeaderboard,
+  listKnownPlayers,
+  renamePlayer,
+  renameTournament,
+  deleteTournament,
   type PlayerStat,
+  type KnownPlayer,
 } from '../services/tournaments';
 import type { BaseTournament } from '../types/database';
 import { brl, pct } from '../utils/format';
@@ -16,6 +21,7 @@ interface Props {
 export default function StatsPanel({ onSave }: Props) {
   const [tournaments, setTournaments] = useState<BaseTournament[]>([]);
   const [board, setBoard] = useState<PlayerStat[]>([]);
+  const [players, setPlayers] = useState<KnownPlayer[]>([]);
   const [msg, setMsg] = useState<string>('');
   const [busy, setBusy] = useState(false);
 
@@ -23,12 +29,31 @@ export default function StatsPanel({ onSave }: Props) {
     try {
       setTournaments(await listTournaments());
       setBoard(await playerLeaderboard());
+      setPlayers(await listKnownPlayers());
     } catch (e) {
       setMsg(`Erro ao carregar: ${(e as Error).message}`);
     }
   };
 
   useEffect(() => { if (isSupabaseConfigured) refresh(); }, []);
+
+  const doRenamePlayer = async (p: KnownPlayer) => {
+    const nome = prompt('Novo nome do jogador:', p.display_name);
+    if (!nome || nome.trim() === p.display_name) return;
+    try { await renamePlayer(p.id, nome.trim()); await refresh(); }
+    catch (e) { setMsg(`Erro: ${(e as Error).message}`); }
+  };
+  const doRenameTournament = async (t: BaseTournament) => {
+    const nome = prompt('Novo nome do torneio:', t.name);
+    if (!nome || nome.trim() === t.name) return;
+    try { await renameTournament(t.id, nome.trim()); await refresh(); }
+    catch (e) { setMsg(`Erro: ${(e as Error).message}`); }
+  };
+  const doDeleteTournament = async (t: BaseTournament) => {
+    if (!confirm(`Excluir o torneio "${t.name}"? Isso apaga suas entradas e recalcula o ranking. Não dá pra desfazer.`)) return;
+    try { await deleteTournament(t.id); await refresh(); }
+    catch (e) { setMsg(`Erro: ${(e as Error).message}`); }
+  };
 
   const save = async () => {
     setBusy(true); setMsg('');
@@ -92,7 +117,7 @@ export default function StatsPanel({ onSave }: Props) {
       {tournaments.length === 0 ? <p className="notice">Sem dados.</p> : (
         <div className="table-wrap">
           <table>
-            <thead><tr><th>Nome</th><th>Início</th><th>Prêmio</th><th>Status</th></tr></thead>
+            <thead><tr><th>Nome</th><th>Início</th><th>Prêmio</th><th>Status</th><th></th></tr></thead>
             <tbody>
               {tournaments.map((t) => (
                 <tr key={t.id}>
@@ -100,6 +125,27 @@ export default function StatsPanel({ onSave }: Props) {
                   <td>{new Date(t.start_time).toLocaleString('pt-BR')}</td>
                   <td>{brl(Number(t.total_prize_pool))}</td>
                   <td><span className="pill">{t.status}</span></td>
+                  <td className="row" style={{ flexWrap: 'nowrap' }}>
+                    <button className="ghost" onClick={() => doRenameTournament(t)}>✏</button>
+                    <button className="danger" onClick={() => doDeleteTournament(t)}>🗑</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <h2 style={{ marginTop: 20 }}>Jogadores cadastrados</h2>
+      {players.length === 0 ? <p className="notice">Sem jogadores salvos.</p> : (
+        <div className="table-wrap">
+          <table>
+            <thead><tr><th>Nome</th><th></th></tr></thead>
+            <tbody>
+              {players.map((p) => (
+                <tr key={p.id}>
+                  <td>{p.display_name}</td>
+                  <td><button className="ghost" onClick={() => doRenamePlayer(p)}>✏ Renomear</button></td>
                 </tr>
               ))}
             </tbody>

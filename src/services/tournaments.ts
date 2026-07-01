@@ -114,20 +114,9 @@ export async function saveTournament(input: SaveTournamentInput): Promise<string
     for (let i = 0; i < Math.max(0, e.addons); i++) {
       rows.push({ tournament_id, player_id, amount: input.addon_value, is_rebuy: false, is_addon: true, payout_amount: 0 });
     }
-    // Acumula histórico do jogador: ganhos + pontos do ranking.
-    // Pontos: 1º lugar = nº de participantes, 2º = nº-1, ... (mínimo 0).
-    const totalPlayers = input.entries.length;
-    const pts = e.final_placement ? Math.max(0, totalPlayers - e.final_placement + 1) : 0;
-    const win = e.payout_amount ?? 0;
-    if (pts > 0 || win > 0) {
-      const { data: p } = await supabase
-        .from('sub_players').select('total_winnings, total_points').eq('id', player_id).single();
-      await supabase.from('sub_players').update({
-        total_winnings: Number(p?.total_winnings ?? 0) + win,
-        total_points: Number(p?.total_points ?? 0) + pts,
-      }).eq('id', player_id);
-    }
   }
+  // Nota: pontos/ganhos/ROI são derivados das transações no ranking (nada de
+  // agregados armazenados), assim editar/apagar torneios recalcula tudo certo.
   if (rows.length) {
     const { error } = await supabase.from('transactions').insert(rows);
     if (error) throw error;
@@ -155,28 +144,78 @@ export interface PlayerStat {
   events: number;
 }
 
+export interface KnownPlayer { id: string; display_name: string; }
+
+export async function listKnownPlayers(): Promise<KnownPlayer[]> {
+  if (!isSupabaseConfigured || !supabase) return [];
+  const { data, error } = await supabase
+    .from('sub_players').select('id, display_name').order('display_name');
+  if (error) throw error;
+  return (data ?? []) as KnownPlayer[];
+}
+
+export async function renamePlayer(id: string, display_name: string): Promise<void> {
+  if (!supabase) return;
+  const { error } = await supabase.from('sub_players').update({ display_name }).eq('id', id);
+  if (error) throw error;
+}
+
+export async function renameTournament(id: string, name: string): Promise<void> {
+  if (!supabase) return;
+  const { error } = await supabase.from('base_tournaments').update({ name }).eq('id', id);
+  if (error) throw error;
+}
+
+export async function deleteTournament(id: string): Promise<void> {
+  if (!supabase) return;
+  // Cascade remove transações e blinds (FK on delete cascade).
+  const { error } = await supabase.from('base_tournaments').delete().eq('id', id);
+  if (error) throw error;
+}
+
+// Ranking derivado das transações (sem agregados armazenados), então
+// editar/apagar torneios recalcula pontos, ganhos e ROI automaticamente.
 export async function playerLeaderboard(): Promise<PlayerStat[]> {
   if (!isSupabaseConfigured || !supabase) return [];
-  const { data: players, error } = await supabase
-    .from('sub_players').select('id, display_name, total_winnings, total_points');
+  const { data: players, error } = await supabase.from('sub_players').select('id, display_name');
   if (error) throw error;
+  const { data: txs, error: txErr } = await supabase
+    .from('transactions')
+    .select('player_id, tournament_id, amount, is_rebuy, is_addon, final_placement, payout_amount');
+  if (txErr) throw txErr;
+
+  // Participantes por torneio = jogadores com buy-in (não rebuy/add-on).
+  const participants = new Map<string, Set<string>>();
+  // Colocação por (jogador, torneio).
+  const placement = new Map<string, number>();
+  for (const t of txs ?? []) {
+    if (!t.is_rebuy && !t.is_addon) {
+      if (!participants.has(t.tournament_id)) participants.set(t.tournament_id, new Set());
+      participants.get(t.tournament_id)!.add(t.player_id);
+    }
+    if (t.final_placement != null) placement.set(`${t.player_id}|${t.tournament_id}`, t.final_placement);
+  }
 
   const out: PlayerStat[] = [];
   for (const p of players ?? []) {
-    const { data: txs } = await supabase
-      .from('transactions')
-      .select('amount, tournament_id')
-      .eq('player_id', p.id);
-    const invested = (txs ?? []).reduce((s, t) => s + Number(t.amount), 0);
-    const events = new Set((txs ?? []).map((t) => t.tournament_id)).size;
-    const winnings = Number(p.total_winnings ?? 0);
+    const mine = (txs ?? []).filter((t) => t.player_id === p.id);
+    if (mine.length === 0) continue;
+    const invested = mine.reduce((s, t) => s + Number(t.amount), 0);
+    const winnings = mine.reduce((s, t) => s + Number(t.payout_amount ?? 0), 0);
+    const tourneys = new Set(mine.map((t) => t.tournament_id));
+    let points = 0;
+    for (const tid of tourneys) {
+      const np = participants.get(tid)?.size ?? 0;
+      const pl = placement.get(`${p.id}|${tid}`);
+      if (pl) points += Math.max(0, np - pl + 1);
+    }
     out.push({
       display_name: p.display_name,
-      points: Number(p.total_points ?? 0),
+      points,
       total_winnings: winnings,
       total_invested: invested,
       roi: invested > 0 ? (winnings - invested) / invested : 0,
-      events,
+      events: tourneys.size,
     });
   }
   // Ordena por pontos (desempate por líquido).

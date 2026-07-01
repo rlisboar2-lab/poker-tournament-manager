@@ -147,7 +147,7 @@ export default function Clock({ engine, editable, onAddLevelAfter, onDeleteLevel
 
   return (
     <div className={`panel clock-panel ${isFs ? 'fs' : ''}`} ref={fsRef}>
-      {!audioReady && (
+      {!audioReady && !isFs && (
         <button className="primary enable-audio" onClick={enableAudio}>
           🔊 Ativar som dos alarmes (toque para liberar áudio)
         </button>
@@ -190,10 +190,12 @@ export default function Clock({ engine, editable, onAddLevelAfter, onDeleteLevel
 
       {alarming && <button className="danger alarm-stop" onClick={stopAlarm}>🔔 Parar alarme</button>}
 
-      <div className="kpis">
-        <div className="kpi-box"><label>Stack médio</label><div className="kpi">{chips(state.average_stack)}</div></div>
-        <div className="kpi-box"><label>Pressão</label><div className="kpi">{state.pressure_bb.toFixed(1)} BB</div></div>
-      </div>
+      {!isFs && (
+        <div className="kpis">
+          <div className="kpi-box"><label>Stack médio</label><div className="kpi">{chips(state.average_stack)}</div></div>
+          <div className="kpi-box"><label>Pressão</label><div className="kpi">{state.pressure_bb.toFixed(1)} BB</div></div>
+        </div>
+      )}
 
       <div className="clock-controls">
         <button className="ghost" onClick={prev} title="Voltar nível">⏮</button>
@@ -201,23 +203,25 @@ export default function Clock({ engine, editable, onAddLevelAfter, onDeleteLevel
           ? <button className="primary" onClick={onStart}>▶ Iniciar</button>
           : <button className="ghost" onClick={pause}>⏸ Pausar</button>}
         <button className="ghost" onClick={next} title="Avançar nível">⏭</button>
-        <button className="ghost" onClick={() => addSeconds(-60)} title="−1 min">−1m</button>
-        <button className="ghost" onClick={() => addSeconds(60)} title="+1 min">+1m</button>
-        <button className="danger" onClick={onReset} title="Reiniciar">↺</button>
+        {!isFs && <button className="ghost" onClick={() => addSeconds(-60)} title="−1 min">−1m</button>}
+        {!isFs && <button className="ghost" onClick={() => addSeconds(60)} title="+1 min">+1m</button>}
+        {!isFs && <button className="danger" onClick={onReset} title="Reiniciar">↺</button>}
+        <button className="ghost" onClick={toggleFs}>{isFs ? '✕ Sair' : '⛶ Tela cheia'}</button>
       </div>
-      <div className="clock-controls">
-        <button className="ghost" onClick={toggleFs}>{isFs ? '✕ Sair tela cheia' : '⛶ Tela cheia'}</button>
-        <button className={`ghost ${alarms ? 'on' : ''}`} onClick={() => setAlarms((v) => !v)}>
-          {alarms ? '🔔 Alarmes' : '🔕 Alarmes'}
-        </button>
-        <button className="ghost" onClick={() => ensureAlarm().test()}>🔉 Testar som</button>
-        {wake.supported && (
-          <button className={`ghost ${wake.enabled ? 'on' : ''}`} onClick={() => wake.setEnabled((v) => !v)}>
-            {wake.enabled ? '📱 Tela ligada' : '📱 Manter tela'}
+      {!isFs && (
+        <div className="clock-controls">
+          <button className={`ghost ${alarms ? 'on' : ''}`} onClick={() => setAlarms((v) => !v)}>
+            {alarms ? '🔔 Alarmes' : '🔕 Alarmes'}
           </button>
-        )}
-        <button className="ghost qr-toggle" onClick={() => setShowQr(true)}>Mostrar QR</button>
-      </div>
+          <button className="ghost" onClick={() => ensureAlarm().test()}>🔉 Testar som</button>
+          {wake.supported && (
+            <button className={`ghost ${wake.enabled ? 'on' : ''}`} onClick={() => wake.setEnabled((v) => !v)}>
+              {wake.enabled ? '📱 Tela ligada' : '📱 Manter tela'}
+            </button>
+          )}
+          <button className="ghost qr-toggle" onClick={() => setShowQr(true)}>Mostrar QR</button>
+        </div>
+      )}
 
       {showQr && <PixQr onClose={() => setShowQr(false)} />}
 

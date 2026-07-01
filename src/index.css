@@ -85,11 +85,15 @@ button.ghost.on { border-color: var(--accent); color: var(--accent); }
 .ranking li { margin: 4px 0; }
 
 /* Tela cheia do relógio — overlay CSS (funciona no celular sem API nativa) */
-.clock-panel.fs { position: fixed; inset: 0; z-index: 1500; overflow-y: auto;
-  display: flex; flex-direction: column; justify-content: center; align-items: center;
-  background: var(--bg); margin: 0; border: none; border-radius: 0; }
-.clock-panel.fs .clock-big { font-size: clamp(90px, 22vw, 240px); }
-.clock-panel.fs .blinds { font-size: clamp(40px, 9vw, 90px); }
+.clock-panel.fs { position: fixed; inset: 0; z-index: 1500;
+  width: 100vw; height: 100vh; height: 100dvh; overflow: hidden;
+  display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 6px;
+  background: var(--bg); margin: 0; padding: 12px; border: none; border-radius: 0; }
+.clock-panel.fs .clock-big { font-size: min(30vh, 30vw); line-height: 1; margin: 0; }
+.clock-panel.fs .blinds { font-size: min(14vh, 14vw); }
+.clock-panel.fs .ante { font-size: min(5vh, 5vw); }
+.clock-panel.fs .clock-controls { margin-top: 10px; }
+body:has(.clock-panel.fs) { overflow: hidden; }
 
 /* Responsivo / mobile */
 @media (max-width: 640px) {
