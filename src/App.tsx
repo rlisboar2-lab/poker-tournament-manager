@@ -228,6 +228,36 @@ export default function App() {
     patchConfig({ breaks: config.breaks.filter((b) => b.after_level !== afterLevelNumber) });
   };
 
+  // Eliminação ao vivo → preenche colocação e prêmio automaticamente.
+  // Quem cai primeiro fica em último; o último de pé é o 1º.
+  const toggleEliminated = (index: number, eliminate: boolean) => {
+    setEntries((prev) => {
+      const activeCount = prev.filter((e) => !e.eliminated).length;
+      let next = prev.map((e, i) => {
+        if (i !== index) return e;
+        if (eliminate) {
+          const placement = activeCount; // termina nesta colocação
+          const pct = payoutPct[placement - 1] ?? 0;
+          return { ...e, eliminated: true, table: undefined, seat: undefined,
+            final_placement: placement, payout_amount: prizePool * pct };
+        }
+        return { ...e, eliminated: false, final_placement: undefined, payout_amount: undefined };
+      });
+      // Sobrando 1 ativo, ele é o campeão (1º); com mais de 1, ninguém é 1º ainda.
+      const active = next.filter((e) => !e.eliminated);
+      if (active.length === 1) {
+        const champ = active[0];
+        next = next.map((e) => e === champ
+          ? { ...e, final_placement: 1, payout_amount: prizePool * (payoutPct[0] ?? 0) }
+          : e);
+      } else {
+        next = next.map((e) => (!e.eliminated && e.final_placement === 1)
+          ? { ...e, final_placement: undefined, payout_amount: undefined } : e);
+      }
+      return next;
+    });
+  };
+
   const novoTorneio = () => {
     if (!confirm('Começar um torneio novo? Os dados atuais serão apagados.')) return;
     localStorage.removeItem(SAVE_KEY);
@@ -322,7 +352,8 @@ export default function App() {
                 onAddLevelAfter={addLevelAfter} onDeleteLevel={deleteLevel} onDeleteBreak={deleteBreak} />
             : <PlayersPanel entries={entries} onChange={setEntries} mode="live" knownPlayers={knownPlayers}
                 onAddLive={(name) => setEntries((prev) => addAndSeat(prev, name))}
-                onRebalance={() => setEntries((prev) => rebalanceSeating(prev))} />}
+                onRebalance={() => setEntries((prev) => rebalanceSeating(prev))}
+                onEliminate={toggleEliminated} />}
         </>
       )}
 

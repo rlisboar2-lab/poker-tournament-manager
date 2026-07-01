@@ -9,9 +9,10 @@ interface Props {
   knownPlayers?: string[];               // nomes já cadastrados (autocompletar)
   onAddLive?: (name: string) => void;   // adiciona + acomoda na mesa (live)
   onRebalance?: () => void;              // recalcula posições nas mesas
+  onEliminate?: (index: number, eliminate: boolean) => void; // colocação automática
 }
 
-export default function PlayersPanel({ entries, onChange, mode = 'setup', knownPlayers = [], onAddLive, onRebalance }: Props) {
+export default function PlayersPanel({ entries, onChange, mode = 'setup', knownPlayers = [], onAddLive, onRebalance, onEliminate }: Props) {
   const [name, setName] = useState('');
   const live = mode === 'live';
 
@@ -83,8 +84,10 @@ export default function PlayersPanel({ entries, onChange, mode = 'setup', knownP
                   {live && (
                     <td>
                       <button className={e.eliminated ? 'ghost' : 'danger'}
-                        onClick={() => patch(i, { eliminated: !e.eliminated, table: undefined, seat: undefined })}>
-                        {e.eliminated ? '↩ Reentrar' : '✗ Eliminar'}
+                        onClick={() => onEliminate
+                          ? onEliminate(i, !e.eliminated)
+                          : patch(i, { eliminated: !e.eliminated, table: undefined, seat: undefined })}>
+                        {e.eliminated ? `↩ ${e.final_placement ?? ''}º · Reentrar` : '✗ Eliminar'}
                       </button>
                     </td>
                   )}
