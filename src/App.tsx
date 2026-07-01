@@ -196,6 +196,21 @@ export default function App() {
     totals.rebuys * config.rebuy_value +
     totals.addons * config.addon_value;
 
+  // Prêmios sempre em dia: recalcula o valor de todos os colocados quando o
+  // pote (rebuys/add-ons) ou os percentuais da premiação mudam.
+  useEffect(() => {
+    setEntries((prev) => {
+      let changed = false;
+      const next = prev.map((e) => {
+        if (!e.final_placement) return e;
+        const target = prizePool * (payoutPct[e.final_placement - 1] ?? 0);
+        if (Math.abs((e.payout_amount ?? 0) - target) > 1e-6) { changed = true; return { ...e, payout_amount: target }; }
+        return e;
+      });
+      return changed ? next : prev;
+    });
+  }, [prizePool, payoutPct]);
+
   const patchConfig = (p: Partial<AppConfig>) => setConfig((c) => ({ ...c, ...p }));
 
   const inserirIntervaloAgora = () => {
