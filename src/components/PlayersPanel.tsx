@@ -16,13 +16,18 @@ export default function PlayersPanel({ entries, onChange, mode = 'setup', knownP
   const [name, setName] = useState('');
   const live = mode === 'live';
 
-  const add = () => {
-    const n = name.trim();
-    if (!n) return;
-    if (live && onAddLive) onAddLive(n);
-    else onChange([...entries, { name: n, buyins: 1, rebuys: 0, addons: 0 }]);
-    setName('');
+  const addByName = (n: string) => {
+    const nome = n.trim();
+    if (!nome) return;
+    if (live && onAddLive) onAddLive(nome);
+    else onChange([...entries, { name: nome, buyins: 1, rebuys: 0, addons: 0 }]);
   };
+
+  const add = () => { addByName(name); setName(''); };
+
+  // Cadastrados que ainda não estão neste torneio (para adição com 1 clique).
+  const jaNoTorneio = (n: string) => entries.some((e) => e.name.toLowerCase() === n.toLowerCase());
+  const disponiveis = knownPlayers.filter((n) => !jaNoTorneio(n));
 
   const patch = (i: number, p: Partial<LocalEntry>) =>
     onChange(entries.map((e, idx) => (idx === i ? { ...e, ...p } : e)));
@@ -56,6 +61,17 @@ export default function PlayersPanel({ entries, onChange, mode = 'setup', knownP
           <button className="ghost" onClick={onRebalance}>🎲 Calcular posições na mesa</button>
         )}
       </div>
+
+      {disponiveis.length > 0 && (
+        <div style={{ marginBottom: 12 }}>
+          <label>Adicionar cadastrados (1 clique)</label>
+          <div className="quick-add">
+            {disponiveis.map((n) => (
+              <button key={n} className="chip" onClick={() => addByName(n)}>+ {n}</button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {entries.length === 0 ? (
         <p className="notice">Nenhum jogador ainda.</p>
