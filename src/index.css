@@ -17,6 +17,7 @@ body { margin: 0; background: var(--bg); color: var(--text); }
 
 .app { max-width: 1100px; margin: 0 auto; padding: 20px; }
 h1 { font-size: 22px; margin: 0 0 4px; }
+.credit { margin: 0; font-size: 12px; color: var(--muted); }
 h2 { font-size: 16px; margin: 0 0 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
 
 .tabs { display: flex; gap: 8px; margin: 16px 0; flex-wrap: wrap; }

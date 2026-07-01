@@ -275,7 +275,10 @@ export default function App() {
   return (
     <div className="app">
       <div className="row" style={{ justifyContent: 'space-between' }}>
-        <h1>♠ Gerenciador de Torneios — Texas Hold'em</h1>
+        <div>
+          <h1>♠ Gerenciador de Torneios — Texas Hold'em</h1>
+          <p className="credit">Criado por @RodLisboa_</p>
+        </div>
         <div className="row">
           <button className="ghost" onClick={novoTorneio}>Novo torneio</button>
           {session && <button className="ghost" onClick={() => supabase?.auth.signOut()}>Sair</button>}
