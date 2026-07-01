@@ -1,0 +1,15 @@
+{
+  "name": "Gerenciador de Torneios — Texas Hold'em",
+  "short_name": "Torneios",
+  "description": "Relógio e gestão de torneios de poker (home game).",
+  "start_url": "/",
+  "scope": "/",
+  "display": "fullscreen",
+  "display_override": ["fullscreen", "standalone"],
+  "orientation": "any",
+  "background_color": "#0d1117",
+  "theme_color": "#0d1117",
+  "icons": [
+    { "src": "/icon.svg", "type": "image/svg+xml", "sizes": "any", "purpose": "any maskable" }
+  ]
+}

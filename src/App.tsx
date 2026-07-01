@@ -298,7 +298,10 @@ export default function App() {
         ))}
       </div>
 
-      {stage === 'setup' && <SetupPanel config={config} onChange={patchConfig} />}
+      {stage === 'setup' && (
+        <SetupPanel config={config} onChange={patchConfig}
+          onRestoreDefaults={() => { const d = defaultConfig(); setConfig({ ...d, start_time: config.start_time }); setManualLevels(null); }} />
+      )}
 
       {stage === 'players' && <PlayersPanel entries={entries} onChange={setEntries} mode="setup" knownPlayers={knownPlayers} />}
 

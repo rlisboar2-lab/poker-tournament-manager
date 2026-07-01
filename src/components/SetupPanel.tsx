@@ -6,9 +6,10 @@ import { chips } from '../utils/format';
 interface Props {
   config: AppConfig;
   onChange: (patch: Partial<AppConfig>) => void;
+  onRestoreDefaults?: () => void;
 }
 
-export default function SetupPanel({ config, onChange }: Props) {
+export default function SetupPanel({ config, onChange, onRestoreDefaults }: Props) {
   const s = config.setup;
   const setSetup = (patch: Partial<AppConfig['setup']>) =>
     onChange({ setup: { ...s, ...patch } });
@@ -17,7 +18,12 @@ export default function SetupPanel({ config, onChange }: Props) {
 
   return (
     <div className="panel">
-      <h2>Setup do Torneio</h2>
+      <div className="row" style={{ justifyContent: 'space-between' }}>
+        <h2>Setup do Torneio</h2>
+        {onRestoreDefaults && (
+          <button className="ghost" onClick={onRestoreDefaults}>↺ Restaurar padrão</button>
+        )}
+      </div>
       <div className="grid">
         <div>
           <label>Nome do torneio</label>
