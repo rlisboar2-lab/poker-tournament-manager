@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { useTournamentEngine } from '../hooks/useTournamentEngine';
 import { useWakeLock } from '../hooks/useWakeLock';
 import { chips, clock } from '../utils/format';
+import { adjustClockZoom } from '../theme';
 import PixQr from './PixQr';
 
 type Engine = ReturnType<typeof useTournamentEngine>;
@@ -206,6 +207,8 @@ export default function Clock({ engine, editable, onAddLevelAfter, onDeleteLevel
         {!isFs && <button className="ghost" onClick={() => addSeconds(-60)} title="−1 min">−1m</button>}
         {!isFs && <button className="ghost" onClick={() => addSeconds(60)} title="+1 min">+1m</button>}
         {!isFs && <button className="danger" onClick={onReset} title="Reiniciar">↺</button>}
+        <button className="ghost" onClick={() => adjustClockZoom(-0.1)} title="Diminuir o visor">🔍−</button>
+        <button className="ghost" onClick={() => adjustClockZoom(+0.1)} title="Aumentar o visor">🔍＋</button>
         <button className="ghost" onClick={toggleFs}>{isFs ? '✕ Sair' : '⛶ Tela cheia'}</button>
       </div>
       {!isFs && (

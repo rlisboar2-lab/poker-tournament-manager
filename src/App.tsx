@@ -23,6 +23,7 @@ import { quadraPreset } from './presets';
 import { saveTournament, listKnownPlayers, type LocalEntry } from './services/tournaments';
 import { supabase, isSupabaseConfigured } from './lib/supabase';
 import Login from './components/Login';
+import ThemePanel from './components/ThemePanel';
 import type { Session } from '@supabase/supabase-js';
 
 export interface AppConfig {
@@ -127,6 +128,8 @@ export default function App() {
   // Transmissão ao vivo (link público /watch/:id).
   const [liveShareId, setLiveShareId] = useState<string | null>(saved?.liveShareId ?? null);
   const [copied, setCopied] = useState(false);
+  // Painel de personalização visual (cores/fontes/zoom — src/theme.ts).
+  const [showTheme, setShowTheme] = useState(false);
   // Jogadores já cadastrados (para reaproveitar nomes ao adicionar buy-in).
   const [knownPlayers, setKnownPlayers] = useState<string[]>([]);
   useEffect(() => {
@@ -371,6 +374,7 @@ export default function App() {
           <p className="credit">Criado por @RodLisboa_</p>
         </div>
         <div className="row">
+          <button className="ghost" onClick={() => setShowTheme(true)} title="Personalização visual">🎨 Personalizar</button>
           <button className="ghost" onClick={novoTorneio}>Novo torneio</button>
           {session && <button className="ghost" onClick={() => supabase?.auth.signOut()}>Sair</button>}
         </div>
@@ -451,6 +455,8 @@ export default function App() {
       )}
 
       {stage === 'stats' && <StatsPanel onSave={onSave} />}
+
+      {showTheme && <ThemePanel onClose={() => setShowTheme(false)} />}
 
       <div className="row nav-row">
         <button className="ghost" disabled={stageIdx === 0} onClick={() => go(-1)}>← Voltar</button>

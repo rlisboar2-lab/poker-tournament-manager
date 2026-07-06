@@ -9,11 +9,16 @@
   --accent-2: #3b82f6;
   --danger: #f85149;
   --gold: #e3b341;
-  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  /* Personalização visual (src/theme.ts sobrescreve estas variáveis) */
+  --font: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  --clock-font: var(--font);
+  --clock-zoom: 1;
+  font-family: var(--font);
 }
 
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--text); }
+button, input, select { font-family: inherit; }
 
 .app { max-width: 1100px; margin: 0 auto; padding: 20px; }
 h1 { font-size: 22px; margin: 0 0 4px; }
@@ -26,9 +31,9 @@ h1 { font-size: 22px; margin: 0 0 4px; }
 .watch .clock-panel { position: relative; margin: 0; border: none; border-radius: 0; text-align: center;
   min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column;
   justify-content: center; align-items: center; gap: 1vmin; padding: 1.5vmin; }
-.watch .clock-big { font-size: min(46vh, 34vw); line-height: 0.9; }
-.watch .blinds { font-size: min(18vh, 20vw); line-height: 1; }
-.watch .ante { font-size: min(6vh, 7vw); }
+.watch .clock-big { font-size: calc(min(46vh, 34vw) * var(--clock-zoom, 1)); line-height: 0.9; }
+.watch .blinds { font-size: calc(min(18vh, 20vw) * var(--clock-zoom, 1)); line-height: 1; }
+.watch .ante { font-size: calc(min(6vh, 7vw) * var(--clock-zoom, 1)); }
 .watch .sub { font-size: min(4vh, 4.5vw); }
 
 .quick-add { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -55,10 +60,10 @@ table { width: 100%; border-collapse: collapse; }
 th, td { text-align: left; padding: 8px; border-bottom: 1px solid var(--border); font-size: 14px; }
 th { color: var(--muted); font-weight: 600; }
 
-.clock-big { font-size: 72px; font-weight: 800; text-align: center; letter-spacing: .03em; font-variant-numeric: tabular-nums; }
-.blinds { font-size: 40px; font-weight: 700; text-align: center; color: var(--gold); }
-.ante { text-align: center; color: var(--accent-2); font-weight: 600; margin-top: 2px; }
-.break-label { text-align: center; font-size: 28px; font-weight: 800; color: var(--accent); letter-spacing: .05em; }
+.clock-big { font-size: calc(72px * var(--clock-zoom, 1)); font-weight: 800; text-align: center; letter-spacing: .03em; font-variant-numeric: tabular-nums; font-family: var(--clock-font); }
+.blinds { font-size: calc(40px * var(--clock-zoom, 1)); font-weight: 700; text-align: center; color: var(--gold); font-family: var(--clock-font); }
+.ante { text-align: center; color: var(--accent-2); font-weight: 600; margin-top: 2px; font-size: calc(16px * var(--clock-zoom, 1)); }
+.break-label { text-align: center; font-size: calc(28px * var(--clock-zoom, 1)); font-weight: 800; color: var(--accent); letter-spacing: .05em; }
 .sub { text-align: center; color: var(--muted); }
 .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .kpi { font-size: 28px; font-weight: 700; }
@@ -95,6 +100,15 @@ button.ghost.on { border-color: var(--accent); color: var(--accent); }
 .qr-card h2 { margin-bottom: 12px; }
 .qr-card .primary { margin-top: 14px; }
 
+/* Painel de personalização visual (usa o mesmo overlay do QR) */
+.theme-card { background: var(--panel); border: 1px solid var(--border); border-radius: 16px;
+  padding: 20px; width: min(560px, 94vw); max-height: 90vh; max-height: 90dvh; overflow-y: auto;
+  text-align: left; }
+.theme-card h2 { margin-bottom: 12px; }
+.theme-colors { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 10px; }
+input[type="color"] { padding: 2px; height: 38px; cursor: pointer; }
+input[type="range"] { padding: 0; accent-color: var(--accent); }
+
 /* Mesas / assentos */
 .seating { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 16px; }
 .seating-table { background: var(--panel-2); border: 1px solid var(--border); border-radius: 10px;
@@ -108,9 +122,9 @@ button.ghost.on { border-color: var(--accent); color: var(--accent); }
   display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 1vmin;
   background: var(--bg); margin: 0; padding: 1.5vmin; border: none; border-radius: 0; }
 /* O mais legível possível em telas pequenas: usa a maior dimensão disponível. */
-.clock-panel.fs .clock-big { font-size: min(46vh, 34vw); line-height: 0.9; margin: 0; }
-.clock-panel.fs .blinds { font-size: min(18vh, 20vw); line-height: 1; }
-.clock-panel.fs .ante { font-size: min(6vh, 7vw); }
+.clock-panel.fs .clock-big { font-size: calc(min(46vh, 34vw) * var(--clock-zoom, 1)); line-height: 0.9; margin: 0; }
+.clock-panel.fs .blinds { font-size: calc(min(18vh, 20vw) * var(--clock-zoom, 1)); line-height: 1; }
+.clock-panel.fs .ante { font-size: calc(min(6vh, 7vw) * var(--clock-zoom, 1)); }
 .clock-panel.fs .sub { font-size: min(4vh, 4.5vw); }
 .clock-panel.fs .clock-top { margin: 0; }
 .clock-panel.fs .clock-controls { position: absolute; bottom: 1.5vmin; margin: 0; }
@@ -126,19 +140,19 @@ body:has(.clock-panel.fs) { overflow: hidden; }
 @media (max-width: 640px) {
   .app { padding: 12px; }
   h1 { font-size: 18px; }
-  .clock-big { font-size: clamp(56px, 18vw, 96px); }
-  .blinds { font-size: clamp(28px, 9vw, 44px); }
+  .clock-big { font-size: calc(clamp(56px, 18vw, 96px) * var(--clock-zoom, 1)); }
+  .blinds { font-size: calc(clamp(28px, 9vw, 44px) * var(--clock-zoom, 1)); }
   .tabs button { padding: 7px 10px; font-size: 12px; }
 }
 
 /* Celular deitado (landscape): dimensiona pela ALTURA pra não estourar a tela */
 @media (orientation: landscape) and (max-height: 560px) {
-  .clock-big { font-size: clamp(48px, 26vh, 150px); }
-  .blinds { font-size: clamp(26px, 12vh, 70px); }
+  .clock-big { font-size: calc(clamp(48px, 26vh, 150px) * var(--clock-zoom, 1)); }
+  .blinds { font-size: calc(clamp(26px, 12vh, 70px) * var(--clock-zoom, 1)); }
   .kpis { margin: 8px 0; }
   /* Tela cheia deitada (visor pequeno): o maior possível, sem teto rígido. */
   .clock-panel.fs { padding: 1vmin; }
-  .clock-panel.fs .clock-big, .watch .clock-big { font-size: min(52vh, 30vw); }
-  .clock-panel.fs .blinds, .watch .blinds { font-size: min(20vh, 18vw); }
-  .clock-panel.fs .ante, .watch .ante { font-size: min(7vh, 6vw); }
+  .clock-panel.fs .clock-big, .watch .clock-big { font-size: calc(min(52vh, 30vw) * var(--clock-zoom, 1)); }
+  .clock-panel.fs .blinds, .watch .blinds { font-size: calc(min(20vh, 18vw) * var(--clock-zoom, 1)); }
+  .clock-panel.fs .ante, .watch .ante { font-size: calc(min(7vh, 6vw) * var(--clock-zoom, 1)); }
 }

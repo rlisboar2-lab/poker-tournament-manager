@@ -3,6 +3,10 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 import WatchView from './components/WatchView';
 import './index.css';
+import { applyTheme, loadTheme } from './theme';
+
+// Personalização visual salva (cores/fontes/zoom) — aplica antes de renderizar.
+applyTheme(loadTheme());
 
 // Rota de telespectador (sem login): /watch/<id>
 const watch = window.location.pathname.match(/^\/watch\/([^/]+)/);
