@@ -97,6 +97,17 @@ export default function SetupPanel({ config, onChange, onRestoreDefaults }: Prop
           <label>Fichas por Add-on</label>
           <input type="number" value={config.chips_per_addon} onChange={(e) => onChange({ chips_per_addon: num(e.target.value) })} />
         </div>
+        <div>
+          <label>Máx. de rebuys por jogador (0 = sem limite)</label>
+          <input type="number" min={0} value={config.max_rebuys} onChange={(e) => onChange({ max_rebuys: Math.max(0, num(e.target.value)) })} />
+        </div>
+        <div>
+          <label>Add-on disponível?</label>
+          <select value={config.addon_enabled ? '1' : '0'} onChange={(e) => onChange({ addon_enabled: e.target.value === '1' })}>
+            <option value="1">Sim</option>
+            <option value="0">Não</option>
+          </select>
+        </div>
       </div>
       <p className="notice">Maletas disponíveis: fichas de {CHIP_DENOMINATIONS.join(', ')}.</p>
 

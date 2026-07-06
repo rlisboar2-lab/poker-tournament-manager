@@ -69,28 +69,35 @@ export interface PayoutSlice {
   premio: number;
 }
 
-// ── Quantização (arredondamento por faixa) ──────────────────────────────
-export function quantizeBlind(bb: number, chip: number): number {
-  let v: number;
-  if (bb < 200) v = Math.round(bb / 50) * 50;
-  else if (bb < 1000) v = Math.round(bb / 100) * 100;
-  else {
-    const m500 = Math.round(bb / 500) * 500;
-    const m1000 = Math.round(bb / 1000) * 1000;
-    v = Math.abs(bb - m500) <= Math.abs(bb - m1000) ? m500 : m1000;
-  }
-  // Garante pagabilidade com a ficha mínima.
-  return Math.max(chip * 2, Math.round(v / chip) * chip);
+// ── Color-up: a ficha mínima usada nos blinds CRESCE com o BB ────────────
+// Assim, conforme o torneio avança, elimina-se a necessidade das fichas
+// menores (5 → 25 → 50 → 100 → 500). Como o BB é sempre múltiplo de 2×minChip,
+// o SB (= BB/2) e o ante (= BB) são pagáveis só com fichas ≥ minChip.
+const COLORUP: { minBB: number; chip: number }[] = [
+  { minBB: 0, chip: 5 },      // 5/10, 10/20  → precisa de 5
+  { minBB: 30, chip: 25 },    // 50,100,150   → elimina 5
+  { minBB: 200, chip: 50 },   // 200,300,...  → elimina 25
+  { minBB: 600, chip: 100 },  // 600,800,...  → elimina 50
+  { minBB: 1500, chip: 500 }, // 2000,3000,.. → elimina 100 (só 500/1000)
+];
+
+export function minChipForBB(bb: number, floorChip = 5): number {
+  let mc = COLORUP[0].chip;
+  for (const b of COLORUP) if (bb >= b.minBB) mc = b.chip;
+  return Math.max(floorChip, mc);
 }
 
-export function bandStep(bb: number): number {
-  if (bb < 200) return 50;
-  if (bb < 1000) return 100;
-  return 500;
+export function quantizeBlind(bb: number, floorChip: number): number {
+  const step = 2 * minChipForBB(bb, floorChip); // BB múltiplo de 2×minChip → SB inteiro em minChip
+  return Math.max(step, Math.round(bb / step) * step);
 }
 
-export function sbForBb(bb: number, chip: number): number {
-  return Math.max(chip, Math.round(bb / 2 / chip) * chip);
+export function bandStep(bb: number, floorChip = 5): number {
+  return 2 * minChipForBB(bb, floorChip);
+}
+
+export function sbForBb(bb: number): number {
+  return Math.round(bb / 2); // BB é múltiplo de 2×minChip, então SB é limpo
 }
 
 // Gera um nível para inserir manualmente entre dois níveis (ou após o último).
@@ -102,8 +109,8 @@ export function novoNivelEntre(
   let bb = next
     ? quantizeBlind((cur.big_blind + next.big_blind) / 2, chip)
     : quantizeBlind(cur.big_blind * 1.4, chip);
-  if (bb <= cur.big_blind) bb = quantizeBlind(cur.big_blind + bandStep(cur.big_blind), chip);
-  return { small_blind: sbForBb(bb, chip), big_blind: bb };
+  if (bb <= cur.big_blind) bb = quantizeBlind(cur.big_blind + bandStep(cur.big_blind, chip), chip);
+  return { small_blind: sbForBb(bb), big_blind: bb };
 }
 
 // Adiciona um nível após `afterLevelNumber` e RE-PROJETA toda a cauda:
@@ -129,10 +136,10 @@ export function inserirNivelContinuando(
   let prev = startBB;
   for (let k = 1; k <= newCount; k++) {
     let bb = quantizeBlind(startBB * Math.pow(ratio, k), chip);
-    if (bb <= prev) bb = quantizeBlind(prev + bandStep(prev), chip);
-    if (bb <= prev) bb = prev + bandStep(prev);
+    if (bb <= prev) bb = quantizeBlind(prev + bandStep(prev, chip), chip);
+    if (bb <= prev) bb = prev + bandStep(prev, chip);
     prev = bb;
-    rebuilt.push({ nivel: 0, small_blind: sbForBb(bb, chip), big_blind: bb });
+    rebuilt.push({ nivel: 0, small_blind: sbForBb(bb), big_blind: bb });
   }
 
   return [...kept, ...rebuilt].map((l, idx) => ({ ...l, nivel: idx + 1 }));
@@ -170,13 +177,12 @@ export function calcularCurvaBlinds(p: CurveParams): CurveResult {
 
     // Impede dois níveis consecutivos idênticos após arredondamento.
     if (bb <= anterior) {
-      bb = quantizeBlind(anterior + bandStep(anterior), chip);
-      if (bb <= anterior) bb = anterior + bandStep(anterior);
+      bb = quantizeBlind(anterior + bandStep(anterior, chip), chip);
+      if (bb <= anterior) bb = anterior + bandStep(anterior, chip);
     }
 
     anterior = bb;
-    const small_blind = Math.max(chip, Math.round(bb / 2 / chip) * chip);
-    niveis.push({ nivel: i + 1, small_blind, big_blind: bb });
+    niveis.push({ nivel: i + 1, small_blind: sbForBb(bb), big_blind: bb });
   }
 
   return { c_total, alvo_big_blind, qnt_niveis_projetados, multiplicador_r, niveis };

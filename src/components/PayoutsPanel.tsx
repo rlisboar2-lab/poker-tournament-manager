@@ -15,6 +15,9 @@ export default function PayoutsPanel({ prizePool, playerCount, percentuais, onCh
 
   const setPct = (i: number, v: number) =>
     onChange(percentuais.map((p, idx) => (idx === i ? v / 100 : p)));
+  // Editar o valor em R$ → converte para % do pote (mantém tudo consistente).
+  const setValor = (i: number, valor: number) =>
+    onChange(percentuais.map((p, idx) => (idx === i ? (prizePool > 0 ? valor / prizePool : 0) : p)));
   const add = () => onChange([...percentuais, 0]);
   const remove = (i: number) => onChange(percentuais.filter((_, idx) => idx !== i));
   const auto = () => onChange(tabelaPadraoPayouts(playerCount));
@@ -35,22 +38,28 @@ export default function PayoutsPanel({ prizePool, playerCount, percentuais, onCh
         </span>
       </div>
 
-      <table>
-        <thead><tr><th>Posição</th><th>%</th><th>Prêmio</th><th></th></tr></thead>
-        <tbody>
-          {slices.map((sl, i) => (
-            <tr key={i}>
-              <td>{sl.posicao}º</td>
-              <td style={{ width: 120 }}>
-                <input type="number" value={Number((sl.percentual * 100).toFixed(2))}
-                  onChange={(e) => setPct(i, Number(e.target.value))} />
-              </td>
-              <td>{brl(sl.premio)}</td>
-              <td><button className="danger" onClick={() => remove(i)}>✕</button></td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <p className="notice" style={{ marginBottom: 8 }}>Edite a % <b>ou</b> o valor em R$ — um ajusta o outro.</p>
+      <div className="table-wrap">
+        <table>
+          <thead><tr><th>Posição</th><th>%</th><th>Prêmio (R$)</th><th></th></tr></thead>
+          <tbody>
+            {slices.map((sl, i) => (
+              <tr key={i}>
+                <td>{sl.posicao}º</td>
+                <td style={{ width: 110 }}>
+                  <input type="number" value={Number((sl.percentual * 100).toFixed(2))}
+                    onChange={(e) => setPct(i, Number(e.target.value))} />
+                </td>
+                <td style={{ width: 130 }}>
+                  <input type="number" step="1" value={Number(sl.premio.toFixed(2))}
+                    onChange={(e) => setValor(i, Number(e.target.value))} />
+                </td>
+                <td><button className="danger" onClick={() => remove(i)}>✕</button></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

@@ -35,6 +35,8 @@ export interface AppConfig {
   addon_value: number;
   chips_per_rebuy: number;
   chips_per_addon: number;
+  max_rebuys: number;      // por jogador; 0 = sem limite
+  addon_enabled: boolean;  // se o torneio oferece add-on
   late_checkin_level: number;
   ante_enabled: boolean;
   breaks: BreakConfig[];
@@ -71,6 +73,8 @@ function defaultConfig(): AppConfig {
     addon_value: 20,
     chips_per_rebuy: initialStack(setup), // 3000
     chips_per_addon: initialStack(setup),
+    max_rebuys: 0,          // sem limite
+    addon_enabled: true,
     late_checkin_level: 9,
     ante_enabled: true,
     breaks: [{ after_level: 9, minutes: 15 }], // intervalo após o último nível pré-late
@@ -348,7 +352,8 @@ export default function App() {
           onRestoreDefaults={() => { const d = defaultConfig(); setConfig({ ...d, start_time: config.start_time }); setManualLevels(null); }} />
       )}
 
-      {stage === 'players' && <PlayersPanel entries={entries} onChange={setEntries} mode="setup" knownPlayers={knownPlayers} />}
+      {stage === 'players' && <PlayersPanel entries={entries} onChange={setEntries} mode="setup" knownPlayers={knownPlayers}
+        maxRebuys={config.max_rebuys} addonEnabled={config.addon_enabled} />}
 
       {stage === 'payouts' && (
         <PayoutsPanel prizePool={prizePool} playerCount={entries.length}
@@ -366,6 +371,7 @@ export default function App() {
             ? <Clock engine={engine} editable
                 onAddLevelAfter={addLevelAfter} onDeleteLevel={deleteLevel} onDeleteBreak={deleteBreak} />
             : <PlayersPanel entries={entries} onChange={setEntries} mode="live" knownPlayers={knownPlayers}
+                maxRebuys={config.max_rebuys} addonEnabled={config.addon_enabled}
                 onAddLive={(name) => setEntries((prev) => addAndSeat(prev, name))}
                 onRebalance={() => setEntries((prev) => rebalanceSeating(prev))}
                 onEliminate={toggleEliminated} />}

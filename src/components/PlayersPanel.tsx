@@ -7,12 +7,14 @@ interface Props {
   onChange: (entries: LocalEntry[]) => void;
   mode?: 'setup' | 'live';
   knownPlayers?: string[];               // nomes já cadastrados (autocompletar)
+  maxRebuys?: number;                    // por jogador; 0 = sem limite
+  addonEnabled?: boolean;               // torneio oferece add-on?
   onAddLive?: (name: string) => void;   // adiciona + acomoda na mesa (live)
   onRebalance?: () => void;              // recalcula posições nas mesas
   onEliminate?: (index: number, eliminate: boolean) => void; // colocação automática
 }
 
-export default function PlayersPanel({ entries, onChange, mode = 'setup', knownPlayers = [], onAddLive, onRebalance, onEliminate }: Props) {
+export default function PlayersPanel({ entries, onChange, mode = 'setup', knownPlayers = [], maxRebuys = 0, addonEnabled = true, onAddLive, onRebalance, onEliminate }: Props) {
   const [name, setName] = useState('');
   const live = mode === 'live';
 
@@ -34,8 +36,11 @@ export default function PlayersPanel({ entries, onChange, mode = 'setup', knownP
 
   const remove = (i: number) => onChange(entries.filter((_, idx) => idx !== i));
 
-  const step = (i: number, key: 'rebuys' | 'addons' | 'buyins', d: number) =>
-    patch(i, { [key]: Math.max(0, entries[i][key] + d) } as Partial<LocalEntry>);
+  const step = (i: number, key: 'rebuys' | 'addons' | 'buyins', d: number) => {
+    let v = Math.max(0, entries[i][key] + d);
+    if (key === 'rebuys' && maxRebuys > 0) v = Math.min(v, maxRebuys);
+    patch(i, { [key]: v } as Partial<LocalEntry>);
+  };
 
   const remaining = entries.filter((e) => !e.eliminated).length;
   const tables = Array.from(
@@ -83,7 +88,9 @@ export default function PlayersPanel({ entries, onChange, mode = 'setup', knownP
                 <th>Jogador</th>
                 {live && <th>Mesa</th>}
                 {live && <th>Assento</th>}
-                <th>Buy-ins</th><th>Rebuys</th><th>Add-ons</th>
+                <th>Buy-ins</th>
+                <th>Rebuys{maxRebuys > 0 ? ` (máx ${maxRebuys})` : ''}</th>
+                {addonEnabled && <th>Add-ons</th>}
                 {live && <th>Status</th>}
                 <th></th>
               </tr>
@@ -96,7 +103,7 @@ export default function PlayersPanel({ entries, onChange, mode = 'setup', knownP
                   {live && <td>{e.seat ?? '—'}</td>}
                   <td><Stepper value={e.buyins} onMinus={() => step(i, 'buyins', -1)} onPlus={() => step(i, 'buyins', 1)} /></td>
                   <td><Stepper value={e.rebuys} onMinus={() => step(i, 'rebuys', -1)} onPlus={() => step(i, 'rebuys', 1)} /></td>
-                  <td><Stepper value={e.addons} onMinus={() => step(i, 'addons', -1)} onPlus={() => step(i, 'addons', 1)} /></td>
+                  {addonEnabled && <td><Stepper value={e.addons} onMinus={() => step(i, 'addons', -1)} onPlus={() => step(i, 'addons', 1)} /></td>}
                   {live && (
                     <td>
                       <button className={e.eliminated ? 'ghost' : 'danger'}
