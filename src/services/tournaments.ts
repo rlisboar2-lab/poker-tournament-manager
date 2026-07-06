@@ -146,6 +146,71 @@ export interface PlayerStat {
 
 export interface KnownPlayer { id: string; display_name: string; }
 
+export interface TournamentResultRow {
+  player_id: string;
+  display_name: string;
+  buyins: number;
+  rebuys: number;
+  addons: number;
+  invested: number;
+  final_placement: number | null;
+  payout_amount: number;
+}
+
+// Carrega os participantes de um torneio salvo (agregado das transações).
+export async function getTournamentResults(tournamentId: string): Promise<TournamentResultRow[]> {
+  if (!isSupabaseConfigured || !supabase) return [];
+  const { data: rows, error } = await supabase
+    .from('transactions')
+    .select('player_id, amount, is_rebuy, is_addon, final_placement, payout_amount')
+    .eq('tournament_id', tournamentId);
+  if (error) throw error;
+  const { data: players } = await supabase.from('sub_players').select('id, display_name');
+  const nameById = new Map((players ?? []).map((p) => [p.id, p.display_name]));
+
+  const byPlayer = new Map<string, TournamentResultRow>();
+  for (const r of rows ?? []) {
+    if (!byPlayer.has(r.player_id)) {
+      byPlayer.set(r.player_id, {
+        player_id: r.player_id, display_name: nameById.get(r.player_id) ?? '?',
+        buyins: 0, rebuys: 0, addons: 0, invested: 0, final_placement: null, payout_amount: 0,
+      });
+    }
+    const p = byPlayer.get(r.player_id)!;
+    p.invested += Number(r.amount);
+    if (r.is_rebuy) p.rebuys += 1; else if (r.is_addon) p.addons += 1; else p.buyins += 1;
+    if (r.final_placement != null) p.final_placement = r.final_placement;
+    p.payout_amount += Number(r.payout_amount ?? 0);
+  }
+  return [...byPlayer.values()].sort((a, b) => (a.final_placement ?? 999) - (b.final_placement ?? 999));
+}
+
+// Atualiza colocação e prêmio de cada jogador num torneio salvo.
+export async function updateTournamentResults(
+  tournamentId: string,
+  results: { player_id: string; final_placement: number | null; payout_amount: number }[]
+): Promise<void> {
+  if (!supabase) return;
+  const { data: rows, error } = await supabase
+    .from('transactions').select('id, player_id, is_rebuy, is_addon').eq('tournament_id', tournamentId);
+  if (error) throw error;
+
+  for (const r of results) {
+    const mine = (rows ?? []).filter((x) => x.player_id === r.player_id);
+    if (mine.length === 0) continue;
+    // Zera prêmio e aplica colocação em todas as linhas do jogador.
+    const upd = await supabase.from('transactions')
+      .update({ final_placement: r.final_placement, payout_amount: 0 })
+      .eq('tournament_id', tournamentId).eq('player_id', r.player_id);
+    if (upd.error) throw upd.error;
+    // Coloca o prêmio na linha de buy-in.
+    const buyin = mine.find((x) => !x.is_rebuy && !x.is_addon) ?? mine[0];
+    const upd2 = await supabase.from('transactions')
+      .update({ payout_amount: r.payout_amount }).eq('id', buyin.id);
+    if (upd2.error) throw upd2.error;
+  }
+}
+
 export async function listKnownPlayers(): Promise<KnownPlayer[]> {
   if (!isSupabaseConfigured || !supabase) return [];
   const { data, error } = await supabase
