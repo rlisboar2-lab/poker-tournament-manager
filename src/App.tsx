@@ -19,6 +19,7 @@ import {
   type BlindLevel,
 } from './utils/poker-math';
 import { addAndSeat, rebalanceSeating } from './utils/seating';
+import { quadraPreset } from './presets';
 import { saveTournament, listKnownPlayers, type LocalEntry } from './services/tournaments';
 import { supabase, isSupabaseConfigured } from './lib/supabase';
 import Login from './components/Login';
@@ -390,7 +391,12 @@ export default function App() {
 
       {stage === 'setup' && (
         <SetupPanel config={config} onChange={patchConfig}
-          onRestoreDefaults={() => { const d = defaultConfig(); setConfig({ ...d, start_time: config.start_time }); setManualLevels(null); }} />
+          onRestoreDefaults={() => { const d = defaultConfig(); setConfig({ ...d, start_time: config.start_time }); setManualLevels(null); }}
+          onPreset={(p) => {
+            engine.reset();
+            if (p === 'custom') { setConfig({ ...defaultConfig(), start_time: config.start_time }); setManualLevels(null); }
+            else if (p === 'quadra') { const q = quadraPreset(); setConfig({ ...q.config, start_time: config.start_time }); setManualLevels(q.manualLevels); if (q.payoutPct) setPayoutPct(q.payoutPct); }
+          }} />
       )}
 
       {stage === 'players' && <PlayersPanel entries={entries} onChange={setEntries} mode="setup" knownPlayers={knownPlayers}

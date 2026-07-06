@@ -225,6 +225,14 @@ export default function Clock({ engine, editable, onAddLevelAfter, onDeleteLevel
 
       {showQr && <PixQr onClose={() => setShowQr(false)} />}
 
+      {/* Em tela cheia o QR fica sempre visível num canto reservado. */}
+      {isFs && (
+        <div className="corner-qr">
+          <img src="/pix-qr.png" alt="PIX" onError={(e) => { (e.currentTarget.parentElement as HTMLElement).style.display = 'none'; }} />
+          <span>PIX</span>
+        </div>
+      )}
+
       {!isFs && (
         <>
           <h2 style={{ marginTop: 22 }}>Cronograma</h2>

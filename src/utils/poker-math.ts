@@ -53,6 +53,7 @@ export interface BlindLevel {
   nivel: number;
   small_blind: number;
   big_blind: number;
+  ante?: number; // ante explícito (estrutura fixa); se ausente, é calculado
 }
 
 export interface CurveResult {
@@ -250,7 +251,10 @@ export function buildSchedule(niveis: BlindLevel[], sp: ScheduleParams): Schedul
   const dur = Math.round(Math.max(1, sp.level_duration_minutes) * 60);
   const items: ScheduleItem[] = [];
   for (const n of niveis) {
-    const ante = sp.ante_enabled && n.nivel >= sp.late_checkin_level ? n.big_blind : 0;
+    // Ante explícito (estrutura fixa) tem prioridade; senão, calcula pelo late check-in.
+    const ante = n.ante != null
+      ? n.ante
+      : (sp.ante_enabled && n.nivel >= sp.late_checkin_level ? n.big_blind : 0);
     items.push({
       kind: 'level',
       level: n.nivel,

@@ -7,9 +7,10 @@ interface Props {
   config: AppConfig;
   onChange: (patch: Partial<AppConfig>) => void;
   onRestoreDefaults?: () => void;
+  onPreset?: (name: 'custom' | 'quadra') => void;
 }
 
-export default function SetupPanel({ config, onChange, onRestoreDefaults }: Props) {
+export default function SetupPanel({ config, onChange, onRestoreDefaults, onPreset }: Props) {
   const s = config.setup;
   const setSetup = (patch: Partial<AppConfig['setup']>) =>
     onChange({ setup: { ...s, ...patch } });
@@ -24,6 +25,15 @@ export default function SetupPanel({ config, onChange, onRestoreDefaults }: Prop
           <button className="ghost" onClick={onRestoreDefaults}>↺ Restaurar padrão</button>
         )}
       </div>
+      {onPreset && (
+        <div style={{ marginBottom: 14 }}>
+          <label>Estruturas prontas (aplicam e continuam editáveis)</label>
+          <div className="row">
+            <button className="ghost" onClick={() => onPreset('custom')}>⚙ Personalizado (curva automática)</button>
+            <button className="ghost" onClick={() => onPreset('quadra')}>🏛 Estrutura Quadra</button>
+          </div>
+        </div>
+      )}
       <div className="grid">
         <div>
           <label>Nome do torneio</label>

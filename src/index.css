@@ -23,12 +23,13 @@ h1 { font-size: 22px; margin: 0 0 4px; }
 
 /* Página de telespectador (/watch) — visor em tela cheia */
 .watch { max-width: 100%; padding: 0; }
-.watch .clock-panel { margin: 0; border: none; border-radius: 0; text-align: center;
+.watch .clock-panel { position: relative; margin: 0; border: none; border-radius: 0; text-align: center;
   min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column;
-  justify-content: center; align-items: center; gap: 8px; }
-.watch .clock-big { font-size: min(30vh, 30vw); line-height: 1; }
-.watch .blinds { font-size: min(14vh, 14vw); }
-.watch .ante { font-size: min(5vh, 5vw); }
+  justify-content: center; align-items: center; gap: 1vmin; padding: 1.5vmin; }
+.watch .clock-big { font-size: min(46vh, 34vw); line-height: 0.9; }
+.watch .blinds { font-size: min(18vh, 20vw); line-height: 1; }
+.watch .ante { font-size: min(6vh, 7vw); }
+.watch .sub { font-size: min(4vh, 4.5vw); }
 
 .quick-add { display: flex; flex-wrap: wrap; gap: 8px; }
 .quick-add .chip { background: var(--panel-2); border: 1px solid var(--border); color: var(--text);
@@ -104,13 +105,22 @@ button.ghost.on { border-color: var(--accent); color: var(--accent); }
 /* Tela cheia do relógio — overlay CSS (funciona no celular sem API nativa) */
 .clock-panel.fs { position: fixed; inset: 0; z-index: 1500;
   width: 100vw; height: 100vh; height: 100dvh; overflow: hidden;
-  display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 6px;
-  background: var(--bg); margin: 0; padding: 12px; border: none; border-radius: 0; }
-.clock-panel.fs .clock-big { font-size: min(30vh, 30vw); line-height: 1; margin: 0; }
-.clock-panel.fs .blinds { font-size: min(14vh, 14vw); }
-.clock-panel.fs .ante { font-size: min(5vh, 5vw); }
-.clock-panel.fs .clock-controls { margin-top: 10px; }
+  display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 1vmin;
+  background: var(--bg); margin: 0; padding: 1.5vmin; border: none; border-radius: 0; }
+/* O mais legível possível em telas pequenas: usa a maior dimensão disponível. */
+.clock-panel.fs .clock-big { font-size: min(46vh, 34vw); line-height: 0.9; margin: 0; }
+.clock-panel.fs .blinds { font-size: min(18vh, 20vw); line-height: 1; }
+.clock-panel.fs .ante { font-size: min(6vh, 7vw); }
+.clock-panel.fs .sub { font-size: min(4vh, 4.5vw); }
+.clock-panel.fs .clock-top { margin: 0; }
+.clock-panel.fs .clock-controls { position: absolute; bottom: 1.5vmin; margin: 0; }
 body:has(.clock-panel.fs) { overflow: hidden; }
+
+/* QR do PIX sempre visível num canto (tela cheia e /watch) */
+.corner-qr { position: absolute; bottom: 1.5vmin; left: 1.5vmin; z-index: 5;
+  display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.corner-qr img { width: min(20vmin, 200px); height: auto; background: #fff; border-radius: 6px; padding: 4px; }
+.corner-qr span { font-size: min(2.4vmin, 14px); color: var(--muted); }
 
 /* Responsivo / mobile */
 @media (max-width: 640px) {
@@ -125,8 +135,10 @@ body:has(.clock-panel.fs) { overflow: hidden; }
 @media (orientation: landscape) and (max-height: 560px) {
   .clock-big { font-size: clamp(48px, 26vh, 150px); }
   .blinds { font-size: clamp(26px, 12vh, 70px); }
-  .clock-panel.fs { padding: 8px; }
-  .clock-panel.fs .clock-big { font-size: clamp(60px, 34vh, 200px); }
-  .clock-panel.fs .blinds { font-size: clamp(28px, 14vh, 90px); }
   .kpis { margin: 8px 0; }
+  /* Tela cheia deitada (visor pequeno): o maior possível, sem teto rígido. */
+  .clock-panel.fs { padding: 1vmin; }
+  .clock-panel.fs .clock-big, .watch .clock-big { font-size: min(52vh, 30vw); }
+  .clock-panel.fs .blinds, .watch .blinds { font-size: min(20vh, 18vw); }
+  .clock-panel.fs .ante, .watch .ante { font-size: min(7vh, 6vw); }
 }
