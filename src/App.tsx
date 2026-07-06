@@ -50,6 +50,7 @@ interface SavedState {
   stage: Stage;
   clock?: ClockSnap;
   manualLevels?: BlindLevel[] | null;
+  liveShareId?: string | null;
 }
 
 const SAVE_KEY = 'ptm_state_v2';
@@ -122,6 +123,9 @@ export default function App() {
   const [liveTab, setLiveTab] = useState<'clock' | 'mesa'>('clock');
   // Estrutura editada manualmente ao vivo (null = usar a curva calculada).
   const [manualLevels, setManualLevels] = useState<BlindLevel[] | null>(saved?.manualLevels ?? null);
+  // Transmissão ao vivo (link público /watch/:id).
+  const [liveShareId, setLiveShareId] = useState<string | null>(saved?.liveShareId ?? null);
+  const [copied, setCopied] = useState(false);
   // Jogadores já cadastrados (para reaproveitar nomes ao adicionar buy-in).
   const [knownPlayers, setKnownPlayers] = useState<string[]>([]);
   useEffect(() => {
@@ -179,14 +183,37 @@ export default function App() {
   // Autosave: estado geral + snapshot do relógio (a cada 2s e ao fechar).
   useEffect(() => {
     const write = () => {
-      const s: SavedState = { config, entries, payoutPct, stage, manualLevels, clock: engine.snapshot() };
+      const s: SavedState = { config, entries, payoutPct, stage, manualLevels, liveShareId, clock: engine.snapshot() };
       try { localStorage.setItem(SAVE_KEY, JSON.stringify(s)); } catch { /* quota */ }
     };
     write();
     const id = window.setInterval(write, 2000);
     window.addEventListener('beforeunload', write);
     return () => { clearInterval(id); window.removeEventListener('beforeunload', write); };
-  }, [config, entries, payoutPct, stage, manualLevels, engine]);
+  }, [config, entries, payoutPct, stage, manualLevels, liveShareId, engine]);
+
+  // Transmissão ao vivo: publica o estado no Supabase a cada evento relevante
+  // (mudou nível/status/âncora/parâmetros/jogadores). O relógio no /watch conta
+  // sozinho a partir da âncora, então NÃO publicamos a cada segundo.
+  const liveSnap = engine.snapshot();
+  const liveSig = liveShareId ? JSON.stringify({
+    n: config.name, it: engine.items, s: liveSnap, pr: playersRemaining, tc: engine.curve.c_total,
+  }) : '';
+  useEffect(() => {
+    if (!liveShareId || !supabase) return;
+    supabase.from('live_state').upsert({
+      id: liveShareId,
+      name: config.name,
+      schedule: engine.items,
+      status: liveSnap.status,
+      anchor_ms: Math.round(liveSnap.anchorMs),
+      paused_elapsed_ms: Math.round(liveSnap.pausedElapsedMs),
+      players_remaining: playersRemaining,
+      total_chips: Math.round(engine.curve.c_total),
+      updated_at: new Date().toISOString(),
+    }).then(({ error }) => { if (error) console.warn('live upsert:', error.message); });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [liveSig]);
 
   // Posições aleatórias ao iniciar a fase ao vivo (se ninguém sentado ainda).
   useEffect(() => {
@@ -247,6 +274,19 @@ export default function App() {
     patchConfig({ breaks: config.breaks.filter((b) => b.after_level !== afterLevelNumber) });
   };
 
+  // Transmissão ao vivo.
+  const liveUrl = liveShareId ? `${window.location.origin}/watch/${liveShareId}` : '';
+  const publicarAoVivo = () => {
+    const id = (crypto as { randomUUID?: () => string }).randomUUID?.()
+      ?? `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+    setLiveShareId(id);
+  };
+  const pararTransmissao = () => setLiveShareId(null);
+  const copiarLink = async () => {
+    try { await navigator.clipboard.writeText(liveUrl); setCopied(true); setTimeout(() => setCopied(false), 1500); }
+    catch { /* clipboard indisponível */ }
+  };
+
   // Eliminação ao vivo → preenche colocação e prêmio automaticamente.
   // Quem cai primeiro fica em último; o último de pé é o 1º.
   const toggleEliminated = (index: number, eliminate: boolean) => {
@@ -285,6 +325,7 @@ export default function App() {
     setEntries([]);
     setPayoutPct([0.5, 0.3, 0.2]);
     setManualLevels(null);
+    setLiveShareId(null);
     setStage('setup');
   };
 
@@ -362,6 +403,25 @@ export default function App() {
 
       {stage === 'live' && (
         <>
+          {isSupabaseConfigured && session && (
+            <div className="panel live-share">
+              {!liveShareId ? (
+                <button className="ghost" onClick={publicarAoVivo}>🔴 Publicar ao vivo (gerar link)</button>
+              ) : (
+                <div className="row" style={{ justifyContent: 'space-between' }}>
+                  <div className="row" style={{ flex: 1, minWidth: 0 }}>
+                    <span className="pill" style={{ borderColor: 'var(--danger)', color: 'var(--danger)' }}>● no ar</span>
+                    <input readOnly value={liveUrl} style={{ flex: 1, minWidth: 120 }} onFocus={(e) => e.target.select()} />
+                    <button className="ghost" onClick={copiarLink}>{copied ? '✓ copiado' : 'Copiar'}</button>
+                  </div>
+                  <button className="danger" onClick={pararTransmissao}>Parar</button>
+                </div>
+              )}
+              <p className="notice" style={{ marginTop: 6 }}>
+                Quem abrir o link acompanha o relógio em tempo real, sem login. Abra numa TV/tela.
+              </p>
+            </div>
+          )}
           <div className="tabs">
             <button className={liveTab === 'clock' ? 'active' : ''} onClick={() => setLiveTab('clock')}>Relógio</button>
             <button className={liveTab === 'mesa' ? 'active' : ''} onClick={() => setLiveTab('mesa')}>Mesa</button>
