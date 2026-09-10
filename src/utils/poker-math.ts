@@ -1,8 +1,12 @@
 // src/utils/poker-math.ts
 // Núcleo matemático puro — sem side-effects, sem I/O, sem dependências externas.
 
-// ── Denominações físicas reais das maletas ──────────────────────────────
-export const CHIP_DENOMINATIONS = [5, 25, 50, 100, 1000] as const;
+// ── Denominações de ficha em jogo ───────────────────────────────────────
+// Fichas físicas da maleta: 1, 5, 25, 50, 100. Durante o torneio duas são
+// re-denominadas via color-up: a ficha "1" vale 1000 desde o início e a
+// ficha "5", quando deixa de ser necessária, passa a valer 500. Logo os
+// valores efetivamente pagáveis nos blinds são estes:
+export const CHIP_DENOMINATIONS = [5, 25, 50, 100, 500, 1000] as const;
 export type ChipDenomination = (typeof CHIP_DENOMINATIONS)[number];
 
 // ── Setup paramétrico base (todos sobrescrevíveis pela UI) ───────────────
@@ -72,7 +76,8 @@ export interface PayoutSlice {
 
 // ── Color-up: a ficha mínima usada nos blinds CRESCE com o BB ────────────
 // Assim, conforme o torneio avança, elimina-se a necessidade das fichas
-// menores (5 → 25 → 50 → 100 → 500). Como o BB é sempre múltiplo de 2×minChip,
+// menores (5 → 25 → 50 → 100 → 500). O último degrau (500) é a ficha "5"
+// re-denominada em jogo. Como o BB é sempre múltiplo de 2×minChip,
 // o SB (= BB/2) e o ante (= BB) são pagáveis só com fichas ≥ minChip.
 const COLORUP: { minBB: number; chip: number }[] = [
   { minBB: 0, chip: 5 },      // 5/10, 10/20  → precisa de 5

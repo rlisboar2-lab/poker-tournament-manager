@@ -50,13 +50,24 @@ Config em `eslint.config.js` (flat config, ESLint 10). As 5 diretivas `eslint-di
 ## S3 — Denominação de fichas + testes  ·  Sonnet 5 · effort **medium**  ·  depende de S2
 Arquivos: `src/utils/poker-math.ts`, `vitest.config.ts` (novo), `src/utils/__tests__/` (novo)
 
-- [ ] 🔴 **`500` não é ficha existente** — `poker-math.ts:80`. `CHIP_DENOMINATIONS = [5,25,50,100,1000]` mas `COLORUP` usa `chip: 500`. **Perguntar ao Rod se a maleta tem ficha de 500** antes de mexer. Resolver a contradição com o comentário do arquivo.
-- [ ] 🟡 Vitest + testes de `poker-math.ts` (puro, sem I/O): `quantizeBlind`, monotonicidade de `calcularCurvaBlinds`, `inserirNivelContinuando`, `buildSchedule` (ante/late check-in/intervalos).
+- [x] 🔴 **`500` não é ficha existente** — `poker-math.ts:80`. **Resolvido:** o Rod confirmou que a maleta re-denomina fichas em jogo — a ficha "1" vale 1000 desde o início e a ficha "5", quando some do jogo pelo color-up, passa a valer 500. Logo `chip: 500` é intencional. Fix aplicado: `CHIP_DENOMINATIONS = [5, 25, 50, 100, 500, 1000]` + comentário explicando a re-denominação (`poker-math.ts:4-6` e `:75-77`).
+- [x] 🟡 Vitest + testes de `poker-math.ts` — `vitest.config.ts` (novo), `src/utils/__tests__/poker-math.test.ts` (novo), script `test: vitest run`. 23 testes: `minChipForBB`/color-up, `quantizeBlind` (múltiplo de 2×minChip, SB inteiro), monotonicidade de `calcularCurvaBlinds` (inclui params degenerados), `inserirNivelContinuando` (renumera, +1 nível, preserva cauda), `buildSchedule` (ante por late check-in, ante explícito com prioridade, intervalos, `is_late_checkin`).
 
 > Ordem obrigatória: decidir a ficha **antes** dos testes, senão os testes travam a escada errada.
 > Os testes são a rede de segurança da S8.
 
-**Validação:** `npm test` verde.
+**Validação:** `npm test` verde (23/23). `npm run build` e `npm run lint` sem regressão (28 warnings, 0 errors).
+
+### Notas da S3
+
+- `inserirNivelContinuando` **não** garante o BB final exato: em blinds altos (minChip 500) a
+  quantização pode arredondar o alvo um `bandStep` para cima. Comportamento aceito; o teste
+  cobre o intervalo `[finalBB, finalBB + bandStep]`. Reavaliar na S8 se a cauda precisa fechar exata.
+- `vitest@^2.1.9` (peer do `vite@5`; a 3.x exige vite 6+). Persiste o aviso de postinstall do
+  `esbuild` já documentado na S2.
+- **Próximo:** S4 (migrações de banco) — **Opus 5**, effort high. Exige aviso ao responsável antes
+  de aplicar SQL. Depende de S1 (feito). Alternativamente S8 (Opus 5, effort max) já está liberada
+  (depende de S3 + S1, ambos feitos).
 
 ---
 
