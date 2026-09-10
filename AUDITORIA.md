@@ -184,9 +184,9 @@ Arquivos: `src/services/tournaments.ts`, `src/App.tsx`, `src/components/WatchVie
 ## S7 — Persistência transacional (RPC)  ·  Opus 5 · effort **high**  ·  depende de S3 + S5
 Arquivos: `supabase/migrations/0008_transactional_persistence.sql` (novo), `src/services/tournaments.ts`
 
-> ⚠️ **SQL não executado pelo agente** (sem `psql`/`docker` na máquina, igual à S5). A `0008` precisa
-> ser aplicada pelo Rod no Supabase → SQL Editor. Enquanto não for, o app continua salvando pelo
-> caminho antigo (ver fallback abaixo) — não quebra, mas também não é atômico.
+> ⚠️ SQL não executado pelo agente (sem `psql`/`docker` na máquina, igual à S5). **A `0008` foi
+> aplicada pelo Rod no Supabase → SQL Editor em 10/09/2026.** Falta o smoke test, que só dá pra fazer
+> depois do push (o app publicado é que chama a RPC).
 
 - [x] 🔴 **`saveTournament` não é atômico** — **Resolvido** por `save_tournament(payload jsonb) → uuid`.
   Torneio + escada de blinds + upsert de jogadores + ledger numa transação só. O cliente passou a
@@ -197,8 +197,8 @@ Arquivos: `supabase/migrations/0008_transactional_persistence.sql` (novo), `src/
   2 updates por jogador. De 1 + 2N queries para 1.
 
 **Validação:** `npm run build` ✅, `npm test` 41/41 ✅, `npm run lint` 6 warnings / 0 errors (sem
-regressão em relação à S6). **Smoke test de salvar/editar torneio fica com o Rod, depois de aplicar a
-`0008`** — o agente não executa SQL nem tem acesso ao painel.
+regressão em relação à S6). **Smoke test de salvar/editar torneio fica com o Rod, depois do push** —
+o agente não executa SQL nem tem acesso ao painel.
 
 ### Notas da S7
 
@@ -207,8 +207,10 @@ regressão em relação à S6). **Smoke test de salvar/editar torneio fica com o
   a ser `0009`.
 - **Fallback temporário no cliente.** Se a função não existir no banco, o PostgREST devolve `PGRST202`
   e `tournaments.ts` cai no caminho sequencial antigo com um `console.warn`. Isso evita brickar o
-  salvamento se o push do Netlify sair antes do SQL. **Assim que a `0008` estiver aplicada, apagar
-  `saveTournamentSequential`, `updateTournamentResultsSequential`, `upsertPlayer` e `isMissingRpc`.**
+  salvamento se o push do Netlify sair antes do SQL. Com a `0008` já aplicada (10/09/2026), o fallback
+  virou código morto — **apagar `saveTournamentSequential`, `updateTournamentResultsSequential`,
+  `upsertPlayer` e `isMissingRpc` assim que o smoke test pós-push passar** (guardado até lá porque é a
+  única rede se a RPC não responder no ambiente publicado).
 - **Duas mudanças de comportamento no upsert de jogador**, ambas propositais:
   1. o `display_name` cadastrado **não** é mais reescrito pela caixa digitada agora (renomear é via
      `renamePlayer`);

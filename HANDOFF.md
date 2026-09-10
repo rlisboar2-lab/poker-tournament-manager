@@ -38,18 +38,13 @@ O site precisa de 2 valores do Supabase. Eles ficam em **dois lugares**:
 
 ## 4. Migrações do banco (Supabase → SQL Editor)
 
-Já aplicadas no banco atual: `0001`, `0003`, `0005`, `0006`, `0007` (as três últimas em 10/09/2026).
-`0002` foi substituída por `0003`. `0004` é obsoleta (o ranking é calculado das transações, não
-precisa).
-
-> ⚠️ **PENDENTE: `0008_transactional_persistence.sql`** (auditoria S7). Rode no Supabase → SQL Editor.
-> Ela cria duas funções (`save_tournament`, `update_tournament_results`) — não altera tabela nem dado.
-> Enquanto não rodar, o app continua salvando pelo caminho antigo (funciona, só não é atômico) e
-> escreve um aviso no console do navegador. Se o aviso continuar logo depois de aplicar, é o cache de
-> schema da API: Supabase → Settings → API → **Reload schema cache** (ou espere ~1 min).
-
-Se você recriar o banco do zero um dia, rode na ordem:
+Já aplicadas no banco atual: `0001`, `0003`, `0005`, `0006`, `0007`, `0008` (as quatro últimas em
+10/09/2026). `0002` foi substituída por `0003`. `0004` é obsoleta (o ranking é calculado das
+transações, não precisa). **Nada pendente.** Se você recriar o banco do zero um dia, rode na ordem:
 `0001` → `0003` → `0005` → `0006` → `0007` → `0008`.
+
+> Se depois do push o console do navegador reclamar de `save_tournament ausente`, é o cache de schema
+> da API: Supabase → Settings → API → **Reload schema cache** (ou espere ~1 min).
 
 O que a da auditoria S7 faz:
 
@@ -113,9 +108,10 @@ Passo a passo com o Claude na conta nova:
 
 - [ ] Ter login de **GitHub, Netlify, Supabase, Namecheap**.
 - [ ] **Push** no GitHub Desktop (o Claude não publica por você).
-- [ ] Rodar **migrações SQL** novas no Supabase — `0005`/`0006`/`0007` aplicadas em 10/09/2026;
-      **`0008` pendente** (§4). Depois de aplicar: salvar um torneio de teste e editar o resultado
-      dele em Estatísticas, para confirmar que as funções novas respondem.
+- [x] Rodar **migrações SQL** novas no Supabase — `0005`/`0006`/`0007`/`0008` aplicadas em
+      10/09/2026 (§4). Falta o smoke test da `0008` **depois do push**: salvar um torneio de teste e
+      editar o resultado dele em Estatísticas, com o console do navegador aberto (não pode aparecer
+      aviso de RPC ausente).
 - [x] **Modelo de dono único** (10/09/2026): Authentication → Providers → "Allow new users to sign up"
       = **OFF**, e Authentication → Users com **só** a tua conta. Manter assim: o banco não separa
       dados por dono — qualquer conta logada lê, edita e apaga tudo.
