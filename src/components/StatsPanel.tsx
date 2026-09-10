@@ -1,5 +1,5 @@
 // src/components/StatsPanel.tsx
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { isSupabaseConfigured } from '../lib/supabase';
 import {
   listTournaments,
@@ -28,6 +28,13 @@ export default function StatsPanel({ onSave }: Props) {
   const [editing, setEditing] = useState<{ t: BaseTournament; rows: TournamentResultRow[] } | null>(null);
   const [msg, setMsg] = useState<string>('');
   const [busy, setBusy] = useState(false);
+  const editorRef = useRef<HTMLDivElement | null>(null);
+
+  // O editor nasce no fim da página; sem isto o clique parece não fazer nada.
+  const editingId = editing?.t.id ?? null;
+  useEffect(() => {
+    if (editingId) editorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [editingId]);
 
   const refresh = async () => {
     try {
@@ -59,8 +66,15 @@ export default function StatsPanel({ onSave }: Props) {
     catch (e) { setMsg(`Erro: ${(e as Error).message}`); }
   };
   const openEditor = async (t: BaseTournament) => {
-    try { setEditing({ t, rows: await getTournamentResults(t.id) }); }
-    catch (e) { setMsg(`Erro: ${(e as Error).message}`); }
+    setMsg('');
+    try {
+      setEditing({ t, rows: await getTournamentResults(t.id) });
+    } catch (e) {
+      // Sem o console.error o clique falhava em silêncio: o setMsg pinta o aviso
+      // no topo do painel, longe do botão, e o supabase-js não loga nada sozinho.
+      console.error('[StatsPanel] falha ao abrir o editor de resultado', e);
+      setMsg(`Erro ao abrir o resultado: ${(e as Error).message}`);
+    }
   };
   const setRow = (i: number, p: Partial<TournamentResultRow>) =>
     setEditing((cur) => cur && ({ ...cur, rows: cur.rows.map((r, idx) => (idx === i ? { ...r, ...p } : r)) }));
@@ -161,8 +175,16 @@ export default function StatsPanel({ onSave }: Props) {
       )}
 
       {editing && (
-        <div className="panel" style={{ marginTop: 12 }}>
+        <div className="panel" style={{ marginTop: 12 }} ref={editorRef}>
           <h2>Editar resultado — {editing.t.name}</h2>
+          {editing.rows.length === 0 ? (
+            <p className="warn">
+              Este torneio não tem nenhuma entrada gravada — o salvamento parou antes de escrever os
+              jogadores (bug de atomicidade corrigido na S7, migração <code>0008</code>). Não há
+              resultado para editar: exclua o torneio e salve de novo.
+            </p>
+          ) : (
+          <>
           <p className="notice">Ajuste a colocação e o prêmio (R$) de cada jogador. Isso recalcula pontos e ROI.</p>
           <div className="table-wrap">
             <table>
@@ -185,9 +207,15 @@ export default function StatsPanel({ onSave }: Props) {
               </tbody>
             </table>
           </div>
+          </>
+          )}
           <div className="row" style={{ marginTop: 12 }}>
-            <button className="primary" disabled={busy} onClick={saveEditor}>{busy ? 'Salvando…' : 'Salvar resultado'}</button>
-            <button className="ghost" onClick={() => setEditing(null)}>Cancelar</button>
+            {editing.rows.length > 0 && (
+              <button className="primary" disabled={busy} onClick={saveEditor}>
+                {busy ? 'Salvando…' : 'Salvar resultado'}
+              </button>
+            )}
+            <button className="ghost" onClick={() => setEditing(null)}>Fechar</button>
           </div>
         </div>
       )}
