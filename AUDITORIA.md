@@ -5,6 +5,13 @@ Ao final de cada sessão: marcar `[x]`, commitar, e informar o modelo da próxim
 
 Legenda: 🔴 bug · 🟠 segurança · 🟡 qualidade
 
+**Feitas:** S1 · S2 · S3 · S4  ·  **Pendentes:** S5 · S6 · S7 · S8
+
+> **Renumeração (10/09/2026):** o refactor do motor do relógio foi executado logo depois da S3 e
+> passou a ser a **S4**. As antigas S4–S7 desceram um número (S4→S5, S5→S6, S6→S7, S7→S8). A
+> numeração agora acompanha a ordem real de execução. Nada quebrou com isso: o refactor do relógio
+> é folha no grafo — depende de S1 + S3 e nenhum outro bloco depende dele.
+
 ---
 
 ## S1 — Quick wins críticos  ·  Sonnet 5 · effort **high**  ·  sem pré-requisito
@@ -37,13 +44,13 @@ Config em `eslint.config.js` (flat config, ESLint 10). As 5 diretivas `eslint-di
 
 | Regra | Ocorrências | Onde | Leitura |
 |---|---|---|---|
-| `react-hooks/refs` | 21 | `App.tsx:126-135,219`, `useTournamentEngine.ts:96` | refs lidas durante o render — é o **estado espelhado da S8** |
+| `react-hooks/refs` | 21 | `App.tsx:126-135,219`, `useTournamentEngine.ts:96` | refs lidas durante o render — é o **estado espelhado da S4** |
 | `react-hooks/set-state-in-effect` | 4 | `App.tsx:265,277`, `StatsPanel.tsx:42`, `WatchView.tsx:36` | `setState` dentro de effect |
 | `react-hooks/purity` | 1 | `useTournamentEngine.ts:52` | `Date.now()` em `useRef` inicial (render impuro) |
 | `react-hooks/exhaustive-deps` | 1 | `useTournamentEngine.ts:82` | falta `niveis` no `useMemo` |
 | `@typescript-eslint/no-explicit-any` | 1 | `Clock.tsx:25` | `(window as any).webkitAudioContext` — escape de prefixo de fornecedor, aceitável |
 
-`purity`, `refs` e `set-state-in-effect` são regras novas do React Compiler (`eslint-plugin-react-hooks` v7) e ficaram em `warn` no config: apontam exatamente o motor do relógio que a **S8** vai refatorar. Deixá-las em `error` travaria `npm run lint` em vermelho permanente. Reavaliar para `error` depois da S8.
+`purity`, `refs` e `set-state-in-effect` são regras novas do React Compiler (`eslint-plugin-react-hooks` v7) e ficaram em `warn` no config: apontam exatamente o motor do relógio que a **S4** vai refatorar. Deixá-las em `error` travaria `npm run lint` em vermelho permanente. Reavaliar para `error` depois da S4.
 
 ---
 
@@ -54,7 +61,7 @@ Arquivos: `src/utils/poker-math.ts`, `vitest.config.ts` (novo), `src/utils/__tes
 - [x] 🟡 Vitest + testes de `poker-math.ts` — `vitest.config.ts` (novo), `src/utils/__tests__/poker-math.test.ts` (novo), script `test: vitest run`. 23 testes: `minChipForBB`/color-up, `quantizeBlind` (múltiplo de 2×minChip, SB inteiro), monotonicidade de `calcularCurvaBlinds` (inclui params degenerados), `inserirNivelContinuando` (renumera, +1 nível, preserva cauda), `buildSchedule` (ante por late check-in, ante explícito com prioridade, intervalos, `is_late_checkin`).
 
 > Ordem obrigatória: decidir a ficha **antes** dos testes, senão os testes travam a escada errada.
-> Os testes são a rede de segurança da S8.
+> Os testes são a rede de segurança da S4.
 
 **Validação:** `npm test` verde (23/23). `npm run build` e `npm run lint` sem regressão (28 warnings, 0 errors).
 
@@ -62,54 +69,16 @@ Arquivos: `src/utils/poker-math.ts`, `vitest.config.ts` (novo), `src/utils/__tes
 
 - `inserirNivelContinuando` **não** garante o BB final exato: em blinds altos (minChip 500) a
   quantização pode arredondar o alvo um `bandStep` para cima. Comportamento aceito; o teste
-  cobre o intervalo `[finalBB, finalBB + bandStep]`. Reavaliar na S8 se a cauda precisa fechar exata.
+  cobre o intervalo `[finalBB, finalBB + bandStep]`. Reavaliar na S4 se a cauda precisa fechar exata.
 - `vitest@^2.1.9` (peer do `vite@5`; a 3.x exige vite 6+). Persiste o aviso de postinstall do
   `esbuild` já documentado na S2.
-- **Próximo:** S4 (migrações de banco) — **Opus 5**, effort high. Exige aviso ao responsável antes
-  de aplicar SQL. Depende de S1 (feito). Alternativamente S8 (Opus 5, effort max) já está liberada
-  (depende de S3 + S1, ambos feitos).
+- **Próximo:** S4 (refactor do motor do relógio) — **Opus 5**, effort max. Liberada: depende de
+  S3 + S1, ambos feitos. Depois dela, S5 (migrações de banco), que exige aviso ao responsável
+  antes de aplicar SQL.
 
 ---
 
-## S4 — Migrações de banco  ·  Opus 5 · effort **high**  ·  depende de S1
-Arquivos: `supabase/migrations/0006_*.sql` … `0009_*.sql`
-
-> ⚠️ Exige aviso ao responsável antes de aplicar (AGENTS.md). Agrupado numa autorização só.
-
-- [ ] 🟠 **Definir o modelo de acesso primeiro** — `0003_rls_fix.sql`. Hoje `authenticated_all using(true)`: todo usuário logado lê/edita/apaga tudo. Decidir: **(a)** dono único → confirmar *Authentication → Providers → Allow new users to sign up = OFF*; **(b)** multi-tenant → `owner_id uuid default auth.uid()` em todas as tabelas + policies por dono.
-- [ ] 🟠 **`live_state` sem dono** — `0005_live_state.sql:26`. Qualquer autenticado sobrescreve/apaga qualquer transmissão. Fix: `owner_id` + policy de write por dono; leitura pública permanece. *(decorre da decisão acima)*
-- [ ] 🔴 **Nome de jogador duplicado quebra o save** — `tournaments.ts:44`. `.maybeSingle()` lança com 2 linhas e não há unique. Fix: `create unique index on sub_players (lower(display_name))`.
-- [ ] 🟡 Colunas mortas: `sub_players.total_winnings` e `total_points` (migração 0004) nunca são escritas — ranking é derivado. Dropar ou documentar como obsoletas.
-
-**Validação:** migrações idempotentes; smoke test de login + salvar torneio.
-
----
-
-## S5 — App consome as migrações  ·  Haiku 4.5 · effort **low**  ·  depende de S4
-Arquivos: `src/services/tournaments.ts`, `src/App.tsx`, `src/components/WatchView.tsx`
-
-- [ ] 🔴 `upsertPlayer` → `upsert(..., { onConflict: 'display_name' })` em vez de select+insert.
-- [ ] 🟠 **Transmissão não encerra de fato** — `App.tsx:272`. `pararTransmissao` só limpa o id local; a linha em `live_state` fica pública para sempre e as linhas acumulam. Fix: `delete from live_state where id = ...` + limpeza por `updated_at`.
-- [ ] 🟠 **QR PIX no link público** — `WatchView.tsx:107`. `/pix-qr.png` é asset estático, acessível direto na URL. **Perguntar ao Rod** se é intencional; se não, servir só autenticado.
-
----
-
-## S6 — Persistência transacional (RPC)  ·  Opus 5 · effort **high**  ·  depende de S3 + S4
-Arquivos: `supabase/migrations/0010_*.sql`, `src/services/tournaments.ts`
-
-- [ ] 🔴 **`saveTournament` não é atômico** — `tournaments.ts:56`. 3 inserts sequenciais; falha no 3º deixa torneio + blinds órfãos e o ranking conta o torneio com 0 participantes. Fix: função Postgres única numa transação.
-- [ ] 🟡 `updateTournamentResults` faz N+1 queries — 2 updates por jogador em loop sequencial. Fix: mesma RPC ou batch.
-
----
-
-## S7 — Ranking escalável  ·  Sonnet 5 · effort **medium**  ·  depende de S6
-Arquivos: `supabase/migrations/0011_*.sql`, `src/services/tournaments.ts`, `src/components/StatsPanel.tsx`
-
-- [ ] 🔴 **`playerLeaderboard` trunca em 1000 linhas** — `tournaments.ts:229`. `select` sem paginação; limite padrão do Supabase corta o histórico silenciosamente. Também é O(n²) (`filter` dentro do loop). Fix: view/RPC agregando no Postgres.
-
----
-
-## S8 — Refactor do motor do relógio  ·  Opus 5 · effort **max**  ·  depende de S3 (testes) + S1
+## S4 — Refactor do motor do relógio  ·  Opus 5 · effort **max**  ·  depende de S3 (testes) + S1
 Arquivos: `src/hooks/useTournamentEngine.ts`, `src/App.tsx`, `src/utils/placements.ts` (novo),
 `src/utils/__tests__/placements.test.ts` (novo), `src/hooks/__tests__/findPosition.test.ts` (novo)
 
@@ -132,7 +101,7 @@ Torneio simulado no `npm run dev` (5 jogadores):
 | Reabrir o app | relógio retomado no ponto certo, sem erro no console |
 | Autosave | grava a cada 2002ms (não 4×/s) |
 
-### Notas da S8
+### Notas da S4
 
 - Regressão encontrada e corrigida no próprio refactor: sem avançar o `now` do render junto com a
   âncora, "Avançar nível" caía até 250ms antes do alvo e parava no fim do nível anterior. O helper
@@ -142,20 +111,61 @@ Torneio simulado no `npm run dev` (5 jogadores):
   `StatsPanel.tsx:42`, `WatchView.tsx:36`) e 1 `no-explicit-any` (`Clock.tsx:25`, prefixo de
   fornecedor). Promover as regras do React Compiler a `error` agora exigiria tratar esses 5.
 - Ticker só existe enquanto o relógio roda: pausado/parado não re-renderiza mais a 4×/s.
-- **Próximo:** S4 (migrações de banco) — **Opus 5**, effort high. Bloqueado por decisão do Rod:
+- **Próximo:** S5 (migrações de banco) — **Opus 5**, effort high. Bloqueado por decisão do Rod:
   modelo de acesso **(a)** dono único ou **(b)** multi-tenant com `owner_id`. Exige aviso e
   autorização antes de aplicar SQL (AGENTS.md).
+
+---
+
+## S5 — Migrações de banco  ·  Opus 5 · effort **high**  ·  depende de S1
+Arquivos: `supabase/migrations/0006_*.sql` … `0009_*.sql`
+
+> ⚠️ Exige aviso ao responsável antes de aplicar (AGENTS.md). Agrupado numa autorização só.
+
+- [ ] 🟠 **Definir o modelo de acesso primeiro** — `0003_rls_fix.sql`. Hoje `authenticated_all using(true)`: todo usuário logado lê/edita/apaga tudo. Decidir: **(a)** dono único → confirmar *Authentication → Providers → Allow new users to sign up = OFF*; **(b)** multi-tenant → `owner_id uuid default auth.uid()` em todas as tabelas + policies por dono.
+- [ ] 🟠 **`live_state` sem dono** — `0005_live_state.sql:26`. Qualquer autenticado sobrescreve/apaga qualquer transmissão. Fix: `owner_id` + policy de write por dono; leitura pública permanece. *(decorre da decisão acima)*
+- [ ] 🔴 **Nome de jogador duplicado quebra o save** — `tournaments.ts:46`. `.maybeSingle()` lança com 2 linhas e não há unique. Fix: `create unique index on sub_players (lower(display_name))`.
+- [ ] 🟡 Colunas mortas: `sub_players.total_winnings` e `total_points` (migração 0004) nunca são escritas — ranking é derivado. Dropar ou documentar como obsoletas.
+
+**Validação:** migrações idempotentes; smoke test de login + salvar torneio.
+
+---
+
+## S6 — App consome as migrações  ·  Haiku 4.5 · effort **low**  ·  depende de S5
+Arquivos: `src/services/tournaments.ts`, `src/App.tsx`, `src/components/WatchView.tsx`
+
+- [ ] 🔴 `upsertPlayer` → `upsert(..., { onConflict: 'display_name' })` em vez de select+insert.
+- [ ] 🟠 **Transmissão não encerra de fato** — `App.tsx:344`. `pararTransmissao` só limpa o id local; a linha em `live_state` fica pública para sempre e as linhas acumulam. Fix: `delete from live_state where id = ...` + limpeza por `updated_at`.
+- [ ] 🟠 **QR PIX no link público** — `WatchView.tsx:109`. `/pix-qr.png` é asset estático, acessível direto na URL. **Perguntar ao Rod** se é intencional; se não, servir só autenticado.
+
+---
+
+## S7 — Persistência transacional (RPC)  ·  Opus 5 · effort **high**  ·  depende de S3 + S5
+Arquivos: `supabase/migrations/0010_*.sql`, `src/services/tournaments.ts`
+
+- [ ] 🔴 **`saveTournament` não é atômico** — `tournaments.ts:58`. 3 inserts sequenciais; falha no 3º deixa torneio + blinds órfãos e o ranking conta o torneio com 0 participantes. Fix: função Postgres única numa transação.
+- [ ] 🟡 `updateTournamentResults` faz N+1 queries — 2 updates por jogador em loop sequencial. Fix: mesma RPC ou batch.
+
+---
+
+## S8 — Ranking escalável  ·  Sonnet 5 · effort **medium**  ·  depende de S7
+Arquivos: `supabase/migrations/0011_*.sql`, `src/services/tournaments.ts`, `src/components/StatsPanel.tsx`
+
+- [ ] 🔴 **`playerLeaderboard` trunca em 1000 linhas** — `tournaments.ts:243`. `select` sem paginação; limite padrão do Supabase corta o histórico silenciosamente. Também é O(n²) (`filter` dentro do loop). Fix: view/RPC agregando no Postgres.
 
 ---
 
 ## Grafo de dependências
 
 ```
-S1 ──┬──────────────► S4 ──► S5
+S1 ──┬──────────────► S5 ──► S6
      │                 │
-S2 ──► S3 ─────────────┴──► S6 ──► S7
+S2 ──► S3 ─────────────┴──► S7 ──► S8
         │
-        └──────────► S8 (também depende de S1)
+        └──────────► S4 (também depende de S1)
 ```
 
 S1 e S2 são independentes — podem ser feitas em qualquer ordem.
+S4 é folha: nenhum bloco depende dela.
+
+Ordem restante: **S5 → S6 → S7 → S8**. S7 só precisa de S3 + S5, então pode vir antes da S6.
