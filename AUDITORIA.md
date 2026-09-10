@@ -24,12 +24,26 @@ Arquivos: `src/App.tsx`, `src/hooks/useTournamentEngine.ts`, `src/utils/seating.
 ## S2 — Higiene do repositório + ESLint  ·  Haiku 4.5 · effort **low**  ·  sem pré-requisito
 Arquivos: `.gitignore`, `package.json`, `eslint.config.js` (novo), `src/services/tournaments.ts`, `src/App.tsx`
 
-- [ ] 🟡 Apagar `vite.config.ts.timestamp-*.mjs` e adicionar `vite.config.ts.timestamp-*` ao `.gitignore`.
-- [ ] 🟡 Verificar integridade do `npm ci` — `node_modules/.bin/tsc` ausente; `npm run build` depende dele.
-- [ ] 🟡 Instalar ESLint (`eslint`, `typescript-eslint`, `eslint-plugin-react-hooks`) + script `lint`. Hoje há 5 `// eslint-disable-line` sem ESLint instalado — diretivas mortas. **Não fazer mass-fix**; só configurar e reportar.
-- [ ] 🟡 Remover campos mortos `rebuy_value` / `addon_value` de `SaveTournamentInput` (nunca persistidos; `invested` sai de `transactions.amount`).
+- [x] 🟡 Apagar `vite.config.ts.timestamp-*.mjs` e adicionar `vite.config.ts.timestamp-*` ao `.gitignore`.
+- [x] 🟡 Verificar integridade do `npm ci` — `node_modules/.bin/tsc` ausente; `npm run build` depende dele. **Resolvido:** `npm ci` limpo restaura `tsc` e `eslint`; `npm run build` passa. Fica o aviso `npm warn allow-scripts esbuild@0.21.5 (postinstall)` — o postinstall do esbuild não roda até `npm approve-scripts esbuild`. Não quebrou o build aqui (Windows, binário já presente), mas é a causa provável do `tsc` ausente antes.
+- [x] 🟡 Instalar ESLint (`eslint`, `typescript-eslint`, `eslint-plugin-react-hooks`) + script `lint`. Hoje há 5 `// eslint-disable-line` sem ESLint instalado — diretivas mortas. **Não fazer mass-fix**; só configurar e reportar.
+- [ ] ~~🟡 Remover campos mortos `rebuy_value` / `addon_value` de `SaveTournamentInput`~~ — **achado incorreto, item cancelado.** Os dois campos estão vivos: alimentam `transactions.amount` das linhas de reentrada e add-on em `tournaments.ts:112` e `tournaments.ts:115`. Remover gravaria `amount: undefined` e quebraria `invested`/prize pool. O que não existe é coluna correspondente em `base_tournaments` — o valor entra no ledger, que é justamente o design.
 
-**Validação:** `npm run lint` roda; `npm run build` passa.
+**Validação:** `npm run lint` roda (exit 0); `npm run build` passa. ✅
+
+### Relatório do lint (28 warnings, 0 errors)
+
+Config em `eslint.config.js` (flat config, ESLint 10). As 5 diretivas `eslint-disable` do código estão vivas — nenhuma reportada como não usada.
+
+| Regra | Ocorrências | Onde | Leitura |
+|---|---|---|---|
+| `react-hooks/refs` | 21 | `App.tsx:126-135,219`, `useTournamentEngine.ts:96` | refs lidas durante o render — é o **estado espelhado da S8** |
+| `react-hooks/set-state-in-effect` | 4 | `App.tsx:265,277`, `StatsPanel.tsx:42`, `WatchView.tsx:36` | `setState` dentro de effect |
+| `react-hooks/purity` | 1 | `useTournamentEngine.ts:52` | `Date.now()` em `useRef` inicial (render impuro) |
+| `react-hooks/exhaustive-deps` | 1 | `useTournamentEngine.ts:82` | falta `niveis` no `useMemo` |
+| `@typescript-eslint/no-explicit-any` | 1 | `Clock.tsx:25` | `(window as any).webkitAudioContext` — escape de prefixo de fornecedor, aceitável |
+
+`purity`, `refs` e `set-state-in-effect` são regras novas do React Compiler (`eslint-plugin-react-hooks` v7) e ficaram em `warn` no config: apontam exatamente o motor do relógio que a **S8** vai refatorar. Deixá-las em `error` travaria `npm run lint` em vermelho permanente. Reavaliar para `error` depois da S8.
 
 ---
 
