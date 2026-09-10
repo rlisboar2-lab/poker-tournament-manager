@@ -5,7 +5,7 @@ Ao final de cada sessão: marcar `[x]`, commitar, e informar o modelo da próxim
 
 Legenda: 🔴 bug · 🟠 segurança · 🟡 qualidade
 
-**Feitas:** S1 · S2 · S3 · S4 · S5 · S6 · S7  ·  **Pendentes:** S8
+**Feitas:** S1 · S2 · S3 · S4 · S5 · S6 · S7 · S8  ·  **Pendentes:** — (backlog concluído)
 
 > **Renumeração (10/09/2026):** o refactor do motor do relógio foi executado logo depois da S3 e
 > passou a ser a **S4**. As antigas S4–S7 desceram um número (S4→S5, S5→S6, S6→S7, S7→S8). A
@@ -231,7 +231,30 @@ o agente não executa SQL nem tem acesso ao painel.
 ## S8 — Ranking escalável  ·  Sonnet 5 · effort **medium**  ·  depende de S7
 Arquivos: `supabase/migrations/0009_*.sql`, `src/services/tournaments.ts`, `src/components/StatsPanel.tsx`
 
-- [ ] 🔴 **`playerLeaderboard` trunca em 1000 linhas** — `tournaments.ts:243`. `select` sem paginação; limite padrão do Supabase corta o histórico silenciosamente. Também é O(n²) (`filter` dentro do loop). Fix: view/RPC agregando no Postgres.
+- [x] 🔴 **`playerLeaderboard` trunca em 1000 linhas** — **Resolvido** por `player_leaderboard()`
+  (`0009`), função SQL `stable` / `security invoker` que agrega no Postgres: participantes por
+  torneio, pontos (`Σ max(0, participantes − colocação + 1)`), investido/ganhos/eventos, ROI e
+  ordenação por pontos + líquido — mesma semântica do agregado antigo. `tournaments.ts` chama a RPC
+  e mapeia o `numeric` (string) para `number`; o caminho O(n²) que puxava `transactions` inteira
+  virou `playerLeaderboardSequential`, fallback só enquanto a `0009` não estiver aplicada
+  (`PGRST202`). Permissões: `revoke ... from public, anon` + `grant to authenticated`.
+
+**Validação:** `npm run build` ✅, `npm test` 41/41 ✅, `npm run lint` 6 warnings / 0 errors (sem
+regressão em relação à S7). SQL **não executado pelo agente** (sem `psql`/`docker`): aplicar a
+`0009` no Supabase → SQL Editor e conferir o ranking depois do push fica com o Rod.
+
+### Notas da S8
+
+- `StatsPanel.tsx` não mudou: `PlayerStat` tem o mesmo formato, a RPC devolve as mesmas colunas.
+- Fallback `playerLeaderboardSequential` ainda trunca em 1000 lançamentos — é a rede temporária,
+  some quando a `0009` estiver aplicada em todos os ambientes (junto com a limpeza dos fallbacks da
+  S7, presa ao smoke test pós-push).
+- **Backlog concluído.** Pendências fora do grafo, todas com o Rod: aplicar `0009`; rodar os smoke
+  tests pendentes das migrações `0008` (salvar/editar torneio) e `0009` (ranking) depois do push;
+  quando passarem, apagar `saveTournamentSequential`, `updateTournamentResultsSequential`,
+  `playerLeaderboardSequential`, `upsertPlayer` e `isMissingRpc`.
+- **Próximo:** sem sessão de auditoria pendente. Próxima tarefa deste projeto: **Sonnet 5**,
+  effort low — smoke tests pós-push + limpeza dos fallbacks mortos.
 
 ---
 
@@ -248,5 +271,5 @@ S2 ──► S3 ─────────────┴──► S7 ──►
 S1 e S2 são independentes — podem ser feitas em qualquer ordem.
 S4 é folha: nenhum bloco depende dela.
 
-Ordem restante: **S8** — liberada (depende só da S7, feita). Pendência fora do grafo: aplicar a
-migração `0008` no Supabase e rodar o smoke test de salvar/editar torneio.
+Backlog concluído (S1–S8). Pendências fora do grafo: aplicar as migrações `0008` e `0009` no
+Supabase e rodar os smoke tests de salvar/editar torneio e do ranking depois do push.

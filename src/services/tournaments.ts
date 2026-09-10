@@ -286,8 +286,37 @@ export async function deleteTournament(id: string): Promise<void> {
 
 // Ranking derivado das transações (sem agregados armazenados), então
 // editar/apagar torneios recalcula pontos, ganhos e ROI automaticamente.
+// Agregado no Postgres pela RPC `player_leaderboard` (migração 0009). Enquanto ela
+// não estiver aplicada, o PostgREST devolve PGRST202 e caímos no caminho antigo,
+// que agrega no cliente e trunca `transactions` em 1000 linhas.
 export async function playerLeaderboard(): Promise<PlayerStat[]> {
   if (!isSupabaseConfigured || !supabase) return [];
+
+  const { data, error } = await supabase.rpc('player_leaderboard');
+  if (!error) {
+    return ((data ?? []) as Record<string, unknown>[]).map((r) => ({
+      display_name: String(r.display_name),
+      points: Number(r.points),
+      total_winnings: Number(r.total_winnings),
+      total_invested: Number(r.total_invested),
+      roi: Number(r.roi),
+      events: Number(r.events),
+    }));
+  }
+  if (!isMissingRpc(error)) throw error;
+
+  console.warn(
+    '[tournaments] RPC player_leaderboard ausente — aplique a migração 0009. ' +
+      'Agregando no cliente (trunca em 1000 lançamentos).'
+  );
+  return playerLeaderboardSequential();
+}
+
+// Caminho antigo: puxa `sub_players` + `transactions` inteira e agrega no cliente.
+// O `select` de `transactions` não pagina — acima de 1000 linhas o PostgREST corta
+// em silêncio. Só roda enquanto a 0009 não estiver aplicada.
+async function playerLeaderboardSequential(): Promise<PlayerStat[]> {
+  if (!supabase) return [];
   const { data: players, error } = await supabase.from('sub_players').select('id, display_name');
   if (error) throw error;
   const { data: txs, error: txErr } = await supabase
