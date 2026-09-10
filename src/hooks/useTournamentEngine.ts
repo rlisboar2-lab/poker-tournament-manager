@@ -1,6 +1,9 @@
 // src/hooks/useTournamentEngine.ts
 // Relógio sincronizado ancorado em Unix Epoch (sem decréscimo por setInterval).
 // Imune a background sleep / focus drop: o estado deriva sempre de Date.now().
+//
+// Os parâmetros são props puros: quem chama passa `params` já memoizado e o hook
+// deriva curva/agenda deles. Não há cópia em `useState` nem `update_curve`.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -23,6 +26,16 @@ export interface EngineParams extends CurveParams {
   override_levels?: BlindLevel[] | null; // estrutura editada manualmente (ao vivo)
 }
 
+// Âncora do relógio. É estado (não ref) porque o render depende dela:
+// `anchorMs` vale quando `running`; `pausedElapsedMs`, nos demais status.
+export interface ClockSnapshot {
+  status: ClockStatus;
+  anchorMs: number;
+  pausedElapsedMs: number;
+}
+
+const IDLE_CLOCK: ClockSnapshot = { status: 'idle', anchorMs: 0, pausedElapsedMs: 0 };
+
 export interface EngineState {
   status: ClockStatus;
   item_index: number;
@@ -44,33 +57,60 @@ export interface EngineState {
   pressure_bb: number;
 }
 
-export function useTournamentEngine(initial: EngineParams) {
-  const [params, setParams] = useState<EngineParams>(initial);
-  const [status, setStatus] = useState<ClockStatus>('idle');
+// Posição lógica no cronograma, usada para reancorar quando a estrutura muda.
+export interface Position {
+  kind: 'level' | 'break';
+  blinds: string;    // "sb/bb" — sobrevive à renumeração dos níveis
+  level: number;     // nº do nível (ou do nível anterior, se intervalo)
+  into: number;      // segundos já corridos dentro do item
+  start_sec: number; // offset do item no cronograma antigo
+}
+
+// Acha o mesmo item no cronograma novo. Prioriza os blinds (imunes à
+// renumeração feita por `deleteLevel`); cai para o número do nível se não achar.
+export function findPosition(items: ScheduleItem[], pos: Position): number {
+  let lastLevel = 0;
+  let fallback = -1;
+  for (let i = 0; i < items.length; i++) {
+    const it = items[i];
+    if (it.kind === 'level') {
+      lastLevel = it.level;
+      if (pos.kind !== 'level') continue;
+      if (`${it.small_blind}/${it.big_blind}` === pos.blinds) return i;
+      if (it.level === pos.level && fallback < 0) fallback = i;
+    } else if (pos.kind === 'break' && lastLevel === pos.level && fallback < 0) {
+      fallback = i;
+    }
+  }
+  return fallback;
+}
+
+export function useTournamentEngine(params: EngineParams) {
+  const [clock, setClock] = useState<ClockSnapshot>(IDLE_CLOCK);
   const [now, setNow] = useState<number>(() => Date.now());
+  const status = clock.status;
 
-  const anchorRef = useRef<number>(Date.now());  // epoch do início do segmento
-  const pausedElapsedRef = useRef<number>(0);     // ms acumulados quando pausado
-  const timerRef = useRef<number | null>(null);
-
+  // Ticker só existe enquanto roda: pausado/parado não re-renderiza a 4×/s.
   useEffect(() => {
+    if (status !== 'running') return;
+    let timer = 0;
     let active = true;
     const loop = () => {
       if (!active) return;
       setNow(Date.now());
-      timerRef.current = window.setTimeout(loop, 250);
+      timer = window.setTimeout(loop, 250);
     };
     loop();
-    return () => {
-      active = false;
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
-  }, []);
+    return () => { active = false; clearTimeout(timer); };
+  }, [status]);
 
   const curve = useMemo(() => calcularCurvaBlinds(params), [params]);
-  const niveis = params.override_levels && params.override_levels.length
-    ? params.override_levels
-    : curve.niveis;
+  const niveis = useMemo(
+    () => (params.override_levels && params.override_levels.length
+      ? params.override_levels
+      : curve.niveis),
+    [params.override_levels, curve]
+  );
   const items: ScheduleItem[] = useMemo(
     () =>
       buildSchedule(niveis, {
@@ -79,7 +119,7 @@ export function useTournamentEngine(initial: EngineParams) {
         ante_enabled: params.ante_enabled,
         breaks: params.breaks,
       }),
-    [curve, params]
+    [niveis, params.duracao_bloco_nivel, params.late_checkin_level, params.ante_enabled, params.breaks]
   );
 
   const cumStarts = useMemo(() => {
@@ -93,7 +133,7 @@ export function useTournamentEngine(initial: EngineParams) {
   }, [items]);
 
   const elapsedSeconds =
-    (status === 'running' ? now - anchorRef.current : pausedElapsedRef.current) / 1000;
+    (status === 'running' ? now - clock.anchorMs : clock.pausedElapsedMs) / 1000;
 
   const state = useMemo<EngineState>(() => {
     const elapsed = Math.max(0, elapsedSeconds);
@@ -157,78 +197,117 @@ export function useTournamentEngine(initial: EngineParams) {
       average_stack,
       pressure_bb: bb > 0 ? average_stack / bb : 0,
     };
-  }, [elapsedSeconds, items, cumStarts, params, curve, status]);
+  }, [
+    elapsedSeconds, items, cumStarts, status, curve,
+    params.total_chips_in_play, params.players_remaining,
+  ]);
 
   // ── Controles ───────────────────────────────────────────────────────────
-  const setElapsedMs = useCallback(
-    (ms: number) => {
-      const clamped = Math.max(0, ms);
-      if (status === 'running') anchorRef.current = Date.now() - clamped;
-      else pausedElapsedRef.current = clamped;
-      setNow(Date.now());
-    },
-    [status]
-  );
+  // `commit` move o relógio e o `now` do render no MESMO instante `t`. Sem
+  // avançar o `now`, o render seguinte ainda usaria o do último tick (até 250ms
+  // atrás) e o alvo cairia um pouco antes — o bastante para "Avançar nível"
+  // parar no fim do nível anterior. Os updaters recebem `t` pronto e ficam puros.
+  const commit = useCallback((t: number, fn: (c: ClockSnapshot) => ClockSnapshot) => {
+    setNow(t);
+    setClock(fn);
+  }, []);
 
-  const currentElapsedMs = () =>
-    status === 'running' ? Date.now() - anchorRef.current : pausedElapsedRef.current;
+  const setElapsedMs = useCallback((ms: number) => {
+    const target = Math.max(0, ms);
+    const t = Date.now();
+    commit(t, (c) => (c.status === 'running'
+      ? { ...c, anchorMs: t - target }
+      : { ...c, pausedElapsedMs: target }));
+  }, [commit]);
 
   const start = useCallback(() => {
-    anchorRef.current = Date.now() - pausedElapsedRef.current;
-    setStatus('running');
-  }, []);
+    const t = Date.now();
+    commit(t, (c) => ({
+      status: 'running',
+      anchorMs: t - c.pausedElapsedMs,
+      pausedElapsedMs: c.pausedElapsedMs,
+    }));
+  }, [commit]);
 
   const pause = useCallback(() => {
-    pausedElapsedRef.current = Date.now() - anchorRef.current;
-    setStatus('paused');
-  }, []);
+    const t = Date.now();
+    commit(t, (c) => (c.status === 'running'
+      ? { status: 'paused', anchorMs: c.anchorMs, pausedElapsedMs: t - c.anchorMs }
+      : { ...c, status: 'paused' }));
+  }, [commit]);
 
-  const reset = useCallback(() => {
-    pausedElapsedRef.current = 0;
-    anchorRef.current = Date.now();
-    setStatus('idle');
-  }, []);
+  const reset = useCallback(() => setClock(IDLE_CLOCK), []);
 
   // Soma (positivo) ou subtrai (negativo) tempo do nível atual.
-  const addSeconds = useCallback(
-    (delta: number) => setElapsedMs(currentElapsedMs() - delta * 1000),
-    [setElapsedMs] // eslint-disable-line react-hooks/exhaustive-deps
-  );
+  const addSeconds = useCallback((delta: number) => {
+    const t = Date.now();
+    commit(t, (c) => {
+      const cur = c.status === 'running' ? t - c.anchorMs : c.pausedElapsedMs;
+      const target = Math.max(0, cur - delta * 1000);
+      return c.status === 'running'
+        ? { ...c, anchorMs: t - target }
+        : { ...c, pausedElapsedMs: target };
+    });
+  }, [commit]);
 
   const goToIndex = useCallback(
     (i: number) => {
       const clampedIdx = Math.min(Math.max(0, i), items.length - 1);
-      if (status === 'idle') setStatus('paused');
-      setElapsedMs(cumStarts[clampedIdx] * 1000);
+      const target = cumStarts[clampedIdx] * 1000;
+      const t = Date.now();
+      commit(t, (c) => {
+        const st: ClockStatus = c.status === 'idle' ? 'paused' : c.status;
+        return st === 'running'
+          ? { status: st, anchorMs: t - target, pausedElapsedMs: c.pausedElapsedMs }
+          : { status: st, anchorMs: c.anchorMs, pausedElapsedMs: target };
+      });
     },
-    [items.length, cumStarts, setElapsedMs, status]
+    [items.length, cumStarts, commit]
   );
 
   const next = useCallback(() => goToIndex(state.item_index + 1), [goToIndex, state.item_index]);
   const prev = useCallback(() => goToIndex(state.item_index - 1), [goToIndex, state.item_index]);
 
-  const update_curve = useCallback((patch: Partial<EngineParams>) => {
-    setParams((p) => ({ ...p, ...patch }));
-  }, []);
+  // ── Reancoragem ao editar a estrutura ao vivo ───────────────────────────
+  // Inserir/remover nível ou intervalo muda `items` com o elapsed congelado, o
+  // que faria o nível atual pular sem aviso. A posição lógica é guardada em um
+  // effect (nunca no render) e, quando `items` troca, o relógio é reancorado no
+  // mesmo ponto do item equivalente da estrutura nova.
+  const posRef = useRef<Position | null>(null);
+  const itemsRef = useRef(items);
+
+  useEffect(() => {
+    const pos = posRef.current;
+    const changed = itemsRef.current !== items;
+    itemsRef.current = items;
+    if (!changed || !pos || status === 'idle') return;
+    const idx = findPosition(items, pos);
+    if (idx < 0) return;                          // item removido: mantém o elapsed
+    if (cumStarts[idx] === pos.start_sec) return; // nada se moveu
+    const into = Math.min(pos.into, Math.max(0, items[idx].duration_seconds - 1));
+    setElapsedMs((cumStarts[idx] + into) * 1000);
+  }, [items, cumStarts, status, setElapsedMs]);
+
+  // Declarado DEPOIS de propósito: no commit em que `items` muda, o effect acima
+  // ainda lê a posição gravada no commit anterior — a da estrutura antiga.
+  useEffect(() => {
+    const cur = items[state.item_index];
+    if (!cur) return;
+    posRef.current = {
+      kind: cur.kind,
+      blinds: cur.kind === 'level' ? `${cur.small_blind}/${cur.big_blind}` : '',
+      level: state.level_number,
+      into: state.seconds_into_item,
+      start_sec: cumStarts[state.item_index] ?? 0,
+    };
+  });
 
   // Persistência do relógio (retomar após fechar): ancora em epoch absoluto.
-  const snapshot = useCallback(
-    () => ({ status, anchorMs: anchorRef.current, pausedElapsedMs: pausedElapsedRef.current }),
-    [status]
-  );
-  const restore = useCallback(
-    (s: { status: ClockStatus; anchorMs: number; pausedElapsedMs: number }) => {
-      anchorRef.current = s.anchorMs;
-      pausedElapsedRef.current = s.pausedElapsedMs;
-      setStatus(s.status);
-      setNow(Date.now());
-    },
-    []
-  );
+  const restore = useCallback((s: ClockSnapshot) => commit(Date.now(), () => ({ ...s })), [commit]);
 
   return {
     state, items, curve, params,
-    start, pause, reset, addSeconds, goToIndex, next, prev, update_curve,
-    snapshot, restore,
+    start, pause, reset, addSeconds, goToIndex, next, prev,
+    snapshot: clock, restore,
   };
 }

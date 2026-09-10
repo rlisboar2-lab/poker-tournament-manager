@@ -110,13 +110,41 @@ Arquivos: `supabase/migrations/0011_*.sql`, `src/services/tournaments.ts`, `src/
 ---
 
 ## S8 — Refactor do motor do relógio  ·  Opus 5 · effort **max**  ·  depende de S3 (testes) + S1
-Arquivos: `src/hooks/useTournamentEngine.ts`, `src/App.tsx`
+Arquivos: `src/hooks/useTournamentEngine.ts`, `src/App.tsx`, `src/utils/placements.ts` (novo),
+`src/utils/__tests__/placements.test.ts` (novo), `src/hooks/__tests__/findPosition.test.ts` (novo)
 
-- [ ] 🟡 **Estado espelhado** — o hook copia `initial` para `useState` e sincroniza via `update_curve` + `JSON.stringify(derivedParams)` como signature (`App.tsx:172`). Params derivados deveriam ser props puros, sem `setParams`.
-- [ ] 🟡 **Editar estrutura com relógio rodando** — `App.tsx:246`. `deleteLevel`/`addLevelAfter` mudam `items` com o elapsed fixo → o nível atual pula sem aviso. Fix: reancorar preservando o nível corrente, ou confirmar com o usuário.
-- [ ] 🟡 **Reviver jogador não corrige colocações** — `App.tsx:294`. Des-eliminar deixa as colocações dos outros defasadas.
+- [x] 🟡 **Estado espelhado** — **Resolvido.** `useTournamentEngine(params)` recebe os parâmetros como prop pura: sumiram o `useState<EngineParams>`, o `update_curve` e o effect de sincronia com `JSON.stringify(derivedParams)`. A âncora do relógio virou estado (`ClockSnapshot`) em vez de refs lidos no render, e `snapshot` passou de callback a valor. Com `items`/`curve`/`snapshot` de identidade estável entre ticks, o effect da transmissão ao vivo usa deps reais (sem a assinatura por `JSON.stringify` a cada 250ms) e o autosave lê o estado por um ref atualizado em effect, com o intervalo montado uma única vez.
+- [x] 🟡 **Editar estrutura com relógio rodando** — **Resolvido.** O engine guarda a posição lógica (item + segundos corridos) num effect e reancora quando `items` troca: `findPosition` reencontra o item pelos blinds (imunes à renumeração do `deleteLevel`) e cai para o número do nível quando os blinds mudam. Apagar justamente o nível em jogo é a única exceção — aí o `App` pede confirmação antes.
+- [x] 🟡 **Reviver jogador não corrige colocações** — **Resolvido.** Lógica extraída para `src/utils/placements.ts`: cada eliminação/revivida renumera a lista inteira a partir da ordem de eliminação, em bloco contíguo terminando no total de participantes. Antes, reviver quem caiu antes dos outros deixava as colocações deles defasadas.
 
-**Validação:** testes da S3 verdes + torneio simulado ponta a ponta.
+**Validação:** `npm test` 41/41 verde (23 de `poker-math` + 11 de `placements` + 7 de `findPosition`),
+`npm run build` passa, `npm run lint` de 28 → **6 warnings, 0 errors**.
+Torneio simulado no `npm run dev` (5 jogadores):
+
+| Cenário | Resultado |
+|---|---|
+| Avançar nível ×2 com relógio rodando | 2 → 3 → 4, cada um em 20:00 |
+| Apagar nível anterior ao corrente | nível corrente mantém blinds e tempo (100/200 · 19:03), só renumera |
+| `+ Intervalo após nível atual` | nível corrente não se move |
+| Inserir nível antes do corrente | nível corrente não se move |
+| Eliminar Ana, Bruno, Carla | 5º, 4º, 3º |
+| Reviver Bruno (do meio) | Carla 3º → 4º, Ana segue 5º |
+| Reabrir o app | relógio retomado no ponto certo, sem erro no console |
+| Autosave | grava a cada 2002ms (não 4×/s) |
+
+### Notas da S8
+
+- Regressão encontrada e corrigida no próprio refactor: sem avançar o `now` do render junto com a
+  âncora, "Avançar nível" caía até 250ms antes do alvo e parava no fim do nível anterior. O helper
+  `commit(t, fn)` move os dois no mesmo instante.
+- Os 22 warnings de `react-hooks/refs` + `purity` + `exhaustive-deps` sumiram; o motor do relógio
+  está limpo. Restam 6: 5 `set-state-in-effect` (`App.tsx` restore/assentos/prêmios,
+  `StatsPanel.tsx:42`, `WatchView.tsx:36`) e 1 `no-explicit-any` (`Clock.tsx:25`, prefixo de
+  fornecedor). Promover as regras do React Compiler a `error` agora exigiria tratar esses 5.
+- Ticker só existe enquanto o relógio roda: pausado/parado não re-renderiza mais a 4×/s.
+- **Próximo:** S4 (migrações de banco) — **Opus 5**, effort high. Bloqueado por decisão do Rod:
+  modelo de acesso **(a)** dono único ou **(b)** multi-tenant com `owner_id`. Exige aviso e
+  autorização antes de aplicar SQL (AGENTS.md).
 
 ---
 

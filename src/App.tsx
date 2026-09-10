@@ -19,6 +19,7 @@ import {
   type BlindLevel,
 } from './utils/poker-math';
 import { addAndSeat, rebalanceSeating } from './utils/seating';
+import { applyElimination } from './utils/placements';
 import { uuidV4 } from './utils/uuid';
 import { quadraPreset } from './presets';
 import { saveTournament, listKnownPlayers, type LocalEntry } from './services/tournaments';
@@ -123,7 +124,9 @@ export default function App() {
     return () => sub.subscription.unsubscribe();
   }, []);
 
-  const saved = useRef<SavedState | null>(loadSaved()).current;
+  // localStorage é lido uma única vez, no inicializador preguiçoso do useState
+  // (fora do corpo do render, que precisa ser puro).
+  const [saved] = useState<SavedState | null>(loadSaved);
   const [config, setConfig] = useState<AppConfig>(saved?.config ?? defaultConfig());
   const [entries, setEntries] = useState<LocalEntry[]>(saved?.entries ?? []);
   const [payoutPct, setPayoutPct] = useState<number[]>(saved?.payoutPct ?? [0.5, 0.3, 0.2]);
@@ -208,56 +211,59 @@ export default function App() {
     engine.restore(snap);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const sig = JSON.stringify(derivedParams);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { engine.update_curve(derivedParams); }, [sig]);
-
-  // O hook devolve um objeto novo a cada render e o ticker re-renderiza a 250ms:
-  // `engine` nas deps do autosave remontaria o effect antes de o intervalo de 2s
-  // disparar, e o `write` rodaria ~4×/s. Snapshot vem por ref.
-  const snapshotRef = useRef(engine.snapshot);
-  snapshotRef.current = engine.snapshot;
-
   // Autosave: estado geral + snapshot do relógio (a cada 2s e ao fechar).
+  // O que gravar vive num ref atualizado por effect (nunca durante o render),
+  // então o intervalo é montado uma única vez — sem depender das deps de estado
+  // nem do `engine`, que muda de identidade a cada tick.
+  const saveRef = useRef<SavedState | null>(null);
   useEffect(() => {
-    const write = () => {
-      const s: SavedState = {
-        config, entries, payoutPct, stage, manualLevels, liveShareId,
-        clock: { ...snapshotRef.current(), savedAtMs: Date.now() },
-      };
-      try { localStorage.setItem(SAVE_KEY, JSON.stringify(s)); } catch { /* quota */ }
+    saveRef.current = {
+      config, entries, payoutPct, stage, manualLevels, liveShareId,
+      clock: engine.snapshot,
     };
-    write();
+  });
+  useEffect(() => {
+    // Sem gravação imediata na montagem: nesse commit o relógio ainda é `idle`
+    // (o restore só entra no próximo) e o snapshot bom seria sobrescrito.
+    const write = () => {
+      const s = saveRef.current;
+      if (!s) return;
+      const payload: SavedState = {
+        ...s,
+        clock: s.clock ? { ...s.clock, savedAtMs: Date.now() } : undefined,
+      };
+      try { localStorage.setItem(SAVE_KEY, JSON.stringify(payload)); } catch { /* quota */ }
+    };
     const id = window.setInterval(write, 2000);
     window.addEventListener('beforeunload', write);
     return () => { clearInterval(id); window.removeEventListener('beforeunload', write); };
-  }, [config, entries, payoutPct, stage, manualLevels, liveShareId]);
+  }, []);
 
   // Transmissão ao vivo: publica o estado no Supabase a cada evento relevante
   // (mudou nível/status/âncora/parâmetros/jogadores). O relógio no /watch conta
   // sozinho a partir da âncora, então NÃO publicamos a cada segundo.
-  const liveSnap = engine.snapshot();
-  const liveSig = liveShareId ? JSON.stringify({
-    n: config.name, it: engine.items, s: liveSnap, pr: playersRemaining, tc: engine.curve.c_total,
-  }) : '';
+  // Com `params` puro, `items`, `curve` e `snapshot` têm identidade estável entre
+  // ticks — as deps do effect bastam, sem a assinatura por JSON.stringify.
+  const liveSnap = engine.snapshot;
+  const liveItems = engine.items;
+  const liveChips = engine.curve.c_total;
   useEffect(() => {
     if (!liveShareId || !supabase) return;
     supabase.from('live_state').upsert({
       id: liveShareId,
       name: config.name,
-      schedule: engine.items,
+      schedule: liveItems,
       status: liveSnap.status,
       anchor_ms: Math.round(liveSnap.anchorMs),
       paused_elapsed_ms: Math.round(liveSnap.pausedElapsedMs),
       players_remaining: playersRemaining,
-      total_chips: Math.round(engine.curve.c_total),
+      total_chips: Math.round(liveChips),
       updated_at: new Date().toISOString(),
     }).then(({ error }) => {
       setLiveError(error ? error.message : null);
       if (error) console.warn('live upsert:', error.message);
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [liveSig]);
+  }, [liveShareId, config.name, liveItems, liveSnap, playersRemaining, liveChips]);
 
   // Posições aleatórias ao iniciar a fase ao vivo (se ninguém sentado ainda).
   useEffect(() => {
@@ -306,9 +312,20 @@ export default function App() {
   };
 
   // Remove um nível (recalcula o tempo total, que diminui).
+  // O engine reancora sozinho para preservar o nível em jogo; apagar justamente
+  // o nível corrente é a exceção — aí o relógio muda de nível, então confirma.
   const deleteLevel = (levelNumber: number) => {
     const base = materialize().filter((n) => n.nivel !== levelNumber);
     if (base.length < 2) return;
+    if (
+      engine.state.status !== 'idle' &&
+      engine.state.kind === 'level' &&
+      levelNumber === engine.state.level_number &&
+      !confirm(
+        `O nível ${levelNumber} é o que está em jogo agora. Apagar mesmo assim? ` +
+        'O relógio passará para o nível que ocupar o lugar dele, no mesmo tempo decorrido.'
+      )
+    ) return;
     setManualLevels(renumber(base));
   };
 
@@ -331,33 +348,10 @@ export default function App() {
   };
 
   // Eliminação ao vivo → preenche colocação e prêmio automaticamente.
-  // Quem cai primeiro fica em último; o último de pé é o 1º.
+  // Renumera a lista inteira: reviver um jogador muda a colocação de todos os
+  // que caíram antes dele (ver src/utils/placements.ts).
   const toggleEliminated = (index: number, eliminate: boolean) => {
-    setEntries((prev) => {
-      const activeCount = prev.filter((e) => !e.eliminated).length;
-      let next = prev.map((e, i) => {
-        if (i !== index) return e;
-        if (eliminate) {
-          const placement = activeCount; // termina nesta colocação
-          const pct = payoutPct[placement - 1] ?? 0;
-          return { ...e, eliminated: true, table: undefined, seat: undefined,
-            final_placement: placement, payout_amount: prizePool * pct };
-        }
-        return { ...e, eliminated: false, final_placement: undefined, payout_amount: undefined };
-      });
-      // Sobrando 1 ativo, ele é o campeão (1º); com mais de 1, ninguém é 1º ainda.
-      const active = next.filter((e) => !e.eliminated);
-      if (active.length === 1) {
-        const champ = active[0];
-        next = next.map((e) => e === champ
-          ? { ...e, final_placement: 1, payout_amount: prizePool * (payoutPct[0] ?? 0) }
-          : e);
-      } else {
-        next = next.map((e) => (!e.eliminated && e.final_placement === 1)
-          ? { ...e, final_placement: undefined, payout_amount: undefined } : e);
-      }
-      return next;
-    });
+    setEntries((prev) => applyElimination(prev, index, eliminate, prizePool, payoutPct));
   };
 
   const novoTorneio = () => {
