@@ -120,9 +120,9 @@ Torneio simulado no `npm run dev` (5 jogadores):
 ## S5 — Migrações de banco  ·  Opus 5 · effort **high**  ·  depende de S1
 Arquivos: `supabase/migrations/0006_player_name_unique.sql`, `supabase/migrations/0007_schema_notes.sql`, `HANDOFF.md`
 
-> ⚠️ Exige aviso ao responsável antes de aplicar (AGENTS.md). **O SQL foi escrito, não aplicado** —
-> quem roda no Supabase → SQL Editor é o Rod (HANDOFF §4). Sem `psql`/`docker` na máquina, nada foi
-> executado aqui.
+> ⚠️ Exigia aviso ao responsável antes de aplicar (AGENTS.md). O SQL foi escrito aqui e **aplicado
+> pelo Rod** no Supabase → SQL Editor em 10/09/2026, junto com os passos de painel (signup OFF, uma
+> conta só). Nada foi executado pelo agente — sem `psql`/`docker` na máquina.
 
 - [x] 🟠 **Definir o modelo de acesso primeiro** — **Decidido: (a) dono único.** O Rod usa o app sozinho
   (`lisboa@prospectus.lat`). As policies `authenticated_all using(true)` de 0002/0003 ficam como estão,
@@ -145,9 +145,11 @@ login + salvar torneio fica com o Rod, depois de rodar as migrações.
 
 ### Notas da S5
 
-- **Ordem de execução no SQL Editor:** `0005` (se ainda não rodou) → `0006` → `0007`. A `0007` é
-  tolerante: comenta `live_state` e `total_points` só se existirem, porque o HANDOFF §4 marca a `0004`
-  como nunca aplicada e a `0005` como pendente.
+- **Aplicadas em 10/09/2026** na ordem `0005` → `0006` → `0007`, pelo Rod. A `0007` é tolerante:
+  comenta `live_state` e `total_points` só se existirem, porque a `0004` nunca rodou.
+- **Painel do Supabase feito junto:** *Allow new users to sign up* = OFF e só `lisboa@prospectus.lat`
+  em Authentication → Users. É isso que sustenta o modelo de dono único — se cair, o `using(true)`
+  vira acesso total pra qualquer conta nova.
 - **Sem `owner_id` em lugar nenhum.** A separação por dono não existe no banco — a segurança do app
   hoje é "existe uma conta só". Virar multi-tenant depois custa: `owner_id uuid default auth.uid()` nas
   5 tabelas, backfill das linhas existentes com o UUID do Rod, policies por dono, e o unique da `0006`
@@ -158,12 +160,12 @@ login + salvar torneio fica com o Rod, depois de rodar as migrações.
   unique na hora do save, em vez de criar uma linha duplicada em silêncio (que quebrava o save
   *seguinte*). Falha barulhenta em vez de corrupção silenciosa — e some quando a S6 trocar o
   select+insert por `upsert`.
-- **Próximo:** S6 (app consome as migrações) — **Haiku 4.5**, effort low. Só depois que o Rod rodar a
-  `0006`, senão o `onConflict` aponta pra um índice que não existe.
+- **Próximo:** S6 (app consome as migrações) — **Haiku 4.5**, effort low. **Desbloqueada:** a `0006`
+  já está no banco, então o `onConflict: 'display_name_norm'` tem índice pra inferir.
 
 ---
 
-## S6 — App consome as migrações  ·  Haiku 4.5 · effort **low**  ·  depende de S5
+## S6 — App consome as migrações  ·  Haiku 4.5 · effort **low**  ·  depende de S5 ✅ (migrações aplicadas em 10/09/2026)
 Arquivos: `src/services/tournaments.ts`, `src/App.tsx`, `src/components/WatchView.tsx`
 
 - [ ] 🔴 `upsertPlayer` → `upsert(..., { onConflict: 'display_name_norm' })` em vez de select+insert.
@@ -203,5 +205,5 @@ S2 ──► S3 ─────────────┴──► S7 ──►
 S1 e S2 são independentes — podem ser feitas em qualquer ordem.
 S4 é folha: nenhum bloco depende dela.
 
-Ordem restante: **S6 → S7 → S8**. S7 só precisa de S3 + S5, então pode vir antes da S6 — mas as duas
-dependem das migrações da S5 estarem **aplicadas** no banco, não só escritas.
+Ordem restante: **S6 → S7 → S8**. S7 só precisa de S3 + S5, então pode vir antes da S6. As migrações
+da S5 já estão aplicadas no banco, então as duas estão liberadas.
