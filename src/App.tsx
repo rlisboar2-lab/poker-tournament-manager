@@ -19,6 +19,7 @@ import {
   type BlindLevel,
 } from './utils/poker-math';
 import { addAndSeat, rebalanceSeating } from './utils/seating';
+import { uuidV4 } from './utils/uuid';
 import { quadraPreset } from './presets';
 import { saveTournament, listKnownPlayers, type LocalEntry } from './services/tournaments';
 import { supabase, isSupabaseConfigured } from './lib/supabase';
@@ -44,7 +45,12 @@ export interface AppConfig {
   breaks: BreakConfig[];
 }
 
-interface ClockSnap { status: ClockStatus; anchorMs: number; pausedElapsedMs: number; }
+interface ClockSnap {
+  status: ClockStatus;
+  anchorMs: number;
+  pausedElapsedMs: number;
+  savedAtMs?: number; // epoch do salvamento — reconstrói o elapsed na retomada
+}
 interface SavedState {
   config: AppConfig;
   entries: LocalEntry[];
@@ -128,6 +134,10 @@ export default function App() {
   // Transmissão ao vivo (link público /watch/:id).
   const [liveShareId, setLiveShareId] = useState<string | null>(saved?.liveShareId ?? null);
   const [copied, setCopied] = useState(false);
+  // Erro da publicação ao vivo (antes só ia para o console).
+  const [liveError, setLiveError] = useState<string | null>(null);
+  // Aviso quando o relógio salvo não pôde ser retomado como estava.
+  const [clockNotice, setClockNotice] = useState<string | null>(null);
   // Painel de personalização visual (cores/fontes/zoom — src/theme.ts).
   const [showTheme, setShowTheme] = useState(false);
   // Jogadores já cadastrados (para reaproveitar nomes ao adicionar buy-in).
@@ -172,29 +182,56 @@ export default function App() {
   const engine = useTournamentEngine(derivedParams);
 
   // Restaura o relógio salvo uma única vez (retomar após fechar).
+  // A âncora é epoch absoluto: reabrir horas depois com status `running` faria o
+  // elapsed passar da duração total e o torneio nasceria `finished`. Nesse caso
+  // volta como `paused` no ponto do último autosave e avisa.
   const restoredRef = useRef(false);
   useEffect(() => {
-    if (!restoredRef.current && saved?.clock) {
-      engine.restore(saved.clock);
-    }
+    if (restoredRef.current) return;
     restoredRef.current = true;
+    const snap = saved?.clock;
+    if (!snap) return;
+
+    const totalMs = engine.items.reduce((acc, it) => acc + it.duration_seconds, 0) * 1000;
+    if (snap.status === 'running' && Date.now() - snap.anchorMs > totalMs) {
+      const atClose = snap.savedAtMs != null ? Math.max(0, snap.savedAtMs - snap.anchorMs) : 0;
+      if (atClose < totalMs) {
+        engine.restore({ status: 'paused', anchorMs: snap.anchorMs, pausedElapsedMs: atClose });
+        setClockNotice(
+          snap.savedAtMs != null
+            ? 'Relógio pausado na retomada: o app ficou fechado por mais tempo que a duração do torneio. Restaurado no ponto do último salvamento — confira o nível antes de iniciar.'
+            : 'Relógio pausado e zerado na retomada: o app ficou fechado por mais tempo que a duração do torneio e o estado salvo não guardava o horário do salvamento. Ajuste o nível antes de iniciar.'
+        );
+        return;
+      }
+    }
+    engine.restore(snap);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const sig = JSON.stringify(derivedParams);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { engine.update_curve(derivedParams); }, [sig]);
 
+  // O hook devolve um objeto novo a cada render e o ticker re-renderiza a 250ms:
+  // `engine` nas deps do autosave remontaria o effect antes de o intervalo de 2s
+  // disparar, e o `write` rodaria ~4×/s. Snapshot vem por ref.
+  const snapshotRef = useRef(engine.snapshot);
+  snapshotRef.current = engine.snapshot;
+
   // Autosave: estado geral + snapshot do relógio (a cada 2s e ao fechar).
   useEffect(() => {
     const write = () => {
-      const s: SavedState = { config, entries, payoutPct, stage, manualLevels, liveShareId, clock: engine.snapshot() };
+      const s: SavedState = {
+        config, entries, payoutPct, stage, manualLevels, liveShareId,
+        clock: { ...snapshotRef.current(), savedAtMs: Date.now() },
+      };
       try { localStorage.setItem(SAVE_KEY, JSON.stringify(s)); } catch { /* quota */ }
     };
     write();
     const id = window.setInterval(write, 2000);
     window.addEventListener('beforeunload', write);
     return () => { clearInterval(id); window.removeEventListener('beforeunload', write); };
-  }, [config, entries, payoutPct, stage, manualLevels, liveShareId, engine]);
+  }, [config, entries, payoutPct, stage, manualLevels, liveShareId]);
 
   // Transmissão ao vivo: publica o estado no Supabase a cada evento relevante
   // (mudou nível/status/âncora/parâmetros/jogadores). O relógio no /watch conta
@@ -215,7 +252,10 @@ export default function App() {
       players_remaining: playersRemaining,
       total_chips: Math.round(engine.curve.c_total),
       updated_at: new Date().toISOString(),
-    }).then(({ error }) => { if (error) console.warn('live upsert:', error.message); });
+    }).then(({ error }) => {
+      setLiveError(error ? error.message : null);
+      if (error) console.warn('live upsert:', error.message);
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [liveSig]);
 
@@ -281,11 +321,10 @@ export default function App() {
   // Transmissão ao vivo.
   const liveUrl = liveShareId ? `${window.location.origin}/watch/${liveShareId}` : '';
   const publicarAoVivo = () => {
-    const id = (crypto as { randomUUID?: () => string }).randomUUID?.()
-      ?? `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
-    setLiveShareId(id);
+    setLiveError(null);
+    setLiveShareId(uuidV4());
   };
-  const pararTransmissao = () => setLiveShareId(null);
+  const pararTransmissao = () => { setLiveError(null); setLiveShareId(null); };
   const copiarLink = async () => {
     try { await navigator.clipboard.writeText(liveUrl); setCopied(true); setTimeout(() => setCopied(false), 1500); }
     catch { /* clipboard indisponível */ }
@@ -385,6 +424,15 @@ export default function App() {
         {manualLevels ? ' (editado)' : ` (r=${engine.curve.multiplicador_r.toFixed(3)})`}
       </p>
 
+      {clockNotice && (
+        <div className="panel" style={{ borderColor: 'var(--gold)' }}>
+          <div className="row" style={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <p className="notice" style={{ margin: 0, color: 'var(--gold)' }}>⚠ {clockNotice}</p>
+            <button className="ghost" onClick={() => setClockNotice(null)}>Entendi</button>
+          </div>
+        </div>
+      )}
+
       <div className="tabs stepper">
         {STAGES.map((s) => (
           <button key={s.id} className={stage === s.id ? 'active' : ''} onClick={() => setStage(s.id)}>
@@ -426,6 +474,11 @@ export default function App() {
                   </div>
                   <button className="danger" onClick={pararTransmissao}>Parar</button>
                 </div>
+              )}
+              {liveError && (
+                <p className="notice" style={{ marginTop: 6, color: 'var(--danger)' }}>
+                  ⚠ Transmissão não publicada: {liveError}
+                </p>
               )}
               <p className="notice" style={{ marginTop: 6 }}>
                 Quem abrir o link acompanha o relógio em tempo real, sem login. Abra numa TV/tela.

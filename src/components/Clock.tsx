@@ -55,10 +55,19 @@ function makeAlarm() {
     for (let i = 0; i < n; i++) vp.push(300, 200);
     vibrate(vp);
   };
+  // Libera o hardware de áudio: sem isso o AudioContext fica aberto após o
+  // unmount (navegadores limitam quantos contextos simultâneos existem).
+  const close = () => {
+    stop();
+    const c = ctx;
+    ctx = null;
+    if (c) { try { void c.close(); } catch { /* já fechado */ } }
+  };
   return {
     arm: () => ensure(),
     test: () => { ensure(); stop(); tone(880, 0, 0.2); tone(1100, 0.28, 0.32); vibrate([200]); },
     stop,
+    close,
     oneMinute: () => { ensure(); stop(); tone(900, 0, 0.25); tone(900, 0.35, 0.25); vibrate([200, 100, 200]); },
     levelChange: () => siren(8, 700, 1050),
     lateWarning: () => siren(10, 520, 780),
@@ -105,6 +114,12 @@ export default function Clock({ engine, editable, onAddLevelAfter, onDeleteLevel
     if (state.item_index > prevIndexRef.current) fireAlarm('levelChange');
     prevIndexRef.current = state.item_index;
 
+    // −1m/+1m podem jogar o tempo restante de volta acima de 1 min no MESMO
+    // nível: rearma o alarme para ele tocar outra vez ao cruzar 60s.
+    if (state.seconds_until_next > 60 && minuteFiredRef.current === state.item_index) {
+      minuteFiredRef.current = -1;
+    }
+
     if (state.kind === 'level' && state.seconds_until_next <= 60 && state.seconds_until_next > 0
         && minuteFiredRef.current !== state.item_index) {
       minuteFiredRef.current = state.item_index;
@@ -133,6 +148,12 @@ export default function Clock({ engine, editable, onAddLevelAfter, onDeleteLevel
       }
     } catch { /* celular sem API nativa: overlay CSS cobre */ }
   };
+  // Fecha o AudioContext ao desmontar o relógio (troca de aba/estágio).
+  useEffect(() => () => {
+    alarmRef.current?.close();
+    alarmRef.current = null;
+  }, []);
+
   useEffect(() => {
     const h = () => {
       if (!document.fullscreenElement && wasNativeRef.current) {

@@ -55,10 +55,24 @@ export function addAndSeat(entries: LocalEntry[], name: string): LocalEntry[] {
   next.forEach((e) => {
     if (!e.eliminated && e.table && e.table <= tables) counts[e.table - 1] += 1;
   });
-  // remove o recém-adicionado da contagem (ele ainda não tem mesa)
+  // O recém-adicionado ainda não tem mesa, então não entra na contagem.
   let target = 0;
   for (let i = 1; i < tables; i++) if (counts[i] < counts[target]) target = i;
-  const seat = counts[target]; // já inclui contagens; novo assento = atual+1 menos o próprio
+  // Assentos vagos por eliminação não são renumerados: contar ativos daria um
+  // número já ocupado. Pega o menor assento livre da mesa (1..MAX_PER_TABLE).
+  const seat = firstFreeSeat(next, target + 1);
   const idx = next.length - 1;
-  return next.map((e, i) => (i === idx ? { ...e, table: target + 1, seat: seat + 1 } : e));
+  return next.map((e, i) => (i === idx ? { ...e, table: target + 1, seat } : e));
+}
+
+// Menor assento não ocupado por um ativo na mesa. Se os MAX_PER_TABLE assentos
+// estiverem tomados (não deveria ocorrer: a quebra de mesa cai no rebalance),
+// devolve o maior ocupado + 1 para nunca duplicar.
+function firstFreeSeat(entries: LocalEntry[], table: number): number {
+  const taken = new Set<number>();
+  for (const e of entries) {
+    if (!e.eliminated && e.table === table && e.seat) taken.add(e.seat);
+  }
+  for (let s = 1; s <= MAX_PER_TABLE; s++) if (!taken.has(s)) return s;
+  return Math.max(0, ...taken) + 1;
 }
