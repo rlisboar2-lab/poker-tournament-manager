@@ -106,6 +106,7 @@ export default function WatchView({ id }: { id: string }) {
         </div>
 
         <div className="corner-qr">
+          {/* TODO: Confirmar com Rod se QR PIX deve ser público ou apenas autenticado */}
           <img src="/pix-qr.png" alt="PIX" onError={(e) => { (e.currentTarget.parentElement as HTMLElement).style.display = 'none'; }} />
           <span>PIX</span>
         </div>

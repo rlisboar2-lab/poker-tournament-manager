@@ -341,7 +341,15 @@ export default function App() {
     setLiveError(null);
     setLiveShareId(uuidV4());
   };
-  const pararTransmissao = () => { setLiveError(null); setLiveShareId(null); };
+  const pararTransmissao = () => {
+    setLiveError(null);
+    if (liveShareId && supabase) {
+      supabase.from('live_state').delete().eq('id', liveShareId).then(({ error }) => {
+        if (error) console.warn('Erro ao deletar live_state:', error.message);
+      });
+    }
+    setLiveShareId(null);
+  };
   const copiarLink = async () => {
     try { await navigator.clipboard.writeText(liveUrl); setCopied(true); setTimeout(() => setCopied(false), 1500); }
     catch { /* clipboard indisponível */ }

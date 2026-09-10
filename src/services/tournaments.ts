@@ -39,16 +39,9 @@ export interface SaveTournamentInput {
 }
 
 async function upsertPlayer(name: string, nickname?: string): Promise<string> {
-  const { data: found } = await supabase!
-    .from('sub_players')
-    .select('id')
-    .eq('display_name', name)
-    .maybeSingle();
-  if (found) return found.id as string;
-
   const { data, error } = await supabase!
     .from('sub_players')
-    .insert({ display_name: name, nickname: nickname ?? null })
+    .upsert({ display_name: name, nickname: nickname ?? null }, { onConflict: 'display_name_norm' })
     .select('id')
     .single();
   if (error) throw error;
