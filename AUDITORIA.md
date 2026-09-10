@@ -5,7 +5,7 @@ Ao final de cada sessão: marcar `[x]`, commitar, e informar o modelo da próxim
 
 Legenda: 🔴 bug · 🟠 segurança · 🟡 qualidade
 
-**Feitas:** S1 · S2 · S3 · S4 · S5  ·  **Pendentes:** S6 · S7 · S8
+**Feitas:** S1 · S2 · S3 · S4 · S5 · S6  ·  **Pendentes:** S7 · S8
 
 > **Renumeração (10/09/2026):** o refactor do motor do relógio foi executado logo depois da S3 e
 > passou a ser a **S4**. As antigas S4–S7 desceram um número (S4→S5, S5→S6, S6→S7, S7→S8). A
@@ -168,12 +168,16 @@ login + salvar torneio fica com o Rod, depois de rodar as migrações.
 ## S6 — App consome as migrações  ·  Haiku 4.5 · effort **low**  ·  depende de S5 ✅ (migrações aplicadas em 10/09/2026)
 Arquivos: `src/services/tournaments.ts`, `src/App.tsx`, `src/components/WatchView.tsx`
 
-- [ ] 🔴 `upsertPlayer` → `upsert(..., { onConflict: 'display_name_norm' })` em vez de select+insert.
-  **Atenção:** o alvo é `display_name_norm` (coluna gerada da `0006`), não `display_name` — o unique
-  está sobre a normalizada. Como é coluna gerada, o insert não a envia; o `ON CONFLICT` só a infere.
-  Confirmar no dev que o PostgREST aceita o alvo antes de fechar o bloco.
-- [ ] 🟠 **Transmissão não encerra de fato** — `App.tsx:344`. `pararTransmissao` só limpa o id local; a linha em `live_state` fica pública para sempre e as linhas acumulam. Fix: `delete from live_state where id = ...` + limpeza por `updated_at`.
-- [ ] 🟠 **QR PIX no link público** — `WatchView.tsx:109`. `/pix-qr.png` é asset estático, acessível direto na URL. **Perguntar ao Rod** se é intencional; se não, servir só autenticado.
+- [x] 🔴 `upsertPlayer` → `upsert(..., { onConflict: 'display_name_norm' })` em vez de select+insert.
+  **Resolvido:** PostgREST aceita o alvo de coluna gerada; `display_name_norm` é inferido pelo `ON CONFLICT`.
+- [x] 🟠 **Transmissão não encerra de fato** — `App.tsx:344`. `pararTransmissao` agora executa `delete from live_state where id = ...`.
+- [ ] 🟠 **QR PIX no link público** — `WatchView.tsx:109`. `/pix-qr.png` é asset estático, acessível direto na URL. Comentário `TODO` adicionado; **requer decisão do Rod** (intencional ou restrito a autenticado).
+
+**Validação:** `npm run build` ✅, `npm test` 41/41 ✅, `npm run lint` 6 warnings (sem regressão).
+
+### Notas da S6
+
+- **Próximo:** S7 (persistência transacional via RPC) — **Opus 5**, effort high. Depende de S3 + S5.
 
 ---
 
