@@ -88,8 +88,10 @@ export default function StatsPanel({ onSave }: Props) {
       setEditing(null);
       await refresh();
       setMsg('Resultado atualizado.');
-    } catch (e) { setMsg(`Erro ao salvar: ${(e as Error).message}`); }
-    finally { setBusy(false); }
+    } catch (e) {
+      console.error('[StatsPanel] falha ao salvar o resultado', e);
+      setMsg(`Erro ao salvar: ${(e as Error).message}`);
+    } finally { setBusy(false); }
   };
 
   const save = async () => {
@@ -217,6 +219,8 @@ export default function StatsPanel({ onSave }: Props) {
             )}
             <button className="ghost" onClick={() => setEditing(null)}>Fechar</button>
           </div>
+          {/* O aviso do topo do painel fica fora da tela com o editor aberto. */}
+          {msg && <p className="notice">{msg}</p>}
         </div>
       )}
 
