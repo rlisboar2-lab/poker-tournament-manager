@@ -5,7 +5,7 @@ Ao final de cada sessão: marcar `[x]`, commitar, e informar o modelo da próxim
 
 Legenda: 🔴 bug · 🟠 segurança · 🟡 qualidade
 
-**Feitas:** S1 · S2 · S3 · S4  ·  **Pendentes:** S5 · S6 · S7 · S8
+**Feitas:** S1 · S2 · S3 · S4 · S5  ·  **Pendentes:** S6 · S7 · S8
 
 > **Renumeração (10/09/2026):** o refactor do motor do relógio foi executado logo depois da S3 e
 > passou a ser a **S4**. As antigas S4–S7 desceram um número (S4→S5, S5→S6, S6→S7, S7→S8). A
@@ -118,23 +118,58 @@ Torneio simulado no `npm run dev` (5 jogadores):
 ---
 
 ## S5 — Migrações de banco  ·  Opus 5 · effort **high**  ·  depende de S1
-Arquivos: `supabase/migrations/0006_*.sql` … `0009_*.sql`
+Arquivos: `supabase/migrations/0006_player_name_unique.sql`, `supabase/migrations/0007_schema_notes.sql`, `HANDOFF.md`
 
-> ⚠️ Exige aviso ao responsável antes de aplicar (AGENTS.md). Agrupado numa autorização só.
+> ⚠️ Exige aviso ao responsável antes de aplicar (AGENTS.md). **O SQL foi escrito, não aplicado** —
+> quem roda no Supabase → SQL Editor é o Rod (HANDOFF §4). Sem `psql`/`docker` na máquina, nada foi
+> executado aqui.
 
-- [ ] 🟠 **Definir o modelo de acesso primeiro** — `0003_rls_fix.sql`. Hoje `authenticated_all using(true)`: todo usuário logado lê/edita/apaga tudo. Decidir: **(a)** dono único → confirmar *Authentication → Providers → Allow new users to sign up = OFF*; **(b)** multi-tenant → `owner_id uuid default auth.uid()` em todas as tabelas + policies por dono.
-- [ ] 🟠 **`live_state` sem dono** — `0005_live_state.sql:26`. Qualquer autenticado sobrescreve/apaga qualquer transmissão. Fix: `owner_id` + policy de write por dono; leitura pública permanece. *(decorre da decisão acima)*
-- [ ] 🔴 **Nome de jogador duplicado quebra o save** — `tournaments.ts:46`. `.maybeSingle()` lança com 2 linhas e não há unique. Fix: `create unique index on sub_players (lower(display_name))`.
-- [ ] 🟡 Colunas mortas: `sub_players.total_winnings` e `total_points` (migração 0004) nunca são escritas — ranking é derivado. Dropar ou documentar como obsoletas.
+- [x] 🟠 **Definir o modelo de acesso primeiro** — **Decidido: (a) dono único.** O Rod usa o app sozinho
+  (`lisboa@prospectus.lat`). As policies `authenticated_all using(true)` de 0002/0003 ficam como estão,
+  sem `owner_id`. A garantia sai do banco e vai pro painel: *Allow new users to sign up = OFF* +
+  só a conta dele em Authentication → Users. Registrado em `comment on table` (0007) e no HANDOFF §7.
+- [x] 🟠 **`live_state` sem dono** — **Risco aceito, sem mudança de schema.** Decorre de (a): com uma
+  conta só, "qualquer autenticado sobrescreve qualquer transmissão" não tem superfície. Documentado no
+  `comment on table live_state` (0007). Se entrar um segundo usuário, isto volta junto com o `owner_id`.
+- [x] 🔴 **Nome de jogador duplicado quebra o save** — `0006`. Coluna gerada
+  `display_name_norm = lower(btrim(display_name))` + `unique index sub_players_display_name_norm_uidx`.
+  Normaliza caixa e espaços, então "Ana", "ana" e " Ana " viram o mesmo jogador. A migração tem
+  pré-checagem: se já houver duplicatas, ela aborta listando os nomes e traz o SQL de merge comentado
+  (reponta `transactions.player_id` para a linha mais antiga antes de apagar as outras).
+- [x] 🟡 Colunas mortas `total_winnings` / `total_points` — **documentadas, não dropadas** (decisão do
+  Rod): `comment on column ... 'OBSOLETA (S5)'` em `0007`.
 
-**Validação:** migrações idempotentes; smoke test de login + salvar torneio.
+**Validação:** `npm run build` passa, `npm test` 41/41, `npm run lint` 6 warnings / 0 errors — sem
+regressão em relação à S4 (nenhum arquivo de `src/` foi tocado). SQL **não executado**: smoke test de
+login + salvar torneio fica com o Rod, depois de rodar as migrações.
+
+### Notas da S5
+
+- **Ordem de execução no SQL Editor:** `0005` (se ainda não rodou) → `0006` → `0007`. A `0007` é
+  tolerante: comenta `live_state` e `total_points` só se existirem, porque o HANDOFF §4 marca a `0004`
+  como nunca aplicada e a `0005` como pendente.
+- **Sem `owner_id` em lugar nenhum.** A separação por dono não existe no banco — a segurança do app
+  hoje é "existe uma conta só". Virar multi-tenant depois custa: `owner_id uuid default auth.uid()` nas
+  5 tabelas, backfill das linhas existentes com o UUID do Rod, policies por dono, e o unique da `0006`
+  passa a ser `(owner_id, display_name_norm)`.
+- **Apagar os outros usuários do Supabase é manual** — nenhuma migração faz isso, e o agente não tem
+  acesso ao painel. Está no checklist do HANDOFF §7.
+- **Efeito colateral até a S6:** com o unique no ar, digitar "ana" existindo "Ana" passa a dar erro de
+  unique na hora do save, em vez de criar uma linha duplicada em silêncio (que quebrava o save
+  *seguinte*). Falha barulhenta em vez de corrupção silenciosa — e some quando a S6 trocar o
+  select+insert por `upsert`.
+- **Próximo:** S6 (app consome as migrações) — **Haiku 4.5**, effort low. Só depois que o Rod rodar a
+  `0006`, senão o `onConflict` aponta pra um índice que não existe.
 
 ---
 
 ## S6 — App consome as migrações  ·  Haiku 4.5 · effort **low**  ·  depende de S5
 Arquivos: `src/services/tournaments.ts`, `src/App.tsx`, `src/components/WatchView.tsx`
 
-- [ ] 🔴 `upsertPlayer` → `upsert(..., { onConflict: 'display_name' })` em vez de select+insert.
+- [ ] 🔴 `upsertPlayer` → `upsert(..., { onConflict: 'display_name_norm' })` em vez de select+insert.
+  **Atenção:** o alvo é `display_name_norm` (coluna gerada da `0006`), não `display_name` — o unique
+  está sobre a normalizada. Como é coluna gerada, o insert não a envia; o `ON CONFLICT` só a infere.
+  Confirmar no dev que o PostgREST aceita o alvo antes de fechar o bloco.
 - [ ] 🟠 **Transmissão não encerra de fato** — `App.tsx:344`. `pararTransmissao` só limpa o id local; a linha em `live_state` fica pública para sempre e as linhas acumulam. Fix: `delete from live_state where id = ...` + limpeza por `updated_at`.
 - [ ] 🟠 **QR PIX no link público** — `WatchView.tsx:109`. `/pix-qr.png` é asset estático, acessível direto na URL. **Perguntar ao Rod** se é intencional; se não, servir só autenticado.
 
@@ -168,4 +203,5 @@ S2 ──► S3 ─────────────┴──► S7 ──►
 S1 e S2 são independentes — podem ser feitas em qualquer ordem.
 S4 é folha: nenhum bloco depende dela.
 
-Ordem restante: **S5 → S6 → S7 → S8**. S7 só precisa de S3 + S5, então pode vir antes da S6.
+Ordem restante: **S6 → S7 → S8**. S7 só precisa de S3 + S5, então pode vir antes da S6 — mas as duas
+dependem das migrações da S5 estarem **aplicadas** no banco, não só escritas.

@@ -39,8 +39,19 @@ O site precisa de 2 valores do Supabase. Eles ficam em **dois lugares**:
 ## 4. Migrações do banco (Supabase → SQL Editor)
 
 Já aplicadas no banco atual: `0001`, `0003`. `0002` foi substituída por `0003`. `0004` é obsoleta (o
-ranking é calculado das transações, não precisa). **Pendente de rodar:** `0005_live_state.sql`
-(transmissão ao vivo). Se você recriar o banco do zero um dia, rode na ordem: `0001` → `0003` → `0005`.
+ranking é calculado das transações, não precisa). **Pendentes de rodar:** `0005_live_state.sql`
+(transmissão ao vivo), `0006_player_name_unique.sql` e `0007_schema_notes.sql` (auditoria S5). Se você
+recriar o banco do zero um dia, rode na ordem: `0001` → `0003` → `0005` → `0006` → `0007`.
+
+Sobre as duas novas (S5):
+
+- **`0006`** conserta um bug real: nome de jogador repetido derrubava o salvamento do torneio. Cria um
+  unique de nome ignorando maiúsculas e espaços nas pontas. Se o banco já tiver jogadores duplicados,
+  ela **para sozinha** e diz quais são — o arquivo traz, no fim, o SQL comentado para juntar as linhas
+  antes de rodar de novo.
+- **`0007`** só escreve comentários no schema (decisão de acesso e colunas obsoletas). Não muda dado
+  nenhum.
+- Depois de rodar as duas: fazer login e salvar um torneio de teste.
 
 Os arquivos estão em `supabase/migrations/`.
 
@@ -90,7 +101,10 @@ Passo a passo com o Claude na conta nova:
 
 - [ ] Ter login de **GitHub, Netlify, Supabase, Namecheap**.
 - [ ] **Push** no GitHub Desktop (o Claude não publica por você).
-- [ ] Rodar **migrações SQL** novas no Supabase (ex.: falta rodar a `0005`).
+- [ ] Rodar **migrações SQL** novas no Supabase (pendentes: `0005`, `0006`, `0007` — ver §4).
+- [ ] **Modelo de dono único** (decidido em 10/09/2026): Authentication → Providers →
+      "Allow new users to sign up" = **OFF**, e Authentication → Users com **só** a tua conta.
+      O banco não separa dados por dono: qualquer conta logada lê, edita e apaga tudo.
 - [ ] Manter as **variáveis de ambiente** no Netlify (e recriar o `.env.local` no PC novo).
 - [ ] Criar/gerenciar **usuários de login** no Supabase (Authentication → Users → Add user).
 - [ ] Trocar a imagem do **QR do PIX**: substituir `public/pix-qr.png` (mesmo nome), commitar e dar push.
