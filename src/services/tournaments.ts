@@ -38,6 +38,15 @@ export interface SaveTournamentInput {
   level_duration_seconds: number;
 }
 
+// A migração 0008 criou as funções `save_tournament` e `update_tournament_results`.
+// Enquanto ela não estiver aplicada no banco, o PostgREST devolve PGRST202 e caímos
+// no caminho sequencial antigo (não atômico) em vez de quebrar o salvamento.
+// Remover os fallbacks quando a 0008 estiver aplicada em todos os ambientes.
+function isMissingRpc(error: { code?: string; message?: string } | null): boolean {
+  if (!error) return false;
+  return error.code === 'PGRST202' || /could not find the function/i.test(error.message ?? '');
+}
+
 async function upsertPlayer(name: string, nickname?: string): Promise<string> {
   const { data, error } = await supabase!
     .from('sub_players')
@@ -48,10 +57,27 @@ async function upsertPlayer(name: string, nickname?: string): Promise<string> {
   return data.id as string;
 }
 
+// Torneio + blinds + jogadores + ledger numa transação só (migração 0008).
 export async function saveTournament(input: SaveTournamentInput): Promise<string> {
   if (!isSupabaseConfigured || !supabase) {
     throw new Error('Supabase não configurado (defina VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY).');
   }
+
+  const { data, error } = await supabase.rpc('save_tournament', { payload: input });
+  if (!error) return data as string;
+  if (!isMissingRpc(error)) throw error;
+
+  console.warn(
+    '[tournaments] RPC save_tournament ausente — aplique a migração 0008. ' +
+      'Salvando pelo caminho sequencial (não atômico).'
+  );
+  return saveTournamentSequential(input);
+}
+
+// Caminho antigo: 3 inserts em transações separadas. Falha no meio deixa torneio
+// órfão sem participantes. Só roda enquanto a 0008 não estiver aplicada.
+async function saveTournamentSequential(input: SaveTournamentInput): Promise<string> {
+  if (!supabase) throw new Error('Supabase não configurado.');
 
   const { data: t, error: tErr } = await supabase
     .from('base_tournaments')
@@ -178,10 +204,37 @@ export async function getTournamentResults(tournamentId: string): Promise<Tourna
   return [...byPlayer.values()].sort((a, b) => (a.final_placement ?? 999) - (b.final_placement ?? 999));
 }
 
-// Atualiza colocação e prêmio de cada jogador num torneio salvo.
+export interface TournamentResultUpdate {
+  player_id: string;
+  final_placement: number | null;
+  payout_amount: number;
+}
+
+// Atualiza colocação e prêmio de cada jogador num torneio salvo, em 1 comando (migração 0008).
 export async function updateTournamentResults(
   tournamentId: string,
-  results: { player_id: string; final_placement: number | null; payout_amount: number }[]
+  results: TournamentResultUpdate[]
+): Promise<void> {
+  if (!supabase) return;
+  const { error } = await supabase.rpc('update_tournament_results', {
+    p_tournament_id: tournamentId,
+    p_results: results,
+  });
+  if (!error) return;
+  if (!isMissingRpc(error)) throw error;
+
+  console.warn(
+    '[tournaments] RPC update_tournament_results ausente — aplique a migração 0008. ' +
+      'Atualizando em laço sequencial (N+1 queries).'
+  );
+  await updateTournamentResultsSequential(tournamentId, results);
+}
+
+// Caminho antigo: 2 updates por jogador, em série. Só roda enquanto a 0008 não
+// estiver aplicada.
+async function updateTournamentResultsSequential(
+  tournamentId: string,
+  results: TournamentResultUpdate[]
 ): Promise<void> {
   if (!supabase) return;
   const { data: rows, error } = await supabase

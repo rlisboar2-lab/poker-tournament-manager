@@ -5,7 +5,7 @@ Ao final de cada sessão: marcar `[x]`, commitar, e informar o modelo da próxim
 
 Legenda: 🔴 bug · 🟠 segurança · 🟡 qualidade
 
-**Feitas:** S1 · S2 · S3 · S4 · S5 · S6  ·  **Pendentes:** S7 · S8
+**Feitas:** S1 · S2 · S3 · S4 · S5 · S6 · S7  ·  **Pendentes:** S8
 
 > **Renumeração (10/09/2026):** o refactor do motor do relógio foi executado logo depois da S3 e
 > passou a ser a **S4**. As antigas S4–S7 desceram um número (S4→S5, S5→S6, S6→S7, S7→S8). A
@@ -182,15 +182,52 @@ Arquivos: `src/services/tournaments.ts`, `src/App.tsx`, `src/components/WatchVie
 ---
 
 ## S7 — Persistência transacional (RPC)  ·  Opus 5 · effort **high**  ·  depende de S3 + S5
-Arquivos: `supabase/migrations/0010_*.sql`, `src/services/tournaments.ts`
+Arquivos: `supabase/migrations/0008_transactional_persistence.sql` (novo), `src/services/tournaments.ts`
 
-- [ ] 🔴 **`saveTournament` não é atômico** — `tournaments.ts:58`. 3 inserts sequenciais; falha no 3º deixa torneio + blinds órfãos e o ranking conta o torneio com 0 participantes. Fix: função Postgres única numa transação.
-- [ ] 🟡 `updateTournamentResults` faz N+1 queries — 2 updates por jogador em loop sequencial. Fix: mesma RPC ou batch.
+> ⚠️ **SQL não executado pelo agente** (sem `psql`/`docker` na máquina, igual à S5). A `0008` precisa
+> ser aplicada pelo Rod no Supabase → SQL Editor. Enquanto não for, o app continua salvando pelo
+> caminho antigo (ver fallback abaixo) — não quebra, mas também não é atômico.
+
+- [x] 🔴 **`saveTournament` não é atômico** — **Resolvido** por `save_tournament(payload jsonb) → uuid`.
+  Torneio + escada de blinds + upsert de jogadores + ledger numa transação só. O cliente passou a
+  mandar o `SaveTournamentInput` inteiro como jsonb; chaves de UI (`eliminated`, `table`, `seat`)
+  são ignoradas pela função.
+- [x] 🟡 `updateTournamentResults` faz N+1 queries — **Resolvido** por
+  `update_tournament_results(uuid, jsonb)`: um `update ... from` conjunto-a-conjunto no lugar de
+  2 updates por jogador. De 1 + 2N queries para 1.
+
+**Validação:** `npm run build` ✅, `npm test` 41/41 ✅, `npm run lint` 6 warnings / 0 errors (sem
+regressão em relação à S6). **Smoke test de salvar/editar torneio fica com o Rod, depois de aplicar a
+`0008`** — o agente não executa SQL nem tem acesso ao painel.
+
+### Notas da S7
+
+- **Numeração:** o plano dizia `0010_*`; virou **`0008`** para não deixar buraco (a última aplicada é
+  a `0007`). Mesmo critério da renumeração de sessões: a numeração acompanha a ordem real. A S8 passa
+  a ser `0009`.
+- **Fallback temporário no cliente.** Se a função não existir no banco, o PostgREST devolve `PGRST202`
+  e `tournaments.ts` cai no caminho sequencial antigo com um `console.warn`. Isso evita brickar o
+  salvamento se o push do Netlify sair antes do SQL. **Assim que a `0008` estiver aplicada, apagar
+  `saveTournamentSequential`, `updateTournamentResultsSequential`, `upsertPlayer` e `isMissingRpc`.**
+- **Duas mudanças de comportamento no upsert de jogador**, ambas propositais:
+  1. o `display_name` cadastrado **não** é mais reescrito pela caixa digitada agora (renomear é via
+     `renamePlayer`);
+  2. o `nickname` existente **não** é mais apagado por uma entrada sem apelido (`coalesce`).
+  O upsert do PostgREST fazia as duas coisas.
+- **`end_time_actual` agora é `now()` do servidor** em vez do relógio do PC.
+- **Falha alto onde antes falhava silencioso:** entrada com nome vazio agora aborta o save com
+  mensagem, em vez de criar um jogador de nome vazio em `sub_players`.
+- **Permissões:** `revoke execute ... from public, anon` + `grant ... to authenticated`. As funções são
+  `security invoker`, então as policies da 0003 continuam valendo e não há escalada de privilégio.
+- **Sem teste automatizado** das duas funções: exigiria Postgres local ou mock do cliente Supabase, e
+  a suíte hoje só cobre `src/utils` e `src/hooks` (puros). Cobertura fica no smoke test manual.
+- **Próximo:** S8 (ranking escalável) — **Sonnet 5**, effort medium. Depende da S7 (feita); a `0008`
+  não precisa estar aplicada para escrever a `0009`, mas o smoke test das duas fica junto.
 
 ---
 
 ## S8 — Ranking escalável  ·  Sonnet 5 · effort **medium**  ·  depende de S7
-Arquivos: `supabase/migrations/0011_*.sql`, `src/services/tournaments.ts`, `src/components/StatsPanel.tsx`
+Arquivos: `supabase/migrations/0009_*.sql`, `src/services/tournaments.ts`, `src/components/StatsPanel.tsx`
 
 - [ ] 🔴 **`playerLeaderboard` trunca em 1000 linhas** — `tournaments.ts:243`. `select` sem paginação; limite padrão do Supabase corta o histórico silenciosamente. Também é O(n²) (`filter` dentro do loop). Fix: view/RPC agregando no Postgres.
 
@@ -209,5 +246,5 @@ S2 ──► S3 ─────────────┴──► S7 ──►
 S1 e S2 são independentes — podem ser feitas em qualquer ordem.
 S4 é folha: nenhum bloco depende dela.
 
-Ordem restante: **S6 → S7 → S8**. S7 só precisa de S3 + S5, então pode vir antes da S6. As migrações
-da S5 já estão aplicadas no banco, então as duas estão liberadas.
+Ordem restante: **S8** — liberada (depende só da S7, feita). Pendência fora do grafo: aplicar a
+migração `0008` no Supabase e rodar o smoke test de salvar/editar torneio.
