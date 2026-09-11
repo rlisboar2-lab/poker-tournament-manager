@@ -5,7 +5,7 @@ Ao final de cada sessão: marcar `[x]`, `npm run build`, commitar, e informar o 
 
 Continuação de `AUDITORIA.md` (S1–S8, concluídas). Numeração segue de S9.
 
-**Feitas:** S9 · S10  ·  **Pendentes:** S11 · S12 · S13 · S14 · S15
+**Feitas:** S9 · S10 · S11  ·  **Pendentes:** S12 · S13 · S14 · S15
 
 ---
 
@@ -190,24 +190,53 @@ apagar um nível anterior (edição manual) ainda move o relógio junto com os b
 
 ---
 
-## S11 — Home hub + roteador de telas  ·  Sonnet 5 · effort **high**  ·  sem pré-requisito
+## S11 — Home hub + roteador de telas  ·  Sonnet 5 · effort **high**  ·  sem pré-requisito · **feita 11/09/2026**
 
 Arquivos: `src/App.tsx` (refactor estrutural), `src/screens/Home.tsx` (novo), `src/index.css`
 
-- [ ] 🟡 **Máquina de telas.** Substituir `Stage` (6 abas) por
+- [x] 🟡 **Máquina de telas.** Substituir `Stage` (6 abas) por
       `type Screen = 'home' | 'setup' | 'players' | 'buyin' | 'live' | 'finish' | 'ranking' | 'historico'`.
       `SavedState.stage` → `screen`, tolerando o valor antigo na leitura (mapear `setup`→`setup`,
       `players`→`players`, `payouts`→`setup`, `live`→`live`, `results`→`finish`, `stats`→`historico`).
-- [ ] 🟡 **`Home.tsx`.** De cima para baixo:
+- [x] 🟡 **`Home.tsx`.** De cima para baixo:
       1. `▶ Retomar torneio` — **condicional**: só se o autosave tem torneio iniciado e não
          finalizado. Mostra nome, nível e nº na mesa. É a proteção contra perder torneio em
          andamento; tem que ser o primeiro elemento quando existe.
       2. Bloco pódio: top 3 do `playerLeaderboard()`, clicável → `ranking`.
       3. `● Criar torneio` — botão primário grande.
       4. `Ranking completo` e `Torneios finalizados` — secundários.
-- [ ] 🟡 **Cabeçalho.** Fora da home, um botão `← Início` no topo. Personalizar/Sair continuam.
+- [x] 🟡 **Cabeçalho.** Fora da home, um botão `← Início` no topo. Personalizar/Sair continuam.
       Remover a `nav-row` de Voltar/Avançar da home, ranking e histórico (elas não são etapas).
-- [ ] 🟡 **`novoTorneio()`** passa a voltar para `home`, não para `setup`.
+- [x] 🟡 **`novoTorneio()`** passa a voltar para `home`, não para `setup`.
+
+### Como ficou (11/09/2026)
+
+- `Screen` substitui `Stage`; a sequência navegada por Voltar/Avançar (`FLOW`) é
+  `['setup', 'players', 'live', 'finish']` — `payouts` como etapa própria acabou (dobrada dentro de
+  `setup`, renderizando `PayoutsPanel` logo abaixo do `SetupPanel`; vira bloco recolhível de verdade
+  só na S12). `results`→`finish` e `stats`→`historico` são só troca de nome por enquanto: mesmos
+  `ResultsPanel`/`StatsPanel`, sem tocar nesses arquivos (fora do escopo desta sessão).
+- `ranking` e `historico` apontam **os dois** para `StatsPanel` (mesmo componente) — não existe
+  `Ranking.tsx`/`Historico.tsx` ainda (isso é S14, que também aposenta o `StatsPanel`). A home já
+  entrega o pódio embutido via `playerLeaderboard()`; o clique nele ou em "Ranking completo" só
+  precisa cair em algum lugar não-vazio até lá.
+- `buyin` existe no tipo `Screen` (contrato da S12) mas nada navega pra ele ainda — sem conteúdo,
+  de propósito.
+- Reabrir o app com torneio ao vivo (`clock.status` `running`/`paused` no autosave) força a tela
+  inicial para `home` mesmo que o `screen`/`stage` salvo fosse outro — é o comportamento validado
+  (home oferece Retomar; só o clique leva pro relógio). Sem torneio ao vivo, a tela salva (nova ou
+  mapeada da antiga) é respeitada normalmente.
+- `criarTorneio()` (botão da home) só confirma e apaga dados se houver relógio `running`/`paused`;
+  caso contrário só navega pra `setup` sem mexer no que já estava configurado. `novoTorneio()`
+  (cabeçalho) continua sempre confirmando, e agora devolve pra `home` em vez de `setup`.
+- Testado em `npm run dev`: autosave de uma sessão anterior (torneio no nível 8/10, 8 na mesa) —
+  reabrir mostrou a home com "Retomar torneio · Home Game · nível 8/10 · 8 na mesa"; clicar caiu no
+  relógio exatamente nesse nível; `← Início` voltou pra home mantendo o Retomar (relógio seguiu
+  rodando); `Ranking completo`/`Torneios finalizados` abriram o `StatsPanel` sem nav-row. Sem
+  Supabase configurado neste ambiente — pódio (que depende de `playerLeaderboard()`) não pôde ser
+  testado visualmente; só a ausência de erro quando a lista vem vazia.
+- Lint: mesmo baseline da S10 (0 erros, 8 avisos `react-hooks/set-state-in-effect` pré-existentes,
+  nenhum novo).
 
 **Validação:** `npm run build` + `npm run dev`: fechar o app com torneio ao vivo, reabrir, confirmar
 que a home oferece Retomar e que retomar cai no relógio no mesmo nível.

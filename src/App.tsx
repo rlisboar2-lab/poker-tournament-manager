@@ -6,6 +6,7 @@ import Clock from './components/Clock';
 import PayoutsPanel from './components/PayoutsPanel';
 import ResultsPanel from './components/ResultsPanel';
 import StatsPanel from './components/StatsPanel';
+import Home, { type ResumeInfo } from './screens/Home';
 import {
   useTournamentEngine,
   type EngineParams,
@@ -61,7 +62,7 @@ interface SavedState {
   config: AppConfig;
   entries: LocalEntry[];
   payoutPct: number[];
-  stage: Stage;
+  screen: Screen;
   clock?: ClockSnap;
   manualLevels?: BlindLevel[] | null;
   liveShareId?: string | null;
@@ -110,24 +111,34 @@ function defaultConfig(): AppConfig {
   };
 }
 
-function loadSaved(): SavedState | null {
+// Máquina de telas (REDESIGN.md S11): substitui o stepper fixo de 6 abas.
+type Screen = 'home' | 'setup' | 'players' | 'buyin' | 'live' | 'finish' | 'ranking' | 'historico';
+// Ordem sequencial navegada por Voltar/Avançar. Home, ranking e histórico só
+// são alcançados pelo hub — não fazem parte da sequência.
+const FLOW: Screen[] = ['setup', 'players', 'live', 'finish'];
+
+// Formato salvo antes da S11: 6 abas fixas em vez da máquina de telas atual.
+type LegacyStage = 'setup' | 'players' | 'payouts' | 'live' | 'results' | 'stats';
+const LEGACY_STAGE_TO_SCREEN: Record<LegacyStage, Screen> = {
+  setup: 'setup', players: 'players', payouts: 'setup', live: 'live', results: 'finish', stats: 'historico',
+};
+
+function loadSaved(): (SavedState & { stage?: LegacyStage }) | null {
   try {
     const raw = localStorage.getItem(SAVE_KEY);
-    return raw ? (JSON.parse(raw) as SavedState) : null;
+    return raw ? (JSON.parse(raw) as SavedState & { stage?: LegacyStage }) : null;
   } catch {
     return null;
   }
 }
 
-const STAGES = [
-  { id: 'setup', label: '1. Torneio' },
-  { id: 'players', label: '2. Jogadores' },
-  { id: 'payouts', label: '3. Premiação' },
-  { id: 'live', label: '4. Ao vivo' },
-  { id: 'results', label: '5. Resultado' },
-  { id: 'stats', label: '6. Estatísticas' },
-] as const;
-type Stage = (typeof STAGES)[number]['id'];
+// Tela salva pré-S11 usava `stage`; tolera o valor antigo mapeando pra tela nova.
+function resolveScreen(saved: (SavedState & { stage?: LegacyStage }) | null): Screen {
+  if (!saved) return 'home';
+  if (saved.screen) return saved.screen;
+  if (saved.stage && LEGACY_STAGE_TO_SCREEN[saved.stage]) return LEGACY_STAGE_TO_SCREEN[saved.stage];
+  return 'home';
+}
 
 export default function App() {
   // Auth gate.
@@ -145,11 +156,17 @@ export default function App() {
 
   // localStorage é lido uma única vez, no inicializador preguiçoso do useState
   // (fora do corpo do render, que precisa ser puro).
-  const [saved] = useState<SavedState | null>(loadSaved);
+  const [saved] = useState(loadSaved);
   const [config, setConfig] = useState<AppConfig>(saved?.config ?? defaultConfig());
   const [entries, setEntries] = useState<LocalEntry[]>(saved?.entries ?? []);
   const [payoutPct, setPayoutPct] = useState<number[]>(saved?.payoutPct ?? [0.5, 0.3, 0.2]);
-  const [stage, setStage] = useState<Stage>(saved?.stage ?? 'setup');
+  // Reabrir com torneio ao vivo pousa na home (oferece "Retomar"), não direto no
+  // relógio — só honra a tela salva quando o torneio ainda não começou.
+  const [screen, setScreen] = useState<Screen>(() => {
+    const clockStatus = saved?.clock?.status;
+    if (clockStatus === 'running' || clockStatus === 'paused') return 'home';
+    return resolveScreen(saved);
+  });
   const [liveTab, setLiveTab] = useState<'clock' | 'mesa'>('clock');
   // Estrutura editada manualmente ao vivo (null = usar a curva calculada).
   const [manualLevels, setManualLevels] = useState<BlindLevel[] | null>(saved?.manualLevels ?? null);
@@ -304,7 +321,7 @@ export default function App() {
   const saveRef = useRef<SavedState | null>(null);
   useEffect(() => {
     saveRef.current = {
-      config, entries, payoutPct, stage, manualLevels, liveShareId, publishedFloor,
+      config, entries, payoutPct, screen, manualLevels, liveShareId, publishedFloor,
       clock: engine.snapshot,
     };
   });
@@ -353,10 +370,10 @@ export default function App() {
 
   // Posições aleatórias ao iniciar a fase ao vivo (se ninguém sentado ainda).
   useEffect(() => {
-    if (stage === 'live' && entries.some((e) => !e.eliminated) && !entries.some((e) => e.table)) {
+    if (screen === 'live' && entries.some((e) => !e.eliminated) && !entries.some((e) => e.table)) {
       setEntries((prev) => rebalanceSeating(prev));
     }
-  }, [stage]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [screen]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const prizePool =
     totals.buyins * config.buy_in_value +
@@ -448,8 +465,10 @@ export default function App() {
     setEntries((prev) => applyElimination(prev, index, eliminate, prizePool, payoutPct));
   };
 
-  const novoTorneio = () => {
-    if (!confirm('Começar um torneio novo? Os dados atuais serão apagados.')) return;
+  // Apaga o torneio atual e volta para a tela indicada. Usado tanto pelo botão
+  // "Novo torneio" do cabeçalho (sempre confirma, volta pra home) quanto pelo
+  // "Criar torneio" da home quando já existe um torneio ao vivo em andamento.
+  const resetTorneio = (target: Screen) => {
     localStorage.removeItem(SAVE_KEY);
     engine.reset();
     setConfig(defaultConfig());
@@ -459,7 +478,24 @@ export default function App() {
     setFrozenLevels([]);
     setPublishedFloor(null);
     setLiveShareId(null);
-    setStage('setup');
+    setScreen(target);
+  };
+
+  const novoTorneio = () => {
+    if (!confirm('Começar um torneio novo? Os dados atuais serão apagados.')) return;
+    resetTorneio('home');
+  };
+
+  // "● Criar torneio" da home: só confirma/apaga se houver torneio ao vivo em
+  // andamento (relógio rodando ou pausado). Sem torneio ativo, só navega.
+  const criarTorneio = () => {
+    const emAndamento = engine.state.status === 'running' || engine.state.status === 'paused';
+    if (emAndamento) {
+      if (!confirm('Um torneio está em andamento. Começar um novo agora apaga o progresso atual. Continuar?')) return;
+      resetTorneio('setup');
+      return;
+    }
+    setScreen('setup');
   };
 
   const onSave = async () => {
@@ -492,8 +528,16 @@ export default function App() {
   if (!authReady) return <div className="app"><p className="notice">Carregando…</p></div>;
   if (isSupabaseConfigured && !session) return <Login />;
 
-  const stageIdx = STAGES.findIndex((s) => s.id === stage);
-  const go = (d: number) => setStage(STAGES[Math.min(Math.max(0, stageIdx + d), STAGES.length - 1)].id);
+  // Voltar/Avançar só navegam dentro da sequência do torneio (setup→players→
+  // live→finish). Home, ranking e histórico não têm posição nela — só chegam
+  // lá pelo hub — então a nav-row fica escondida nessas três telas.
+  const flowIdx = FLOW.indexOf(screen);
+  const go = (d: number) => setScreen(FLOW[Math.min(Math.max(0, flowIdx + d), FLOW.length - 1)]);
+  const showNavRow = flowIdx !== -1;
+  const resumeInfo: ResumeInfo | null =
+    (engine.state.status === 'running' || engine.state.status === 'paused')
+      ? { name: config.name, levelNumber: engine.state.level_number, totalLevels: engine.state.total_levels, playersRemaining }
+      : null;
 
   return (
     <div className="app">
@@ -503,17 +547,20 @@ export default function App() {
           <p className="credit">Criado por @RodLisboa_</p>
         </div>
         <div className="row">
+          {screen !== 'home' && <button className="ghost" onClick={() => setScreen('home')}>← Início</button>}
           <button className="ghost" onClick={() => setShowTheme(true)} title="Personalização visual">🎨 Personalizar</button>
           <button className="ghost" onClick={novoTorneio}>Novo torneio</button>
           {session && <button className="ghost" onClick={() => supabase?.auth.signOut()}>Sair</button>}
         </div>
       </div>
-      <p className="notice">
-        {totals.buyins} entradas · {totals.rebuys} rebuys · {totals.addons} add-ons ·
-        {' '}{playersRemaining} na mesa · {engine.state.total_levels} níveis
-        {manualLevels ? ' (editado)' : ` (r=${engine.curve.multiplicador_r.toFixed(3)})`}
-        {engine.floorHeld && ' · estrutura recalibrada (piso mantido)'}
-      </p>
+      {screen !== 'home' && (
+        <p className="notice">
+          {totals.buyins} entradas · {totals.rebuys} rebuys · {totals.addons} add-ons ·
+          {' '}{playersRemaining} na mesa · {engine.state.total_levels} níveis
+          {manualLevels ? ' (editado)' : ` (r=${engine.curve.multiplicador_r.toFixed(3)})`}
+          {engine.floorHeld && ' · estrutura recalibrada (piso mantido)'}
+        </p>
+      )}
 
       {clockNotice && (
         <div className="panel" style={{ borderColor: 'var(--gold)' }}>
@@ -524,33 +571,36 @@ export default function App() {
         </div>
       )}
 
-      <div className="tabs stepper">
-        {STAGES.map((s) => (
-          <button key={s.id} className={stage === s.id ? 'active' : ''} onClick={() => setStage(s.id)}>
-            {s.label}
-          </button>
-        ))}
-      </div>
-
-      {stage === 'setup' && (
-        <SetupPanel config={config} onChange={patchConfig}
-          onRestoreDefaults={() => { const d = defaultConfig(); setConfig({ ...d, start_time: config.start_time }); setManualLevels(null); }}
-          onPreset={(p) => {
-            engine.reset();
-            if (p === 'custom') { setConfig({ ...defaultConfig(), start_time: config.start_time }); setManualLevels(null); }
-            else if (p === 'quadra') { const q = quadraPreset(); setConfig({ ...q.config, start_time: config.start_time }); setManualLevels(q.manualLevels); if (q.payoutPct) setPayoutPct(q.payoutPct); }
-          }} />
+      {screen === 'home' && (
+        <Home
+          resume={resumeInfo}
+          onResume={() => setScreen('live')}
+          onCreate={criarTorneio}
+          onOpenRanking={() => setScreen('ranking')}
+          onOpenHistorico={() => setScreen('historico')}
+        />
       )}
 
-      {stage === 'players' && <PlayersPanel entries={entries} onChange={setEntries} mode="setup" knownPlayers={knownPlayers}
+      {screen === 'setup' && (
+        <>
+          <SetupPanel config={config} onChange={patchConfig}
+            onRestoreDefaults={() => { const d = defaultConfig(); setConfig({ ...d, start_time: config.start_time }); setManualLevels(null); }}
+            onPreset={(p) => {
+              engine.reset();
+              if (p === 'custom') { setConfig({ ...defaultConfig(), start_time: config.start_time }); setManualLevels(null); }
+              else if (p === 'quadra') { const q = quadraPreset(); setConfig({ ...q.config, start_time: config.start_time }); setManualLevels(q.manualLevels); if (q.payoutPct) setPayoutPct(q.payoutPct); }
+            }} />
+          {/* Premiação incorporada à tela de configuração (não é mais etapa própria).
+              Vira bloco recolhível dentro do SetupPanel na S12 (wizard). */}
+          <PayoutsPanel prizePool={prizePool} playerCount={entries.length}
+            percentuais={payoutPct} onChange={setPayoutPct} />
+        </>
+      )}
+
+      {screen === 'players' && <PlayersPanel entries={entries} onChange={setEntries} mode="setup" knownPlayers={knownPlayers}
         maxRebuys={config.max_rebuys} addonEnabled={config.addon_enabled} />}
 
-      {stage === 'payouts' && (
-        <PayoutsPanel prizePool={prizePool} playerCount={entries.length}
-          percentuais={payoutPct} onChange={setPayoutPct} />
-      )}
-
-      {stage === 'live' && (
+      {screen === 'live' && (
         <>
           {isSupabaseConfigured && session && (
             <div className="panel live-share">
@@ -592,22 +642,26 @@ export default function App() {
         </>
       )}
 
-      {stage === 'results' && (
+      {screen === 'finish' && (
         <ResultsPanel entries={entries} onChange={setEntries}
           payoutPct={payoutPct} prizePool={prizePool}
           buyInValue={config.buy_in_value} rebuyValue={config.rebuy_value} addonValue={config.addon_value} />
       )}
 
-      {stage === 'stats' && <StatsPanel onSave={onSave} />}
+      {/* Ranking e Histórico reaproveitam o StatsPanel até a S14 separá-los em
+          telas próprias (Ranking.tsx / Historico.tsx). */}
+      {(screen === 'ranking' || screen === 'historico') && <StatsPanel onSave={onSave} />}
 
       {showTheme && <ThemePanel onClose={() => setShowTheme(false)} />}
 
-      <div className="row nav-row">
-        <button className="ghost" disabled={stageIdx === 0} onClick={() => go(-1)}>← Voltar</button>
-        <button className="primary" disabled={stageIdx === STAGES.length - 1} onClick={() => go(1)}>
-          Avançar →
-        </button>
-      </div>
+      {showNavRow && (
+        <div className="row nav-row">
+          <button className="ghost" disabled={flowIdx === 0} onClick={() => go(-1)}>← Voltar</button>
+          <button className="primary" disabled={flowIdx === FLOW.length - 1} onClick={() => go(1)}>
+            Avançar →
+          </button>
+        </div>
+      )}
     </div>
   );
 }

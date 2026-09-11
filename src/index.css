@@ -136,6 +136,23 @@ body:has(.clock-panel.fs) { overflow: hidden; }
 .corner-qr img { width: min(20vmin, 200px); height: auto; background: #fff; border-radius: 6px; padding: 4px; }
 .corner-qr span { font-size: min(2.4vmin, 14px); color: var(--muted); }
 
+/* Home (hub) — REDESIGN.md S11 */
+.home { display: flex; flex-direction: column; gap: 14px; margin-top: 8px; }
+.home-resume { display: flex; flex-direction: column; align-items: flex-start; gap: 4px;
+  text-align: left; cursor: pointer; border-color: var(--accent); }
+.home-resume-label { font-size: 16px; font-weight: 700; color: var(--accent); }
+.home-create { padding: 16px; font-size: 16px; }
+.home-secondary { justify-content: center; }
+.podium-mini { cursor: pointer; }
+.podium-mini:hover { border-color: var(--gold); }
+.podium-mini-row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+.podium-mini-card { display: flex; flex-direction: column; align-items: center; gap: 2px;
+  background: var(--panel-2); border: 1px solid var(--border); border-radius: 10px;
+  padding: 10px 16px; min-width: 96px; }
+.podium-mini-medal { font-size: 22px; }
+.podium-mini-name { font-weight: 600; }
+.podium-mini-points { color: var(--gold); font-size: 13px; }
+
 /* Responsivo / mobile */
 @media (max-width: 640px) {
   .app { padding: 12px; }
