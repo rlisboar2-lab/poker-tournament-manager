@@ -1,6 +1,7 @@
 // src/components/PlayersPanel.tsx
 import { useState } from 'react';
 import type { LocalEntry } from '../services/tournaments';
+import { hasPlayerNamed } from '../utils/seating';
 
 interface Props {
   entries: LocalEntry[];
@@ -9,27 +10,38 @@ interface Props {
   knownPlayers?: string[];               // nomes já cadastrados (autocompletar)
   maxRebuys?: number;                    // por jogador; 0 = sem limite
   addonEnabled?: boolean;               // torneio oferece add-on?
-  onAddLive?: (name: string) => void;   // adiciona + acomoda na mesa (live)
+  onAddLive?: (name: string) => boolean; // adiciona + acomoda na mesa (live); false = duplicata
   onRebalance?: () => void;              // recalcula posições nas mesas
   onEliminate?: (index: number, eliminate: boolean) => void; // colocação automática
 }
 
 export default function PlayersPanel({ entries, onChange, mode = 'setup', knownPlayers = [], maxRebuys = 0, addonEnabled = true, onAddLive, onRebalance, onEliminate }: Props) {
   const [name, setName] = useState('');
+  const [erro, setErro] = useState('');
   const live = mode === 'live';
 
-  const addByName = (n: string) => {
+  // Nome repetido é erro bloqueante, não aviso (REDESIGN.md S17): comparação
+  // case- e acento-insensível, contando também quem já foi eliminado — a volta
+  // desse jogador é pelo Rebuy, nunca por um cadastro novo.
+  const addByName = (n: string): boolean => {
     const nome = n.trim();
-    if (!nome) return;
-    if (live && onAddLive) onAddLive(nome);
-    else onChange([...entries, { name: nome, buyins: 1, rebuys: 0, addons: 0 }]);
+    if (!nome) return false;
+    if (hasPlayerNamed(entries, nome)) {
+      setErro(live
+        ? `${nome} já está no torneio — use ↻ Rebuy para a reentrada.`
+        : `${nome} já está na lista.`);
+      return false;
+    }
+    setErro('');
+    if (live && onAddLive) return onAddLive(nome);
+    onChange([...entries, { name: nome, buyins: 1, rebuys: 0, addons: 0 }]);
+    return true;
   };
 
-  const add = () => { addByName(name); setName(''); };
+  const add = () => { if (addByName(name)) setName(''); };
 
   // Cadastrados que ainda não estão neste torneio (para adição com 1 clique).
-  const jaNoTorneio = (n: string) => entries.some((e) => e.name.toLowerCase() === n.toLowerCase());
-  const disponiveis = knownPlayers.filter((n) => !jaNoTorneio(n));
+  const disponiveis = knownPlayers.filter((n) => !hasPlayerNamed(entries, n));
 
   const patch = (i: number, p: Partial<LocalEntry>) =>
     onChange(entries.map((e, idx) => (idx === i ? { ...e, ...p } : e)));
@@ -59,13 +71,17 @@ export default function PlayersPanel({ entries, onChange, mode = 'setup', knownP
       </datalist>
       <div className="row" style={{ marginBottom: 12 }}>
         <input list="known-players" placeholder={live ? 'Entrada tardia (nome)' : 'Nome do jogador'} value={name}
-          onChange={(e) => setName(e.target.value)}
+          onChange={(e) => { setName(e.target.value); setErro(''); }}
           onKeyDown={(e) => e.key === 'Enter' && add()} />
         <button className="primary" onClick={add}>{live ? 'Entrar agora' : 'Adicionar'}</button>
         {live && onRebalance && (
           <button className="ghost" onClick={onRebalance}>🎲 Calcular posições na mesa</button>
         )}
       </div>
+
+      {erro && (
+        <p className="notice" style={{ marginTop: -4, marginBottom: 12, color: 'var(--danger)' }}>⚠ {erro}</p>
+      )}
 
       {disponiveis.length > 0 && (
         <div style={{ marginBottom: 12 }}>

@@ -23,7 +23,7 @@ import {
   type BreakConfig,
   type BlindLevel,
 } from './utils/poker-math';
-import { addAndSeat, rebalanceSeating } from './utils/seating';
+import { addAndSeat, rebalanceSeating, seatEntry, hasPlayerNamed } from './utils/seating';
 import { applyElimination } from './utils/placements';
 import { uuidV4 } from './utils/uuid';
 import { quadraPreset } from './presets';
@@ -518,9 +518,24 @@ export default function App() {
 
   // Entrada tardia / rebuy / add-on ao vivo — só chamados depois do "Pago" na
   // CobrancaPix (REDESIGN.md S13): a transação nunca é aplicada antes disso.
-  const addPlayerLive = (nome: string) => setEntries((prev) => addAndSeat(prev, nome));
+  // Devolve false quando o nome já está no torneio (inclusive eliminado): o
+  // caminho de quem já entrou é o Rebuy. O chamador mostra o erro.
+  const addPlayerLive = (nome: string): boolean => {
+    if (hasPlayerNamed(entries, nome)) return false;
+    setEntries((prev) => addAndSeat(prev, nome));
+    return true;
+  };
+  // Rebuy de eliminado é reentrada (REDESIGN.md S17): volta à mesa pagando
+  // rebuy_value, e renumberPlacements corrige a colocação de todos que caíram
+  // antes dele.
   const rebuyLive = (index: number) =>
-    setEntries((prev) => prev.map((e, i) => (i === index ? { ...e, rebuys: e.rebuys + 1 } : e)));
+    setEntries((prev) => {
+      const alvo = prev[index];
+      if (!alvo) return prev;
+      const bumped = prev.map((e, i) => (i === index ? { ...e, rebuys: e.rebuys + 1 } : e));
+      if (!alvo.eliminated) return bumped;
+      return seatEntry(applyElimination(bumped, index, false, prizePool, payoutPct), index);
+    });
   const addonLive = (index: number) =>
     setEntries((prev) => prev.map((e, i) => (i === index ? { ...e, addons: e.addons + 1 } : e)));
 
@@ -750,10 +765,10 @@ export default function App() {
                 onAddBreakAfter={addBreakAfter} />
             : <PlayersPanel entries={entries} onChange={setEntries} mode="live" knownPlayers={knownPlayers}
                 maxRebuys={config.max_rebuys} addonEnabled={config.addon_enabled}
-                onAddLive={(name) => setEntries((prev) => addAndSeat(prev, name))}
+                onAddLive={addPlayerLive}
                 onRebalance={() => setEntries((prev) => rebalanceSeating(prev))}
                 onEliminate={toggleEliminated} />}
-          <LiveActions entries={entries}
+          <LiveActions entries={entries} knownPlayers={knownPlayers}
             buyInValue={config.buy_in_value} rebuyValue={config.rebuy_value} addonValue={config.addon_value}
             maxRebuys={config.max_rebuys} addonEnabled={config.addon_enabled}
             lateCheckinOpen={engine.state.level_number <= resolvedLateCheckinLevel}

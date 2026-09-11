@@ -5,7 +5,7 @@ Ao final de cada sessão: marcar `[x]`, `npm run build`, commitar, e informar o 
 
 Continuação de `AUDITORIA.md` (S1–S8, concluídas). Numeração segue de S9.
 
-**Feitas:** S9 · S10 · S11 · S12 · S13 · S14 · S15 · S16  ·  **Pendentes:** S17 · S18 (correções de bug, 11/09/2026)
+**Feitas:** S9 · S10 · S11 · S12 · S13 · S14 · S15 · S16 · S17  ·  **Pendentes:** S18 (correções de bug, 11/09/2026)
 
 ---
 
@@ -535,28 +535,46 @@ saídas (Salvar navega pra `finish`, Cancelar fecha o modal — testados; Descar
 
 ---
 
-## S17 — Integridade do cadastro ao vivo  ·  Opus 5 · effort **medium**  ·  depende de S16
+## S17 — Integridade do cadastro ao vivo  ·  Opus 5 · effort **medium**  ·  depende de S16 · **feita 11/09/2026 (Opus 5)**
 
 Arquivos: `src/components/LiveActions.tsx`, `src/components/PlayersPanel.tsx`,
 `src/utils/seating.ts`, `src/App.tsx`, `src/utils/__tests__/`
 
-- [ ] 🔴 **Guarda antiduplicata (#2c).** `addAndSeat` rejeita nome já presente no torneio
+- [x] 🔴 **Guarda antiduplicata (#2c).** `addAndSeat` rejeita nome já presente no torneio
       (case- e acento-insensível, comparando também com eliminados). O chamador mostra erro
       visível — nada de falha silenciosa. Mesma guarda no `PlayersPanel` (`add` por digitação,
       não só nos chips) e no sheet `+ Jogador` do `LiveActions`.
-- [ ] 🔴 **Rebuy de eliminado = reentrada (#2a).** `rebuyable` passa a derivar de `entries`, não de
+- [x] 🔴 **Rebuy de eliminado = reentrada (#2a).** `rebuyable` passa a derivar de `entries`, não de
       `active`: filtro é `rebuys < max_rebuys` (ou ilimitado) + late aberto. Item da lista marca
       quem está fora ("eliminado — volta pagando rebuy"). Ao confirmar o pagamento de
       `rebuy_value`: `applyElimination(i, false)` + `addAndSeat` de volta à mesa + `rebuys + 1`.
-- [ ] 🟡 **`knownPlayers` no `LiveActions` (#2b).** Passar a prop do `App` e renderizar chips de
+- [x] 🟡 **`knownPlayers` no `LiveActions` (#2b).** Passar a prop do `App` e renderizar chips de
       1 clique + `datalist`, com a mesma aparência do `PlayersPanel`. Cadastrado que já está no
       torneio não aparece nos chips (regra `jaNoTorneio` existente).
-- [ ] 🟡 **Testes:** duplicata rejeitada (incluindo contra eliminado e com diferença de
+- [x] 🟡 **Testes:** duplicata rejeitada (incluindo contra eliminado e com diferença de
       caixa/acento); reentrada renumera colocações de todos que caíram antes; reentrada respeita
       `max_rebuys` e o fechamento do late.
 
-**Validação:** `npx vitest run`; no dev — eliminar jogador, abrir Rebuy, ele aparece marcado,
-pagar, volta à mesa com colocações renumeradas; readicionar nome existente pelo `+ Jogador` dá erro.
+**Como ficou.** `seating.ts` ganhou `nameKey` (NFD sem acentos, espaços colapsados, minúsculas),
+`hasPlayerNamed` (varre inclusive eliminados) e `seatEntry(entries, index)` — a cauda do
+`addAndSeat` virou função própria, usada também pela reentrada. `addAndSeat` devolve a lista
+**intacta** quando o nome já existe: a guarda visível fica nos três chamadores
+(`PlayersPanel` setup e live, sheet `+ Jogador` do `LiveActions`), que mostram erro bloqueante
+em vermelho. `App.addPlayerLive` passou a retornar `boolean` (false = duplicata) e `rebuyLive`,
+quando o alvo está eliminado, faz `rebuys + 1` → `applyElimination(..., false)` → `seatEntry`.
+O `rebuyable` do `LiveActions` deriva de `entries` (eliminados no fim da lista, marcados
+"— eliminado, volta pagando rebuy"); `active` segue governando Eliminar e Add-on, e o
+fechamento do late continua no `disabled` do botão. 11 testes novos em
+`src/utils/__tests__/seating.test.ts`.
+
+**Validação:** `npx vitest run` — 71 testes passam (4 arquivos); `npm run build` ok;
+`npx eslint src` sem regressão (mesmos 10 warnings pré-existentes). No preview de produção,
+torneio de 4 jogadores: `jose`/`JOSE ` recusados no setup com "⚠ JOSE já está na lista";
+eliminar Duda (4º) e abrir Rebuy mostra "Duda (0/1) — eliminado, volta pagando rebuy"; pagar
+devolve Duda à Mesa 1 assento 1 com `1 rebuys · 4 na mesa` e sem colocação; `+ Jogador` com
+"BIA" dá "⚠ BIA já está no torneio — use ↻ Rebuy para a reentrada" sem abrir a cobrança.
+**Não testado no navegador:** os chips de cadastrados no `+ Jogador` — o preview roda sem
+Supabase, então `knownPlayers` chega vazia e nem chips nem `datalist` renderizam.
 **Próxima:** S18 · Opus 5 · effort medium.
 
 ---
