@@ -3,10 +3,10 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import SetupPanel from './components/SetupPanel';
 import PlayersPanel from './components/PlayersPanel';
 import Clock from './components/Clock';
-import PayoutsPanel from './components/PayoutsPanel';
 import ResultsPanel from './components/ResultsPanel';
 import StatsPanel from './components/StatsPanel';
 import Home, { type ResumeInfo } from './screens/Home';
+import BuyIn from './screens/BuyIn';
 import {
   useTournamentEngine,
   type EngineParams,
@@ -115,7 +115,7 @@ function defaultConfig(): AppConfig {
 type Screen = 'home' | 'setup' | 'players' | 'buyin' | 'live' | 'finish' | 'ranking' | 'historico';
 // Ordem sequencial navegada por Voltar/Avançar. Home, ranking e histórico só
 // são alcançados pelo hub — não fazem parte da sequência.
-const FLOW: Screen[] = ['setup', 'players', 'live', 'finish'];
+const FLOW: Screen[] = ['setup', 'players', 'buyin', 'live', 'finish'];
 
 // Formato salvo antes da S11: 6 abas fixas em vez da máquina de telas atual.
 type LegacyStage = 'setup' | 'players' | 'payouts' | 'live' | 'results' | 'stats';
@@ -582,23 +582,23 @@ export default function App() {
       )}
 
       {screen === 'setup' && (
-        <>
-          <SetupPanel config={config} onChange={patchConfig}
-            onRestoreDefaults={() => { const d = defaultConfig(); setConfig({ ...d, start_time: config.start_time }); setManualLevels(null); }}
-            onPreset={(p) => {
-              engine.reset();
-              if (p === 'custom') { setConfig({ ...defaultConfig(), start_time: config.start_time }); setManualLevels(null); }
-              else if (p === 'quadra') { const q = quadraPreset(); setConfig({ ...q.config, start_time: config.start_time }); setManualLevels(q.manualLevels); if (q.payoutPct) setPayoutPct(q.payoutPct); }
-            }} />
-          {/* Premiação incorporada à tela de configuração (não é mais etapa própria).
-              Vira bloco recolhível dentro do SetupPanel na S12 (wizard). */}
-          <PayoutsPanel prizePool={prizePool} playerCount={entries.length}
-            percentuais={payoutPct} onChange={setPayoutPct} />
-        </>
+        <SetupPanel config={config} onChange={patchConfig}
+          onRestoreDefaults={() => { const d = defaultConfig(); setConfig({ ...d, start_time: config.start_time }); setManualLevels(null); }}
+          onPreset={(p) => {
+            engine.reset();
+            if (p === 'custom') { setConfig({ ...defaultConfig(), start_time: config.start_time }); setManualLevels(null); }
+            else if (p === 'quadra') { const q = quadraPreset(); setConfig({ ...q.config, start_time: config.start_time }); setManualLevels(q.manualLevels); if (q.payoutPct) setPayoutPct(q.payoutPct); }
+          }}
+          prizePool={prizePool} playerCount={entries.length}
+          payoutPct={payoutPct} onPayoutChange={setPayoutPct} />
       )}
 
       {screen === 'players' && <PlayersPanel entries={entries} onChange={setEntries} mode="setup" knownPlayers={knownPlayers}
         maxRebuys={config.max_rebuys} addonEnabled={config.addon_enabled} />}
+
+      {screen === 'buyin' && (
+        <BuyIn entries={entries} buyInValue={config.buy_in_value} onConfirm={() => setScreen('live')} />
+      )}
 
       {screen === 'live' && (
         <>

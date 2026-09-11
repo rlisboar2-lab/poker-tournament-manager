@@ -5,7 +5,7 @@ Ao final de cada sessão: marcar `[x]`, `npm run build`, commitar, e informar o 
 
 Continuação de `AUDITORIA.md` (S1–S8, concluídas). Numeração segue de S9.
 
-**Feitas:** S9 · S10 · S11  ·  **Pendentes:** S12 · S13 · S14 · S15
+**Feitas:** S9 · S10 · S11 · S12  ·  **Pendentes:** S13 · S14 · S15
 
 ---
 
@@ -244,29 +244,55 @@ que a home oferece Retomar e que retomar cai no relógio no mesmo nível.
 
 ---
 
-## S12 — Wizard de criação (3 telas) + cobrança PIX  ·  Sonnet 5 · effort **medium**  ·  depende de S11
+## S12 — Wizard de criação (3 telas) + cobrança PIX  ·  Sonnet 5 · effort **medium**  ·  depende de S11 · **feita 11/09/2026**
 
 Arquivos: `src/components/SetupPanel.tsx`, `src/components/PlayersPanel.tsx`,
 `src/components/CobrancaPix.tsx` (novo), `src/screens/BuyIn.tsx` (novo),
 `src/components/PayoutsPanel.tsx`, `src/App.tsx`
 
-- [ ] 🟡 **Tela 1 — configuração base.** `SetupPanel` como está, **mais** um bloco recolhível
+- [x] 🟡 **Tela 1 — configuração base.** `SetupPanel` como está, **mais** um bloco recolhível
       "Premiação" que embute o `PayoutsPanel` (percentuais + "Sugerir por nº de jogadores").
       A etapa `payouts` deixa de existir como tela; os valores em R$ são confirmados no fim.
-- [ ] 🟡 **Tela 2 — selecionar jogadores.** `PlayersPanel` em `mode="setup"`, com os chips de
+- [x] 🟡 **Tela 2 — selecionar jogadores.** `PlayersPanel` em `mode="setup"`, com os chips de
       cadastrados que já existem. Sem steppers de rebuy/add-on aqui (rebuy no início não faz
       sentido); só nome e buy-ins.
-- [ ] 🟡 **Tela 3 — buy-ins.** `BuyIn.tsx`: QR grande (`public/pix-qr.png`), lista dos
+- [x] 🟡 **Tela 3 — buy-ins.** `BuyIn.tsx`: QR grande (`public/pix-qr.png`), lista dos
       selecionados, total calculado (`N × buy_in_value`), e botão único
       `✓ Todos pagaram — iniciar torneio` → vai para `live`.
-- [ ] 🟡 **`CobrancaPix.tsx` reutilizável.** Props:
+- [x] 🟡 **`CobrancaPix.tsx` reutilizável.** Props:
       `{ tipo: 'buyin'|'rebuy'|'addon'; jogador: string; valor: number; onPago(): void; onCancelar(): void }`.
       Mostra quem, o quê, quanto, o QR, e `✓ Pago (PIX ou dinheiro)`.
       **A transação só é aplicada no `onPago`** — senão um rebuy selecionado e não pago já
       recalibraria os blinds por dinheiro que não entrou. Usado pela S13.
-- [ ] 🟡 **Navegação do wizard.** Voltar/Avançar só dentro das 3 telas. Avançar da 3 = iniciar.
+- [x] 🟡 **Navegação do wizard.** Voltar/Avançar só dentro das 3 telas. Avançar da 3 = iniciar.
 
-**Validação:** `npm run build` + `npm run dev`: criar torneio do zero pelas 3 telas.
+### Como ficou (11/09/2026)
+
+- `SetupPanel` ganhou props opcionais `prizePool`/`playerCount`/`payoutPct`/`onPayoutChange`; quando
+  passadas, renderiza `<details className="collapsible">` com `PayoutsPanel` dentro, no fim do
+  painel. `App.tsx` não renderiza mais `PayoutsPanel` solto na tela `setup`.
+- `PlayersPanel`: colunas Rebuys/Add-ons e o passo de `Stepper` correspondente só aparecem com
+  `mode="live"`. `mode="setup"` (tela 2 do wizard) mostra só Jogador + Buy-ins.
+- `BuyIn.tsx` (novo, `src/screens/`): recebe `entries`/`buyInValue`/`onConfirm`. QR
+  (`public/pix-qr.png`, com aviso se faltar), tabela de buy-ins por jogador, total
+  `entries.length × buyInValue`, botão que chama `onConfirm` (App: `() => setScreen('live')`).
+- `CobrancaPix.tsx` (novo, `src/components/`): componente reutilizável descrito no plano, ainda
+  não chamado de lugar nenhum — fica pronto para a S13 (ações ao vivo: adicionar/rebuy/add-on).
+- `Screen` (`App.tsx`) já tinha `'buyin'`; `FLOW` passou a incluir a etapa:
+  `['setup', 'players', 'buyin', 'live', 'finish']`. Voltar/Avançar da nav-row genérica cobrem a
+  navegação do wizard automaticamente — a tela 3 só adiciona seu próprio botão de confirmação, que
+  dispara a mesma transição (`buyin` → `live`).
+- `.collapsible` novo em `index.css`: `<summary>` com marcador ▸/▾ via `::before`, sem o marcador
+  nativo do `<details>` (`::-webkit-details-marker`).
+- Testado em `npm run dev` ponta a ponta: tela 1 (expandir Premiação, ver soma 100%) → Avançar →
+  tela 2 (adicionar "Rod" e "Ana", só coluna Buy-ins) → Avançar → tela 3 (QR carregado, tabela Rod/Ana
+  R$10 cada, total R$20) → "✓ Todos pagaram — iniciar torneio" → caiu no relógio, nível 1/11,
+  5/10, `idle`.
+- Lint: mesmo baseline (0 erros, 8 avisos `react-hooks/set-state-in-effect` pré-existentes, nenhum
+  novo).
+
+**Validação:** `npm run build` + `npm run lint` (0 erros) + `npx vitest run` (60 testes) +
+`npm run dev`: criar torneio do zero pelas 3 telas até o relógio iniciar.
 **Próxima:** S13 · Sonnet 5 · effort high.
 
 ---

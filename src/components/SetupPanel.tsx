@@ -2,15 +2,25 @@
 import type { AppConfig } from '../App';
 import { CHIP_DENOMINATIONS, initialStack } from '../utils/poker-math';
 import { chips } from '../utils/format';
+import PayoutsPanel from './PayoutsPanel';
 
 interface Props {
   config: AppConfig;
   onChange: (patch: Partial<AppConfig>) => void;
   onRestoreDefaults?: () => void;
   onPreset?: (name: 'custom' | 'quadra') => void;
+  // Premiação embutida como bloco recolhível (REDESIGN.md S12) — a etapa
+  // `payouts` não existe mais como tela própria.
+  prizePool?: number;
+  playerCount?: number;
+  payoutPct?: number[];
+  onPayoutChange?: (p: number[]) => void;
 }
 
-export default function SetupPanel({ config, onChange, onRestoreDefaults, onPreset }: Props) {
+export default function SetupPanel({
+  config, onChange, onRestoreDefaults, onPreset,
+  prizePool, playerCount, payoutPct, onPayoutChange,
+}: Props) {
   const s = config.setup;
   const setSetup = (patch: Partial<AppConfig['setup']>) =>
     onChange({ setup: { ...s, ...patch } });
@@ -162,6 +172,14 @@ export default function SetupPanel({ config, onChange, onRestoreDefaults, onPres
       <button className="ghost" onClick={() => onChange({ breaks: [...config.breaks, { after_level: 4, minutes: 10 }] })}>
         + Adicionar intervalo
       </button>
+
+      {payoutPct && onPayoutChange && (
+        <details className="collapsible" style={{ marginTop: 20 }}>
+          <summary>Premiação</summary>
+          <PayoutsPanel prizePool={prizePool ?? 0} playerCount={playerCount ?? 0}
+            percentuais={payoutPct} onChange={onPayoutChange} />
+        </details>
+      )}
     </div>
   );
 }

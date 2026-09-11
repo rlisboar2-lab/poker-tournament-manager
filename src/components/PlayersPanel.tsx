@@ -89,8 +89,8 @@ export default function PlayersPanel({ entries, onChange, mode = 'setup', knownP
                 {live && <th>Mesa</th>}
                 {live && <th>Assento</th>}
                 <th>Buy-ins</th>
-                <th>Rebuys{maxRebuys > 0 ? ` (máx ${maxRebuys})` : ''}</th>
-                {addonEnabled && <th>Add-ons</th>}
+                {live && <th>Rebuys{maxRebuys > 0 ? ` (máx ${maxRebuys})` : ''}</th>}
+                {live && addonEnabled && <th>Add-ons</th>}
                 {live && <th>Status</th>}
                 <th></th>
               </tr>
@@ -102,8 +102,8 @@ export default function PlayersPanel({ entries, onChange, mode = 'setup', knownP
                   {live && <td>{e.table ? `Mesa ${e.table}` : '—'}</td>}
                   {live && <td>{e.seat ?? '—'}</td>}
                   <td><Stepper value={e.buyins} onMinus={() => step(i, 'buyins', -1)} onPlus={() => step(i, 'buyins', 1)} /></td>
-                  <td><Stepper value={e.rebuys} onMinus={() => step(i, 'rebuys', -1)} onPlus={() => step(i, 'rebuys', 1)} /></td>
-                  {addonEnabled && <td><Stepper value={e.addons} onMinus={() => step(i, 'addons', -1)} onPlus={() => step(i, 'addons', 1)} /></td>}
+                  {live && <td><Stepper value={e.rebuys} onMinus={() => step(i, 'rebuys', -1)} onPlus={() => step(i, 'rebuys', 1)} /></td>}
+                  {live && addonEnabled && <td><Stepper value={e.addons} onMinus={() => step(i, 'addons', -1)} onPlus={() => step(i, 'addons', 1)} /></td>}
                   {live && (
                     <td>
                       <button className={e.eliminated ? 'ghost' : 'danger'}
