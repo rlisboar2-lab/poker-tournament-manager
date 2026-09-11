@@ -19,8 +19,9 @@ import {
   inserirNivelContinuando,
   calcularCurvaBlinds,
   nivelAuto,
+  resolveBreaks,
+  type AppBreakConfig,
   type BaseSetup,
-  type BreakConfig,
   type BlindLevel,
 } from './utils/poker-math';
 import { addAndSeat, rebalanceSeating, seatEntry, hasPlayerNamed } from './utils/seating';
@@ -51,7 +52,8 @@ export interface AppConfig {
   // Nível a partir do qual o ante entra — desacoplado do late check-in (REDESIGN.md S9).
   // 'auto' = nivelAuto(níveis, 0.75). Fiação no motor ao vivo é da S10.
   ante_start_level: number | 'auto';
-  breaks: BreakConfig[];
+  // Sentinela 'late' = intervalo colado no fim do late check-in (REDESIGN.md S18).
+  breaks: AppBreakConfig[];
 }
 
 interface ClockSnap {
@@ -111,7 +113,7 @@ function defaultConfig(): AppConfig {
     late_checkin_level: 'auto',
     ante_enabled: true,
     ante_start_level: 'auto',
-    breaks: [{ after_level: 9, minutes: 15 }], // intervalo após o último nível pré-late
+    breaks: [{ after_level: 'late', minutes: 15 }], // sempre depois do late check-in
   };
 }
 
@@ -193,6 +195,10 @@ export default function App() {
   // Toast de "desfazer" após eliminar (some sozinho em 5s ou no undo).
   const [eliminationToast, setEliminationToast] = useState<{ text: string; undo: () => void } | null>(null);
   const toastTimerRef = useRef<number | undefined>(undefined);
+  // Campeão declarado (REDESIGN.md S18): banner na `live` antes da troca de tela.
+  const [championName, setChampionName] = useState<string | null>(null);
+  const championTimerRef = useRef<number | undefined>(undefined);
+  const championFiredRef = useRef(false);
   // Jogadores já cadastrados (para reaproveitar nomes ao adicionar buy-in).
   const [knownPlayers, setKnownPlayers] = useState<string[]>([]);
   useEffect(() => {
@@ -236,6 +242,13 @@ export default function App() {
     ? nivelAuto(projectedLevelCount, 0.5)
     : config.late_checkin_level;
 
+  // Intervalos com a sentinela 'late' já viram nível aqui. Só `minutes` entra
+  // em `sumBreakMin`, então resolver o `after_level` não realimenta a curva.
+  const resolvedBreaks = useMemo(
+    () => resolveBreaks(config.breaks, resolvedLateCheckinLevel),
+    [config.breaks, resolvedLateCheckinLevel]
+  );
+
   // Ante desacoplado do late check-in: default 'auto' = 75% dos níveis.
   const resolvedAnteStartLevel = config.ante_start_level === 'auto'
     ? nivelAuto(projectedLevelCount, 0.75)
@@ -256,13 +269,13 @@ export default function App() {
     late_checkin_level: resolvedLateCheckinLevel,
     ante_enabled: config.ante_enabled,
     ante_start_level: resolvedAnteStartLevel,
-    breaks: config.breaks,
+    breaks: resolvedBreaks,
     override_levels: manualLevels,
     frozen_levels: frozenLevels,
     published_floor: publishedFloor,
   }), [
     totals, valorInicial, config, playersRemaining, effectiveTarget, manualLevels,
-    resolvedLateCheckinLevel, resolvedAnteStartLevel, frozenLevels, publishedFloor,
+    resolvedLateCheckinLevel, resolvedAnteStartLevel, resolvedBreaks, frozenLevels, publishedFloor,
   ]);
 
   const engine = useTournamentEngine(derivedParams);
@@ -390,14 +403,27 @@ export default function App() {
   // Gatilho do penúltimo (REDESIGN.md S13): sobrando 1 ativo, o relógio pausa
   // (nunca reseta) e abre a tela de fim com o campeão já declarado. A troca de
   // tela some do `screen === 'live'` da condição, então isto só dispara uma vez.
+  // A guarda de `status === 'idle'` caiu na S18: torneio conduzido com o relógio
+  // parado também precisa terminar. O campeão aparece primeiro como banner na
+  // `live`; a tela de fim entra logo depois, e desfazer a eliminação no meio do
+  // caminho cancela as duas coisas.
   useEffect(() => {
-    if (screen !== 'live' || engine.state.status === 'idle') return;
-    const activeCount = entries.filter((e) => !e.eliminated).length;
-    if (entries.length > 1 && activeCount === 1) {
-      engine.pause();
-      setScreen('finish');
+    if (screen !== 'live') return;
+    const ativos = entries.filter((e) => !e.eliminated);
+    if (entries.length > 1 && ativos.length === 1) {
+      if (championFiredRef.current) return;
+      championFiredRef.current = true;
+      if (engine.state.status === 'running') engine.pause();
+      setChampionName(ativos[0].name);
+      championTimerRef.current = window.setTimeout(() => setScreen('finish'), 1600);
+    } else if (championFiredRef.current) {
+      championFiredRef.current = false;
+      window.clearTimeout(championTimerRef.current);
+      setChampionName(null);
     }
   }, [entries, screen]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => () => window.clearTimeout(championTimerRef.current), []);
 
   const prizePool =
     totals.buyins * config.buy_in_value +
@@ -421,16 +447,18 @@ export default function App() {
 
   const patchConfig = (p: Partial<AppConfig>) => setConfig((c) => ({ ...c, ...p }));
 
+  // A comparação é sempre com a lista resolvida: o intervalo default guarda
+  // 'late', e o nível que ele ocupa só aparece depois de `resolveBreaks`.
   const inserirIntervaloAgora = () => {
     const afterLvl = Math.max(1, engine.state.level_number);
-    if (config.breaks.some((b) => b.after_level === afterLvl)) return;
+    if (resolvedBreaks.some((b) => b.after_level === afterLvl)) return;
     patchConfig({ breaks: [...config.breaks, { after_level: afterLvl, minutes: 10 }] });
   };
 
   // "+ intervalo aqui" do color-up (REDESIGN.md S13): mesma ideia da anterior,
   // mas para o nível sugerido por `sugerirBreaksParaColorUp`, não o corrente.
   const addBreakAfter = (afterLvl: number) => {
-    if (config.breaks.some((b) => b.after_level === afterLvl)) return;
+    if (resolvedBreaks.some((b) => b.after_level === afterLvl)) return;
     patchConfig({ breaks: [...config.breaks, { after_level: afterLvl, minutes: 10 }] });
   };
 
@@ -466,7 +494,13 @@ export default function App() {
   // Remove um intervalo — sem alterar o tempo total de jogo (níveis ficam iguais).
   const deleteBreak = (afterLevelNumber: number) => {
     setManualLevels(materialize()); // congela níveis para o total não mudar
-    patchConfig({ breaks: config.breaks.filter((b) => b.after_level !== afterLevelNumber) });
+    // Apagar o intervalo do late significa apagar a sentinela: compara pelo
+    // nível resolvido, não pelo valor cru guardado na config.
+    patchConfig({
+      breaks: config.breaks.filter((b) => (
+        (b.after_level === 'late' ? resolvedLateCheckinLevel : b.after_level) !== afterLevelNumber
+      )),
+    });
   };
 
   // Transmissão ao vivo.
@@ -553,6 +587,9 @@ export default function App() {
     setPublishedFloor(null);
     setLiveShareId(null);
     setSavedTournamentId(null);
+    window.clearTimeout(championTimerRef.current);
+    championFiredRef.current = false;
+    setChampionName(null);
     setScreen(target);
   };
 
@@ -632,6 +669,9 @@ export default function App() {
   const onUndoFinish = () => {
     const idx = entries.findIndex((e) => e.eliminated && e.final_placement === 2);
     if (idx < 0) return;
+    window.clearTimeout(championTimerRef.current);
+    championFiredRef.current = false;
+    setChampionName(null);
     toggleEliminated(idx, false);
     setScreen('live');
   };
@@ -715,7 +755,7 @@ export default function App() {
             if (p === 'custom') { setConfig({ ...defaultConfig(), start_time: config.start_time }); setManualLevels(null); }
             else if (p === 'quadra') { const q = quadraPreset(); setConfig({ ...q.config, start_time: config.start_time }); setManualLevels(q.manualLevels); if (q.payoutPct) setPayoutPct(q.payoutPct); }
           }}
-          prizePool={prizePool} playerCount={entries.length}
+          prizePool={prizePool} playerCount={entries.length} lateLevel={resolvedLateCheckinLevel}
           payoutPct={payoutPct} onPayoutChange={setPayoutPct} />
       )}
 
@@ -752,6 +792,11 @@ export default function App() {
               </p>
             </div>
           )}
+          {championName && (
+            <div className="panel" style={{ borderColor: 'var(--accent)', marginBottom: 12 }}>
+              <strong>🏆 {championName} é o campeão — torneio encerrado</strong>
+            </div>
+          )}
           <div className="tabs">
             <button className={liveTab === 'clock' ? 'active' : ''} onClick={() => setLiveTab('clock')}>Relógio</button>
             <button className={liveTab === 'mesa' ? 'active' : ''} onClick={() => setLiveTab('mesa')}>Mesa</button>
@@ -761,7 +806,7 @@ export default function App() {
             ? <Clock engine={engine} editable
                 onAddLevelAfter={addLevelAfter} onDeleteLevel={deleteLevel} onDeleteBreak={deleteBreak}
                 prizePool={prizePool} playersRemaining={playersRemaining}
-                smallestChip={config.setup.smallest_chip} breaksConfig={config.breaks}
+                smallestChip={config.setup.smallest_chip} breaksConfig={resolvedBreaks}
                 onAddBreakAfter={addBreakAfter} />
             : <PlayersPanel entries={entries} onChange={setEntries} mode="live" knownPlayers={knownPlayers}
                 maxRebuys={config.max_rebuys} addonEnabled={config.addon_enabled}

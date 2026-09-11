@@ -5,7 +5,7 @@ Ao final de cada sessão: marcar `[x]`, `npm run build`, commitar, e informar o 
 
 Continuação de `AUDITORIA.md` (S1–S8, concluídas). Numeração segue de S9.
 
-**Feitas:** S9 · S10 · S11 · S12 · S13 · S14 · S15 · S16 · S17  ·  **Pendentes:** S18 (correções de bug, 11/09/2026)
+**Feitas:** S9 · S10 · S11 · S12 · S13 · S14 · S15 · S16 · S17 · S18  ·  **Pendentes:** — (backlog zerado em 11/09/2026)
 
 ---
 
@@ -579,11 +579,11 @@ Supabase, então `knownPlayers` chega vazia e nem chips nem `datalist` renderiza
 
 ---
 
-## S18 — Intervalo pós-late e fim automático  ·  Opus 5 · effort **medium**  ·  depende de S17
+## S18 — Intervalo pós-late e fim automático  ·  Opus 5 · effort **medium**  ·  depende de S17 · **feita 11/09/2026 (Opus 5)**
 
 Arquivos: `src/App.tsx`, `src/utils/__tests__/`
 
-- [ ] 🔴 **Intervalo default pós-late (#3).** Regra do produto: o intervalo padrão é **sempre
+- [x] 🔴 **Intervalo default pós-late (#3).** Regra do produto: o intervalo padrão é **sempre
       depois do late check-in**, nunca um nível literal. Hoje `defaultConfig()` grava
       `after_level: 9` e o late é `auto = ceil(níveis/2)` — os dois não conversam. O `after_level`
       do break default precisa derivar de `resolvedLateCheckinLevel`, que só existe depois de
@@ -591,12 +591,47 @@ Arquivos: `src/App.tsx`, `src/utils/__tests__/`
       (`after_level: 'late'`) ou com effect de sincronização — não realimentar o cálculo da curva
       em laço (`sumBreakMin` entra em `effectiveTarget`, que entra em `projectedLevelCount`).
       Break editado à mão pelo usuário não pode ser sobrescrito.
-- [ ] 🔴 **Fim de torneio sem depender do relógio (#4).** Tirar a guarda
+- [x] 🔴 **Fim de torneio sem depender do relógio (#4).** Tirar a guarda
       `engine.state.status === 'idle' → return` do gatilho do campeão: com relógio nunca iniciado,
       eliminar até sobrar 1 hoje não sinaliza nada. Além da troca de tela, mostrar na `live` um
       indicativo explícito ("🏆 <nome> é o campeão — torneio encerrado") antes/junto da transição.
-- [ ] 🟡 **Teste:** break default acompanha o late quando o nº de jogadores muda a curva.
+- [x] 🟡 **Teste:** break default acompanha o late quando a curva muda de tamanho.
 
-**Validação:** `npm run build`; variar o nº de jogadores e conferir o break colado no late;
-eliminar até 1 com relógio parado **e** com relógio rodando.
-**Próxima:** —
+**Como ficou.** Sentinela, não effect de sincronização. `poker-math.ts` ganhou
+`AppBreakConfig` (`after_level: number | 'late'`) e `resolveBreaks(breaks, lateLevel)`;
+`AppConfig.breaks` passou a guardar a sentinela e o `defaultConfig()` grava
+`{ after_level: 'late', minutes: 15 }`. A resolução vive num único `useMemo`
+(`resolvedBreaks`) depois de `resolvedLateCheckinLevel`, e é essa lista que vai para o motor,
+para o `Clock` e para as guardas de duplicata (`inserirIntervaloAgora`, `addBreakAfter`,
+`deleteBreak`). Sem laço: `sumBreakMin` só lê `minutes`, então resolver o `after_level` não
+realimenta `effectiveTarget`. No `SetupPanel` a linha mostra o nível resolvido com a pílula
+`auto · late`; digitar um número troca a sentinela por valor fixo e o intervalo para de
+acompanhar o late — nada sobrescreve edição manual. Quando o late cai em cima de um intervalo
+manual, `resolveBreaks` mantém só o primeiro da lista.
+
+O gatilho do campeão perdeu a guarda `status === 'idle'` e agora só chama `engine.pause()` se o
+relógio estiver `running`. Antes da troca de tela ele grava `championName` e mostra o banner
+`🏆 <nome> é o campeão — torneio encerrado` no topo da `live`; `setScreen('finish')` entra
+1,6 s depois, por timeout. `championFiredRef` impede disparo repetido, e desfazer a eliminação
+(ou "↩ Não acabou", ou `resetTorneio`) cancela o timeout e limpa o banner.
+
+**Correção da premissa do item 🟡.** O nº de jogadores **não** muda o tamanho da curva: os
+níveis projetados saem do orçamento de tempo (`target_time_minutos − Σ intervalos ÷
+duracao_bloco_nivel`); entradas mexem no valor dos blinds, não na contagem. Conferido:
+6 e 60 entradas dão 14 níveis com alvo de 285 min. O teste passou a variar o alvo — o que de
+fato move o late — e continua provando o que o item queria: mudou a curva, o intervalo default
+segue o late.
+
+**Validação:** `npx vitest run` — 75 testes passam (4 arquivos, 4 novos em `poker-math.test.ts`);
+`npm run build` ok; `npx eslint src` com 9 warnings pré-existentes (nenhum novo). No preview de
+produção: alvo 300 min → 14 níveis, late 7, linha do intervalo mostra `7 · auto · late`; alvo
+600 → 29 níveis, late 15, a linha vira `15` sozinha; fixando a linha em `5` na mão, a pílula
+some e o valor não se mexe mais ao voltar o alvo para 300. Cronograma ao vivo mostra
+`7 ⚑ late` seguido de `☕ Intervalo (15:00)`. Com o relógio nunca iniciado (`idle`), torneio de
+3 jogadores: eliminar dois abre o banner `🏆 Bruno é o campeão — torneio encerrado` na `live` e
+a tela de fim entra em seguida; "↩ Não acabou" volta para a `live` sem banner. Repetido com o
+relógio `running`: mesmo caminho, e ao voltar pela `↩ Não acabou` o relógio está `paused` (o
+`pause()` roda só nesse caso).
+**Não testado no navegador:** som dos alarmes e publicação ao vivo — o preview roda sem áudio
+liberado e sem Supabase.
+**Próxima:** — (backlog do REDESIGN zerado)

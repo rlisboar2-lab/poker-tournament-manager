@@ -365,3 +365,21 @@ export function buildSchedule(niveis: BlindLevel[], sp: ScheduleParams): Schedul
   }
   return items;
 }
+
+// ── Intervalo colado no late check-in (REDESIGN.md S18) ──────────────────
+// O intervalo padrão do produto é sempre *depois* do late check-in, nunca um
+// nível literal. A config guarda a sentinela 'late'; a resolução para número
+// acontece aqui, depois que a curva projetada já deu o nível do late. Um
+// intervalo editado à mão vira número e deixa de acompanhar o late.
+export type AppBreakConfig = { after_level: number | 'late'; minutes: number };
+
+export function resolveBreaks(breaks: AppBreakConfig[], lateLevel: number): BreakConfig[] {
+  const out: BreakConfig[] = [];
+  for (const b of breaks) {
+    const lvl = b.after_level === 'late' ? Math.max(1, lateLevel) : Math.max(1, b.after_level);
+    // O late pode cair sobre um intervalo manual: o primeiro da lista vence.
+    if (out.some((x) => x.after_level === lvl)) continue;
+    out.push({ after_level: lvl, minutes: b.minutes });
+  }
+  return out;
+}

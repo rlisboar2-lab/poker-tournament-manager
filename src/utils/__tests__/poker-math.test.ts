@@ -12,6 +12,7 @@ import {
   nivelAuto,
   inserirNivelContinuando,
   buildSchedule,
+  resolveBreaks,
   type CurveParams,
   type BlindLevel,
   type ScheduleParams,
@@ -368,5 +369,55 @@ describe('buildSchedule', () => {
       breaks: [],
     }) as ScheduleLevel[];
     expect(novo.map((i) => i.ante)).toEqual(hoje.map((i) => i.ante));
+  });
+});
+
+// ── Intervalo colado no late check-in (REDESIGN.md S18) ─────────────────
+describe('resolveBreaks', () => {
+  // O nº de níveis projetados sai do orçamento de tempo (alvo menos intervalos),
+  // não do nº de jogadores: entradas mexem no valor dos blinds, não no tamanho
+  // da curva. Quem move o late — e com ele o intervalo default — é a curva.
+  const niveisCom = (target: number, entradas: number) => calcularCurvaBlinds({
+    qnt_entradas_primarias: entradas,
+    valor_fichas_inicial: 3000,
+    qnt_acumulada_rebuys: 0,
+    fichas_por_rebuy: 3000,
+    qnt_acumulada_addons: 0,
+    fichas_por_addon: 3000,
+    target_time_minutos: target,
+    duracao_bloco_nivel: 20,
+    initial_bb: 10,
+    smallest_chip: 5,
+  }).qnt_niveis_projetados;
+
+  it('gruda o intervalo default no late quando a curva muda de tamanho', () => {
+    const breaks = [{ after_level: 'late' as const, minutes: 15 }];
+    const curta = niveisCom(285, 6);   // 300 de alvo menos os 15 do intervalo
+    const longa = niveisCom(585, 30);
+    expect(longa).toBeGreaterThan(curta);
+
+    const lateCurta = nivelAuto(curta, 0.5);
+    const lateLonga = nivelAuto(longa, 0.5);
+    expect(lateLonga).not.toBe(lateCurta);
+    expect(resolveBreaks(breaks, lateCurta)).toEqual([{ after_level: lateCurta, minutes: 15 }]);
+    expect(resolveBreaks(breaks, lateLonga)).toEqual([{ after_level: lateLonga, minutes: 15 }]);
+  });
+
+  it('não mexe em intervalo editado à mão', () => {
+    const breaks = [{ after_level: 4, minutes: 10 }, { after_level: 'late' as const, minutes: 15 }];
+    expect(resolveBreaks(breaks, 9)).toEqual([
+      { after_level: 4, minutes: 10 },
+      { after_level: 9, minutes: 15 },
+    ]);
+  });
+
+  it('quando o late cai sobre um intervalo manual, o primeiro da lista vence', () => {
+    const breaks = [{ after_level: 'late' as const, minutes: 15 }, { after_level: 7, minutes: 10 }];
+    expect(resolveBreaks(breaks, 7)).toEqual([{ after_level: 7, minutes: 15 }]);
+  });
+
+  it('nunca devolve nível menor que 1', () => {
+    expect(resolveBreaks([{ after_level: 'late', minutes: 15 }], 0))
+      .toEqual([{ after_level: 1, minutes: 15 }]);
   });
 });

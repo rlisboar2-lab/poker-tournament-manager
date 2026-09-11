@@ -13,13 +13,15 @@ interface Props {
   // `payouts` não existe mais como tela própria.
   prizePool?: number;
   playerCount?: number;
+  // Nível em que o late check-in fecha — o intervalo 'late' mostra este número.
+  lateLevel?: number;
   payoutPct?: number[];
   onPayoutChange?: (p: number[]) => void;
 }
 
 export default function SetupPanel({
   config, onChange, onRestoreDefaults, onPreset,
-  prizePool, playerCount, payoutPct, onPayoutChange,
+  prizePool, playerCount, lateLevel, payoutPct, onPayoutChange,
 }: Props) {
   const s = config.setup;
   const setSetup = (patch: Partial<AppConfig['setup']>) =>
@@ -155,11 +157,17 @@ export default function SetupPanel({
       {config.breaks.map((b, i) => (
         <div className="row" key={i} style={{ marginBottom: 8 }}>
           <span className="notice">Depois do nível</span>
-          <input type="number" min={1} style={{ width: 80 }} value={b.after_level}
+          {/* 'late' = colado no fim do late check-in: acompanha a curva sozinho.
+              Digitar um número aqui fixa o intervalo e desliga esse acompanhamento. */}
+          <input type="number" min={1} style={{ width: 80 }}
+            value={b.after_level === 'late' ? (lateLevel ?? 1) : b.after_level}
             onChange={(e) => {
               const breaks = config.breaks.map((x, idx) => idx === i ? { ...x, after_level: Math.max(1, num(e.target.value)) } : x);
               onChange({ breaks });
             }} />
+          {b.after_level === 'late' && (
+            <span className="pill" title="Acompanha o late check-in automaticamente">auto · late</span>
+          )}
           <input type="number" min={1} style={{ width: 90 }} value={b.minutes}
             onChange={(e) => {
               const breaks = config.breaks.map((x, idx) => idx === i ? { ...x, minutes: Math.max(1, num(e.target.value)) } : x);
