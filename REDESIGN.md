@@ -5,7 +5,7 @@ Ao final de cada sessão: marcar `[x]`, `npm run build`, commitar, e informar o 
 
 Continuação de `AUDITORIA.md` (S1–S8, concluídas). Numeração segue de S9.
 
-**Feitas:** S9  ·  **Pendentes:** S10 · S11 · S12 · S13 · S14 · S15
+**Feitas:** S9 · S10  ·  **Pendentes:** S11 · S12 · S13 · S14 · S15
 
 ---
 
@@ -141,18 +141,18 @@ O casamento por blinds existe por um motivo legítimo: sobreviver à **renumera�
 
 ### Tarefas
 
-- [ ] 🔴 **`findPosition(items, pos, minIndex?)`.** Com `minIndex` definido, nunca retorna índice
+- [x] 🔴 **`findPosition(items, pos, minIndex?)`.** Com `minIndex` definido, nunca retorna índice
       menor. Passar `minIndex = state.item_index` quando a mudança veio de **recalibração**;
       deixar indefinido quando veio de **edição manual** (`override_levels` mudou).
-- [ ] 🔴 **Distinguir a origem.** No effect de reancoragem (`:279`), comparar
+- [x] 🔴 **Distinguir a origem.** No effect de reancoragem (`:279`), comparar
       `params.override_levels` por identidade contra a do commit anterior (ref). Mudou →
       edição manual. Não mudou mas `items` mudou → recalibração.
-- [ ] 🔴 **Passado congelado.** O hook expõe `frozenLevels`: os níveis de índice `<=` o nível
+- [x] 🔴 **Passado congelado.** O hook expõe `frozenLevels`: os níveis de índice `<=` o nível
       corrente, materializados. `App.tsx` passa isso de volta em `recalibrarCurva({ frozen })`.
       Guardar em estado do App (não em ref lido no render — ver warnings `react-hooks/refs` do lint).
-- [ ] 🔴 **Piso persistido.** `SavedState` ganha `publishedFloor?: number[]`. A cada recalibração
+- [x] 🔴 **Piso persistido.** `SavedState` ganha `publishedFloor?: number[]`. A cada recalibração
       `floor[i] = max(floor[i] ?? 0, bb_novo[i])`. Sobrevive a fechar/reabrir o app.
-- [ ] 🟡 **Aviso na UI.** Quando uma recalibração for barrada pelo piso, mostrar no `notice` do
+- [x] 🟡 **Aviso na UI.** Quando uma recalibração for barrada pelo piso, mostrar no `notice` do
       topo: `estrutura recalibrada (piso mantido)`. Sem `alert`.
 
 ### Testes
@@ -161,9 +161,31 @@ O casamento por blinds existe por um motivo legítimo: sobreviver à **renumera�
 - `findPosition` sem `minIndex` continua achando o item renumerado (regressão da S1).
 - cenário do bug ponta a ponta: nível 8 = 150/300, +4 rebuys, o relógio continua no nível 8.
 
-**Validação:** `npm run build` + `npx vitest run` + `npm run dev`: entrar ao vivo, avançar até o
-nível 8, dar rebuy, conferir que nível e blinds não retrocedem; depois **remover** um rebuy e
-conferir a mesma coisa.
+### Como ficou (10/09/2026)
+
+- `EngineParams` ganhou `ante_start_level`, `frozen_levels` e `published_floor`; o motor troca
+  `calcularCurvaBlinds` por `recalibrarCurva(params, { frozen, floor })` e passa `ante_start_level`
+  para `buildSchedule` — a fiação do ante que a S9 deixou pendente.
+- `findPosition(items, pos, minIndex?)`: `minIndex` é piso da busca. O `lastLevel` continua sendo
+  rastreado abaixo do piso (senão o intervalo perderia o nível que o precede).
+- A origem da mudança sai da identidade de `params.override_levels` guardada em ref: trocou →
+  edição manual (sem piso, pode recuar); só `items` mudou → recalibração (piso = `state.item_index`).
+- `frozenLevels` é exposto pelo motor, guardado em estado no `App` e devolvido em `frozen_levels`.
+  A comparação por conteúdo (`sameLevels`) corta o laço de realimentação.
+- Piso: efeito no `App` acumula `floor[i] = max(floor[i], bb[i])` **só com o relógio fora de
+  `idle`**; voltar para `idle` (novo torneio/preset) descarta o piso. Persistido em
+  `SavedState.publishedFloor`, sem bump de `SAVE_KEY`.
+- `floorHeld` compara a curva com piso contra a mesma curva sem piso; some quando há estrutura
+  editada à mão, em que a curva calculada não vai para a tela.
+- Lint: os dois efeitos novos acrescentam 2 avisos `react-hooks/set-state-in-effect` (6 → 8, 0
+  erros), mesma categoria dos que o `App.tsx` já tinha. É o custo do estado pedido no plano
+  ("guardar em estado do App, não em ref lido no render").
+
+**Validação:** `npm run lint` (0 erros) + `npm run build` + `npx vitest run` (60 testes) +
+`npm run dev` percorrido no navegador: 8 entradas, 11 níveis, relógio rodando no nível 8
+(200/400); +4 rebuys → continua no nível 8 com 200/400 e só a cauda sobe (9: 250/500 → 400/800);
+removendo os 4 rebuys a estrutura não desce e o topo mostra `estrutura recalibrada (piso mantido)`;
+apagar um nível anterior (edição manual) ainda move o relógio junto com os blinds.
 **Próxima:** S11 · Sonnet 5 · effort high.
 
 ---

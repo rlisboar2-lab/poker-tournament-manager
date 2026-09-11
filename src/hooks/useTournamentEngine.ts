@@ -7,7 +7,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  calcularCurvaBlinds,
+  recalibrarCurva,
   buildSchedule,
   type CurveParams,
   type BreakConfig,
@@ -22,8 +22,15 @@ export interface EngineParams extends CurveParams {
   players_remaining?: number;
   late_checkin_level: number;
   ante_enabled: boolean;
+  // Nível a partir do qual o ante entra — desacoplado do late check-in (S9).
+  // Ausente, cai no `late_checkin_level` (comportamento anterior).
+  ante_start_level?: number;
   breaks: BreakConfig[];
   override_levels?: BlindLevel[] | null; // estrutura editada manualmente (ao vivo)
+  // Passado congelado: níveis já jogados, copiados intactos pela recalibração.
+  frozen_levels?: BlindLevel[];
+  // Piso publicado por índice: o BB de um nível nunca desce do que a mesa já viu.
+  published_floor?: number[] | null;
 }
 
 // Âncora do relógio. É estado (não ref) porque o render depende dela:
@@ -68,17 +75,25 @@ export interface Position {
 
 // Acha o mesmo item no cronograma novo. Prioriza os blinds (imunes à
 // renumeração feita por `deleteLevel`); cai para o número do nível se não achar.
-export function findPosition(items: ScheduleItem[], pos: Position): number {
+//
+// `minIndex` é o piso da busca: com ele definido a função nunca devolve um índice
+// menor. Serve para a RECALIBRAÇÃO, em que os blinds mudam de lugar na curva —
+// o par "sb/bb" do nível corrente passa a casar num índice anterior e o relógio
+// voltaria de nível. Na EDIÇÃO MANUAL o piso não é passado: apagar o nível
+// corrente legitimamente move o relógio para trás.
+export function findPosition(items: ScheduleItem[], pos: Position, minIndex?: number): number {
+  const from = minIndex != null ? Math.max(0, minIndex) : 0;
   let lastLevel = 0;
   let fallback = -1;
   for (let i = 0; i < items.length; i++) {
     const it = items[i];
     if (it.kind === 'level') {
-      lastLevel = it.level;
+      lastLevel = it.level; // rastreado mesmo abaixo do piso: o intervalo pode casar por ele
+      if (i < from) continue;
       if (pos.kind !== 'level') continue;
       if (`${it.small_blind}/${it.big_blind}` === pos.blinds) return i;
       if (it.level === pos.level && fallback < 0) fallback = i;
-    } else if (pos.kind === 'break' && lastLevel === pos.level && fallback < 0) {
+    } else if (i >= from && pos.kind === 'break' && lastLevel === pos.level && fallback < 0) {
       fallback = i;
     }
   }
@@ -104,7 +119,28 @@ export function useTournamentEngine(params: EngineParams) {
     return () => { active = false; clearTimeout(timer); };
   }, [status]);
 
-  const curve = useMemo(() => calcularCurvaBlinds(params), [params]);
+  // Curva com passado congelado e piso publicado: recalibrar nunca reescreve um
+  // nível já jogado nem baixa o BB de um índice que a mesa já viu.
+  const curve = useMemo(
+    () => recalibrarCurva(params, {
+      frozen: params.frozen_levels,
+      floor: params.published_floor ?? undefined,
+    }),
+    [params]
+  );
+
+  // Uma recalibração foi barrada pelo piso quando a curva sem piso sairia
+  // diferente. Com estrutura editada à mão a curva calculada não vai para a
+  // tela, então não há o que avisar.
+  const floorHeld = useMemo(() => {
+    if (params.override_levels?.length) return false;
+    if (!params.published_floor?.length) return false;
+    const semPiso = recalibrarCurva(params, { frozen: params.frozen_levels });
+    return (
+      semPiso.niveis.length !== curve.niveis.length ||
+      curve.niveis.some((n, i) => n.big_blind !== semPiso.niveis[i].big_blind)
+    );
+  }, [params, curve]);
   const niveis = useMemo(
     () => (params.override_levels && params.override_levels.length
       ? params.override_levels
@@ -117,9 +153,13 @@ export function useTournamentEngine(params: EngineParams) {
         level_duration_minutes: params.duracao_bloco_nivel,
         late_checkin_level: params.late_checkin_level,
         ante_enabled: params.ante_enabled,
+        ante_start_level: params.ante_start_level,
         breaks: params.breaks,
       }),
-    [niveis, params.duracao_bloco_nivel, params.late_checkin_level, params.ante_enabled, params.breaks]
+    [
+      niveis, params.duracao_bloco_nivel, params.late_checkin_level,
+      params.ante_enabled, params.ante_start_level, params.breaks,
+    ]
   );
 
   const cumStarts = useMemo(() => {
@@ -275,18 +315,24 @@ export function useTournamentEngine(params: EngineParams) {
   // mesmo ponto do item equivalente da estrutura nova.
   const posRef = useRef<Position | null>(null);
   const itemsRef = useRef(items);
+  const overrideRef = useRef(params.override_levels);
 
   useEffect(() => {
     const pos = posRef.current;
     const changed = itemsRef.current !== items;
+    // Origem da mudança: `override_levels` trocou de identidade → edição manual
+    // (inserir/apagar nível ou intervalo). Só `items` mudou → recalibração da
+    // curva (rebuy, add-on, jogador novo), que jamais pode recuar o relógio.
+    const manualEdit = overrideRef.current !== params.override_levels;
     itemsRef.current = items;
+    overrideRef.current = params.override_levels;
     if (!changed || !pos || status === 'idle') return;
-    const idx = findPosition(items, pos);
+    const idx = findPosition(items, pos, manualEdit ? undefined : state.item_index);
     if (idx < 0) return;                          // item removido: mantém o elapsed
     if (cumStarts[idx] === pos.start_sec) return; // nada se moveu
     const into = Math.min(pos.into, Math.max(0, items[idx].duration_seconds - 1));
     setElapsedMs((cumStarts[idx] + into) * 1000);
-  }, [items, cumStarts, status, setElapsedMs]);
+  }, [items, cumStarts, status, setElapsedMs, params.override_levels, state.item_index]);
 
   // Declarado DEPOIS de propósito: no commit em que `items` muda, o effect acima
   // ainda lê a posição gravada no commit anterior — a da estrutura antiga.
@@ -302,11 +348,20 @@ export function useTournamentEngine(params: EngineParams) {
     };
   });
 
+  // Passado congelado: os níveis até o corrente (inclusive), materializados. O
+  // App guarda isso em estado e devolve em `frozen_levels` — é o que impede a
+  // recalibração de reescrever nível já jogado. Vazio enquanto o relógio é `idle`:
+  // antes de começar, a estrutura tem de ser livre para subir e descer.
+  const frozenLevels = useMemo<BlindLevel[]>(
+    () => (status === 'idle' ? [] : niveis.slice(0, state.level_number).map((n) => ({ ...n }))),
+    [status, niveis, state.level_number]
+  );
+
   // Persistência do relógio (retomar após fechar): ancora em epoch absoluto.
   const restore = useCallback((s: ClockSnapshot) => commit(Date.now(), () => ({ ...s })), [commit]);
 
   return {
-    state, items, curve, params,
+    state, items, curve, params, frozenLevels, floorHeld,
     start, pause, reset, addSeconds, goToIndex, next, prev,
     snapshot: clock, restore,
   };

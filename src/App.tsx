@@ -65,9 +65,22 @@ interface SavedState {
   clock?: ClockSnap;
   manualLevels?: BlindLevel[] | null;
   liveShareId?: string | null;
+  // Piso publicado por índice de nível: o BB que a mesa já viu não desce, nem
+  // depois de fechar e reabrir o app (REDESIGN.md S10).
+  publishedFloor?: number[] | null;
 }
 
 const SAVE_KEY = 'ptm_state_v2';
+
+// Igualdade por conteúdo: o passado congelado só vira estado novo quando muda de
+// verdade — identidade nova a cada render realimentaria o motor em laço.
+function sameLevels(a: BlindLevel[], b: BlindLevel[]): boolean {
+  return a.length === b.length && a.every((l, i) =>
+    l.nivel === b[i].nivel &&
+    l.small_blind === b[i].small_blind &&
+    l.big_blind === b[i].big_blind &&
+    (l.ante ?? null) === (b[i].ante ?? null));
+}
 
 function nowLocal(): string {
   const d = new Date();
@@ -140,6 +153,9 @@ export default function App() {
   const [liveTab, setLiveTab] = useState<'clock' | 'mesa'>('clock');
   // Estrutura editada manualmente ao vivo (null = usar a curva calculada).
   const [manualLevels, setManualLevels] = useState<BlindLevel[] | null>(saved?.manualLevels ?? null);
+  // Passado congelado e piso publicado — devolvidos ao motor a cada recalibração.
+  const [frozenLevels, setFrozenLevels] = useState<BlindLevel[]>([]);
+  const [publishedFloor, setPublishedFloor] = useState<number[] | null>(saved?.publishedFloor ?? null);
   // Transmissão ao vivo (link público /watch/:id).
   const [liveShareId, setLiveShareId] = useState<string | null>(saved?.liveShareId ?? null);
   const [copied, setCopied] = useState(false);
@@ -192,6 +208,11 @@ export default function App() {
     ? nivelAuto(projectedLevelCount, 0.5)
     : config.late_checkin_level;
 
+  // Ante desacoplado do late check-in: default 'auto' = 75% dos níveis.
+  const resolvedAnteStartLevel = config.ante_start_level === 'auto'
+    ? nivelAuto(projectedLevelCount, 0.75)
+    : config.ante_start_level;
+
   const derivedParams: EngineParams = useMemo(() => ({
     qnt_entradas_primarias: Math.max(1, totals.buyins),
     valor_fichas_inicial: valorInicial,
@@ -206,9 +227,15 @@ export default function App() {
     players_remaining: playersRemaining,
     late_checkin_level: resolvedLateCheckinLevel,
     ante_enabled: config.ante_enabled,
+    ante_start_level: resolvedAnteStartLevel,
     breaks: config.breaks,
     override_levels: manualLevels,
-  }), [totals, valorInicial, config, playersRemaining, effectiveTarget, manualLevels, resolvedLateCheckinLevel]);
+    frozen_levels: frozenLevels,
+    published_floor: publishedFloor,
+  }), [
+    totals, valorInicial, config, playersRemaining, effectiveTarget, manualLevels,
+    resolvedLateCheckinLevel, resolvedAnteStartLevel, frozenLevels, publishedFloor,
+  ]);
 
   const engine = useTournamentEngine(derivedParams);
 
@@ -239,6 +266,37 @@ export default function App() {
     engine.restore(snap);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ── Passado congelado + piso publicado (REDESIGN.md S10) ────────────────
+  // O motor expõe os níveis já jogados; o App guarda em estado (não em ref lido
+  // no render) e devolve em `frozen_levels`. A comparação por conteúdo corta o
+  // laço: identidade nova a cada render recalcularia a curva para sempre.
+  const engineFrozen = engine.frozenLevels;
+  useEffect(() => {
+    setFrozenLevels((prev) => (sameLevels(prev, engineFrozen) ? prev : engineFrozen));
+  }, [engineFrozen]);
+
+  // Piso: a cada recalibração, floor[i] = max(floor[i], bb_novo[i]). Só acumula
+  // com o relógio andando — antes de começar, a estrutura pode subir e descer à
+  // vontade. Zerar o relógio (novo torneio/preset) descarta o piso.
+  const clockStatus = engine.snapshot.status;
+  const curveLevels = engine.curve.niveis;
+  const prevClockStatusRef = useRef<ClockStatus | null>(null);
+  useEffect(() => {
+    const prevStatus = prevClockStatusRef.current;
+    prevClockStatusRef.current = clockStatus;
+    if (clockStatus === 'idle') {
+      if (prevStatus && prevStatus !== 'idle') setPublishedFloor(null);
+      return;
+    }
+    setPublishedFloor((prev) => {
+      const next = curveLevels.map((n, i) => Math.max(prev?.[i] ?? 0, n.big_blind));
+      // Encurtar a curva não apaga o piso dos índices que ficaram de fora.
+      if (prev && prev.length > next.length) next.push(...prev.slice(next.length));
+      if (prev && prev.length === next.length && prev.every((v, i) => v === next[i])) return prev;
+      return next;
+    });
+  }, [clockStatus, curveLevels]);
+
   // Autosave: estado geral + snapshot do relógio (a cada 2s e ao fechar).
   // O que gravar vive num ref atualizado por effect (nunca durante o render),
   // então o intervalo é montado uma única vez — sem depender das deps de estado
@@ -246,7 +304,7 @@ export default function App() {
   const saveRef = useRef<SavedState | null>(null);
   useEffect(() => {
     saveRef.current = {
-      config, entries, payoutPct, stage, manualLevels, liveShareId,
+      config, entries, payoutPct, stage, manualLevels, liveShareId, publishedFloor,
       clock: engine.snapshot,
     };
   });
@@ -398,6 +456,8 @@ export default function App() {
     setEntries([]);
     setPayoutPct([0.5, 0.3, 0.2]);
     setManualLevels(null);
+    setFrozenLevels([]);
+    setPublishedFloor(null);
     setLiveShareId(null);
     setStage('setup');
   };
@@ -452,6 +512,7 @@ export default function App() {
         {totals.buyins} entradas · {totals.rebuys} rebuys · {totals.addons} add-ons ·
         {' '}{playersRemaining} na mesa · {engine.state.total_levels} níveis
         {manualLevels ? ' (editado)' : ` (r=${engine.curve.multiplicador_r.toFixed(3)})`}
+        {engine.floorHeld && ' · estrutura recalibrada (piso mantido)'}
       </p>
 
       {clockNotice && (
