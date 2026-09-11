@@ -1,36 +1,34 @@
-// src/components/StatsPanel.tsx
+// src/screens/Historico.tsx
+// Torneios finalizados, separados do StatsPanel (REDESIGN.md S14). Escopo
+// travado: só edita resultados (colocação/prêmio) — sem adicionar/remover
+// jogador de torneio salvo (exigiria migração).
 import { useEffect, useRef, useState } from 'react';
 import { isSupabaseConfigured } from '../lib/supabase';
 import {
   listTournaments,
-  playerLeaderboard,
   listKnownPlayers,
   renamePlayer,
   renameTournament,
   deleteTournament,
   getTournamentResults,
   updateTournamentResults,
-  type PlayerStat,
   type KnownPlayer,
   type TournamentResultRow,
 } from '../services/tournaments';
 import type { BaseTournament } from '../types/database';
-import { brl, pct } from '../utils/format';
+import { brl } from '../utils/format';
 
-interface Props {
-  onSave: () => Promise<void>;
-}
+const MEDALS = ['🥇', '🥈', '🥉'];
 
-export default function StatsPanel({ onSave }: Props) {
+export default function Historico() {
   const [tournaments, setTournaments] = useState<BaseTournament[]>([]);
-  const [board, setBoard] = useState<PlayerStat[]>([]);
+  const [podiums, setPodiums] = useState<Record<string, TournamentResultRow[]>>({});
   const [players, setPlayers] = useState<KnownPlayer[]>([]);
   const [editing, setEditing] = useState<{ t: BaseTournament; rows: TournamentResultRow[] } | null>(null);
   const [msg, setMsg] = useState<string>('');
   const [busy, setBusy] = useState(false);
   const editorRef = useRef<HTMLDivElement | null>(null);
 
-  // O editor nasce no fim da página; sem isto o clique parece não fazer nada.
   const editingId = editing?.t.id ?? null;
   useEffect(() => {
     if (editingId) editorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -38,9 +36,13 @@ export default function StatsPanel({ onSave }: Props) {
 
   const refresh = async () => {
     try {
-      setTournaments(await listTournaments());
-      setBoard(await playerLeaderboard());
+      const list = await listTournaments();
+      setTournaments(list);
       setPlayers(await listKnownPlayers());
+      const pairs = await Promise.all(
+        list.map(async (t) => [t.id, (await getTournamentResults(t.id)).slice(0, 3)] as const)
+      );
+      setPodiums(Object.fromEntries(pairs));
     } catch (e) {
       setMsg(`Erro ao carregar: ${(e as Error).message}`);
     }
@@ -70,9 +72,7 @@ export default function StatsPanel({ onSave }: Props) {
     try {
       setEditing({ t, rows: await getTournamentResults(t.id) });
     } catch (e) {
-      // Sem o console.error o clique falhava em silêncio: o setMsg pinta o aviso
-      // no topo do painel, longe do botão, e o supabase-js não loga nada sozinho.
-      console.error('[StatsPanel] falha ao abrir o editor de resultado', e);
+      console.error('[Historico] falha ao abrir o editor de resultado', e);
       setMsg(`Erro ao abrir o resultado: ${(e as Error).message}`);
     }
   };
@@ -89,90 +89,52 @@ export default function StatsPanel({ onSave }: Props) {
       await refresh();
       setMsg('Resultado atualizado.');
     } catch (e) {
-      console.error('[StatsPanel] falha ao salvar o resultado', e);
+      console.error('[Historico] falha ao salvar o resultado', e);
       setMsg(`Erro ao salvar: ${(e as Error).message}`);
     } finally { setBusy(false); }
   };
 
-  const save = async () => {
-    setBusy(true); setMsg('');
-    try {
-      await onSave();
-      setMsg('Torneio salvo com sucesso.');
-      await refresh();
-    } catch (e) {
-      setMsg(`Falha ao salvar: ${(e as Error).message}`);
-    } finally {
-      setBusy(false);
-    }
-  };
-
   return (
     <div className="panel">
-      <h2>Estatísticas & Persistência</h2>
+      <h2>Torneios finalizados</h2>
 
       {!isSupabaseConfigured && (
         <p className="warn">
           Supabase não configurado. Copie <code>.env.example</code> para <code>.env.local</code>,
-          preencha as chaves e rode a migração em <code>supabase/migrations</code> para habilitar o salvamento.
+          preencha as chaves e rode a migração em <code>supabase/migrations</code> para habilitar o histórico.
         </p>
       )}
-
-      <div className="row" style={{ marginBottom: 8 }}>
-        <button className="primary" disabled={busy || !isSupabaseConfigured} onClick={save}>
-          {busy ? 'Salvando…' : '💾 Salvar torneio atual'}
-        </button>
-        <button className="ghost" disabled={!isSupabaseConfigured} onClick={refresh}>Atualizar</button>
-      </div>
       {msg && <p className="notice">{msg}</p>}
 
-      <h2 style={{ marginTop: 20 }}>Ranking de jogadores (por pontos)</h2>
-      {board.length === 0 ? <p className="notice">Sem dados.</p> : (
-        <div className="table-wrap">
-          <table>
-            <thead><tr><th>#</th><th>Jogador</th><th>Pontos</th><th>Eventos</th><th>Investido</th><th>Ganhos</th><th>Líquido</th><th>ROI</th></tr></thead>
-            <tbody>
-              {board.map((p, i) => {
-                const net = p.total_winnings - p.total_invested;
-                return (
-                  <tr key={p.display_name}>
-                    <td>{i + 1}º</td>
-                    <td>{p.display_name}</td>
-                    <td style={{ fontWeight: 700, color: 'var(--gold)' }}>{p.points}</td>
-                    <td>{p.events}</td>
-                    <td>{brl(p.total_invested)}</td>
-                    <td>{brl(p.total_winnings)}</td>
-                    <td style={{ color: net >= 0 ? 'var(--accent)' : 'var(--danger)' }}>{brl(net)}</td>
-                    <td style={{ color: p.roi >= 0 ? 'var(--accent)' : 'var(--danger)' }}>{pct(p.roi)}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      <h2 style={{ marginTop: 20 }}>Torneios anteriores</h2>
       {tournaments.length === 0 ? <p className="notice">Sem dados.</p> : (
-        <div className="table-wrap">
-          <table>
-            <thead><tr><th>Nome</th><th>Início</th><th>Prêmio</th><th>Status</th><th></th></tr></thead>
-            <tbody>
-              {tournaments.map((t) => (
-                <tr key={t.id}>
-                  <td>{t.name}</td>
-                  <td>{new Date(t.start_time).toLocaleString('pt-BR')}</td>
-                  <td>{brl(Number(t.total_prize_pool))}</td>
-                  <td><span className="pill">{t.status}</span></td>
-                  <td className="row" style={{ flexWrap: 'nowrap' }}>
-                    <button className="ghost" onClick={() => openEditor(t)}>✏ Resultado</button>
-                    <button className="ghost" onClick={() => doRenameTournament(t)} title="Renomear">✎</button>
-                    <button className="danger" onClick={() => doDeleteTournament(t)}>🗑</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="historico-list">
+          {tournaments.map((t) => (
+            <div className="historico-card" key={t.id}>
+              <div className="historico-card-header">
+                <div>
+                  <div className="historico-card-name">{t.name}</div>
+                  <p className="notice" style={{ margin: '2px 0 0' }}>
+                    {new Date(t.start_time).toLocaleString('pt-BR')} · {brl(Number(t.total_prize_pool))}
+                    {' '}<span className="pill">{t.status}</span>
+                  </p>
+                </div>
+                <div className="row" style={{ flexWrap: 'nowrap' }}>
+                  <button className="ghost" onClick={() => openEditor(t)}>✏ Resultado</button>
+                  <button className="ghost" onClick={() => doRenameTournament(t)} title="Renomear">✎</button>
+                  <button className="danger" onClick={() => doDeleteTournament(t)}>🗑</button>
+                </div>
+              </div>
+              {(podiums[t.id]?.length ?? 0) > 0 && (
+                <div className="historico-podium">
+                  {podiums[t.id].map((r, i) => (
+                    <span key={r.player_id} className="historico-podium-item">
+                      {MEDALS[i]} {r.display_name}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
         </div>
       )}
 
@@ -219,8 +181,6 @@ export default function StatsPanel({ onSave }: Props) {
             )}
             <button className="ghost" onClick={() => setEditing(null)}>Fechar</button>
           </div>
-          {/* O aviso do topo do painel fica fora da tela com o editor aberto. */}
-          {msg && <p className="notice">{msg}</p>}
         </div>
       )}
 

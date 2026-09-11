@@ -5,7 +5,7 @@ Ao final de cada sessão: marcar `[x]`, `npm run build`, commitar, e informar o 
 
 Continuação de `AUDITORIA.md` (S1–S8, concluídas). Numeração segue de S9.
 
-**Feitas:** S9 · S10 · S11 · S12 · S13  ·  **Pendentes:** S14 · S15
+**Feitas:** S9 · S10 · S11 · S12 · S13 · S14  ·  **Pendentes:** S15
 
 ---
 
@@ -385,12 +385,12 @@ salvar.
 
 ---
 
-## S14 — Ranking em pódio + torneios finalizados  ·  Sonnet 5 · effort **high**  ·  depende de S11
+## S14 — Ranking em pódio + torneios finalizados  ·  Sonnet 5 · effort **high**  ·  depende de S11 · **feita 11/09/2026**
 
 Arquivos: `src/screens/Ranking.tsx` (novo), `src/screens/Historico.tsx` (novo),
 `src/components/StatsPanel.tsx` (aposentar), `src/index.css`
 
-- [ ] 🟡 **`Ranking.tsx` em 3 camadas** (padrão de leaderboard: pódio + destaque + tabela):
+- [x] 🟡 **`Ranking.tsx` em 3 camadas** (padrão de leaderboard: pódio + destaque + tabela):
       1. **Pódio 1º/2º/3º** — alta importância: cards grandes, ouro/prata/bronze, nome, pontos,
          líquido. 1º ao centro e maior.
       2. **4º ao 9º** — média importância: linhas compactas com nome, pontos e líquido.
@@ -398,13 +398,43 @@ Arquivos: `src/screens/Ranking.tsx` (novo), `src/screens/Historico.tsx` (novo),
       3. **Tabela geral** — todos, com as colunas que já existem: pontos, eventos, investido,
          ganhos, líquido, ROI (`StatsPanel.tsx:133`).
       Dados: `playerLeaderboard()` sem mudança de serviço.
-- [ ] 🟡 **`Historico.tsx`.** Lista de torneios salvos como cards: nome, data, pote, pódio do
+- [x] 🟡 **`Historico.tsx`.** Lista de torneios salvos como cards: nome, data, pote, pódio do
       torneio, e ações `✏ Resultado` / `✎ Renomear` / `🗑 Excluir`. Reaproveita
       `getTournamentResults` / `updateTournamentResults` / `renameTournament` / `deleteTournament`.
       **Escopo travado: só resultados** — sem adicionar/remover jogador (exigiria migração).
-- [ ] 🟡 **Aposentar `StatsPanel.tsx`.** O botão "Salvar torneio atual" migrou para a tela de fim
+- [x] 🟡 **Aposentar `StatsPanel.tsx`.** O botão "Salvar torneio atual" migrou para a tela de fim
       (S13); o resto se divide entre `Ranking` e `Historico`. "Jogadores cadastrados" + renomear vai
       para o rodapé de `Historico`.
+
+### Como ficou (11/09/2026)
+
+- `Ranking.tsx` (novo, `src/screens/`): busca `playerLeaderboard()` no mount (mesmo padrão do
+  `Home.tsx`). Pódio (`board.slice(0,3)`) renderizado em ordem visual 2º/1º/3º via `order` CSS
+  (`.ranking-podium-card.place-N`), 1º maior e com borda dourada. 4º-9º (`board.slice(3,9)`) em
+  linhas compactas. Tabela geral abaixo com todos e as mesmas colunas do `StatsPanel` antigo
+  (pontos, eventos, investido, ganhos, líquido, ROI). Sem prop nenhuma — não precisa mais de
+  `onSave` (já migrado pra `Finish.tsx` na S13).
+- `Historico.tsx` (novo, `src/screens/`): `listTournaments()` +, em paralelo (`Promise.all`),
+  `getTournamentResults(t.id).slice(0,3)` por torneio pra montar o pódio de cada card
+  (`podiums: Record<id, TournamentResultRow[]>`). Cards com nome, data, pote, status e o pódio em
+  medalhas; ações `✏ Resultado`/`✎ Renomear`/`🗑 Excluir` idênticas ao `StatsPanel` antigo. Editor
+  de resultado (colocação/prêmio) é o mesmo bloco que existia, só movido pra cá. Rodapé "Jogadores
+  cadastrados" com renomear, migrado sem mudança de lógica.
+- `StatsPanel.tsx` removido. `App.tsx`: `{screen === 'ranking' && <Ranking />}` /
+  `{screen === 'historico' && <Historico />}`, sem prop `onSave` (o botão de salvar já não existia
+  duas vezes desde a S13 — isso só tirava a duplicata).
+- CSS novo em `index.css`: `.ranking-podium*`, `.ranking-mid*`, `.historico-list`,
+  `.historico-card*`, `.historico-podium*`. Reaproveita tokens existentes (`--gold`, `--accent`,
+  `--danger`, `--panel-2`, `--border`).
+- Testado em `npm run dev`: navegação Home → Ranking completo → ← Início → Torneios finalizados,
+  sem erro no console nas duas telas. Sem Supabase configurado neste ambiente — pódio e cards com
+  dados reais não puderam ser testados visualmente; só a ausência de erro com listas vazias (aviso
+  correto de "Supabase não configurado" em ambas as telas, `Historico` mostra "Sem dados." e "Sem
+  jogadores salvos.").
+- Lint: `npm run lint` 0 erros, 10 avisos (mesma classe `react-hooks/set-state-in-effect`
+  pré-existente da S10/S13 — 1 a mais que o baseline porque o fetch-on-mount único do `StatsPanel`
+  virou dois arquivos separados, `Ranking.tsx` e `Historico.tsx`, cada um com seu próprio efeito).
+  `npx vitest run`: 60 testes, sem mudança (motor não tocado).
 
 **Validação:** `npm run build` + `npm run dev` com Supabase configurado.
 **Próxima:** S15 · Haiku 4.5 · effort medium.

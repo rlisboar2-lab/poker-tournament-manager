@@ -180,6 +180,35 @@ body:has(.clock-panel.fs) { overflow: hidden; }
 .finish-champion { text-align: center; font-size: 20px; font-weight: 700; color: var(--gold);
   padding: 14px; background: var(--panel-2); border-radius: 10px; margin-bottom: 14px; }
 
+/* Ranking em pódio (REDESIGN.md S14) */
+.ranking-podium { display: flex; gap: 12px; justify-content: center; align-items: flex-end; flex-wrap: wrap; margin-bottom: 16px; }
+.ranking-podium-card { display: flex; flex-direction: column; align-items: center; gap: 4px;
+  background: var(--panel-2); border: 1px solid var(--border); border-radius: 12px; padding: 16px; min-width: 120px; }
+.ranking-podium-card.place-1 { order: 2; border-color: var(--gold); padding: 24px 20px; }
+.ranking-podium-card.place-2 { order: 1; }
+.ranking-podium-card.place-3 { order: 3; }
+.ranking-podium-medal { font-size: 30px; }
+.ranking-podium-card.place-1 .ranking-podium-medal { font-size: 44px; }
+.ranking-podium-name { font-weight: 700; }
+.ranking-podium-points { color: var(--gold); font-size: 13px; }
+.ranking-podium-net { font-size: 12px; }
+
+.ranking-mid { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+.ranking-mid-row { display: flex; align-items: center; gap: 10px; background: var(--panel-2);
+  border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; }
+.ranking-mid-rank { color: var(--muted); width: 24px; }
+.ranking-mid-name { flex: 1; font-weight: 600; }
+.ranking-mid-points { color: var(--gold); font-size: 13px; }
+.ranking-mid-net { font-size: 12px; }
+
+/* Histórico de torneios finalizados (REDESIGN.md S14) */
+.historico-list { display: flex; flex-direction: column; gap: 10px; }
+.historico-card { background: var(--panel-2); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; }
+.historico-card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; flex-wrap: wrap; }
+.historico-card-name { font-weight: 700; }
+.historico-podium { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 8px; }
+.historico-podium-item { font-size: 13px; color: var(--muted); }
+
 /* Responsivo / mobile */
 @media (max-width: 640px) {
   .app { padding: 12px; }

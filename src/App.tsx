@@ -4,7 +4,8 @@ import SetupPanel from './components/SetupPanel';
 import PlayersPanel from './components/PlayersPanel';
 import Clock from './components/Clock';
 import LiveActions from './components/LiveActions';
-import StatsPanel from './components/StatsPanel';
+import Ranking from './screens/Ranking';
+import Historico from './screens/Historico';
 import Home, { type ResumeInfo } from './screens/Home';
 import BuyIn from './screens/BuyIn';
 import Finish from './screens/Finish';
@@ -758,9 +759,8 @@ export default function App() {
         </div>
       )}
 
-      {/* Ranking e Histórico reaproveitam o StatsPanel até a S14 separá-los em
-          telas próprias (Ranking.tsx / Historico.tsx). */}
-      {(screen === 'ranking' || screen === 'historico') && <StatsPanel onSave={onSave} />}
+      {screen === 'ranking' && <Ranking />}
+      {screen === 'historico' && <Historico />}
 
       {showTheme && <ThemePanel onClose={() => setShowTheme(false)} />}
 
