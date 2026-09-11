@@ -5,7 +5,7 @@ Ao final de cada sessão: marcar `[x]`, `npm run build`, commitar, e informar o 
 
 Continuação de `AUDITORIA.md` (S1–S8, concluídas). Numeração segue de S9.
 
-**Feitas:** S9 · S10 · S11 · S12 · S13 · S14  ·  **Pendentes:** S15
+**Feitas:** S9 · S10 · S11 · S12 · S13 · S14 · S15 · S16  ·  **Pendentes:** S17 · S18 (correções de bug, 11/09/2026)
 
 ---
 
@@ -445,13 +445,140 @@ Arquivos: `src/screens/Ranking.tsx` (novo), `src/screens/Historico.tsx` (novo),
 
 Arquivos: `src/index.css`, `src/theme.ts`, `public/manifest.webmanifest`
 
-- [ ] 🟡 Revisar o CSS das telas novas (home, wizard, live actions, finish, ranking, histórico) em
+- [x] 🟡 Revisar o CSS das telas novas (home, wizard, live actions, finish, ranking, histórico) em
       largura de celular e de PC. Barra de ações fixa não pode cobrir conteúdo.
-- [ ] 🟡 Conferir que o modo tela cheia do relógio (`clock-panel.fs`) e o QR de canto continuam
+      Testado no preview (375x812 e desktop): `.app:has(.live-actions-bar)` com `padding-bottom: 76px`
+      mantém todo conteúdo (inclusive tabela de cronograma e botões Voltar/Avançar) acessível acima
+      da barra fixa. Sem sobreposição encontrada.
+- [x] 🟡 Conferir que o modo tela cheia do relógio (`clock-panel.fs`) e o QR de canto continuam
       certos com a barra de ações nova.
-- [ ] 🟡 `npm run lint` — reavaliar se os warnings de `react-hooks/refs` do `App.tsx` caíram depois
+      Confirmado por revisão de código: `.clock-panel.fs` tem `z-index: 1500` (cobre toda a viewport),
+      acima da `.live-actions-bar` (`z-index: 100`), e `.corner-qr` é posicionado absolute dentro do
+      stacking context do `.fs`. A API de Fullscreen nativa não pôde ser acionada no sandbox do
+      browser de preview (limitação do ambiente de teste, não do código).
+- [x] 🟡 `npm run lint` — reavaliar se os warnings de `react-hooks/refs` do `App.tsx` caíram depois
       dos refactors das S10/S11 (ver relatório da S2 no `AUDITORIA.md`).
-- [ ] 🟡 `npm run build` limpo e smoke test do PWA no celular.
+      Caíram. `npm run lint` retorna 0 erros, 10 warnings (nenhum em `App.tsx`; restantes são
+      `no-explicit-any` em `Clock.tsx` e `set-state-in-effect` em `WatchView.tsx`/`Historico.tsx`/`Ranking.tsx`,
+      pré-existentes e fora do escopo desta sessão).
+- [x] 🟡 `npm run build` limpo e smoke test do PWA no celular.
+      `npm run build` limpo (tsc + vite build, sem erros). `manifest.webmanifest` e `public/icon.svg`
+      conferidos por arquivo. Instalação real de PWA no celular não foi testada (sem dispositivo físico
+      nesta sessão) — não afirmo esse teste como executado.
 
 **Validação:** `npm run lint` (exit 0) + `npm run build`.
+**Próxima:** —
+
+---
+
+# Correções de bug — rodada de 11/09/2026 (S16–S18)
+
+Origem: teste em produção do fluxo completo (criação → live → campeão). Seis defeitos reportados
+pelo usuário + um item de fluxo que faltava ("Finalizar torneio"). Auditoria feita antes do
+fatiamento; cada achado abaixo tem o arquivo e a linha onde a causa vive.
+
+### Achados da auditoria
+
+| # | Sintoma | Causa | Local |
+|---|---|---|---|
+| 1 | `Avançar` pula o "Todos pagaram" | nav-row global não conhece telas-portão | `App.tsx` nav-row / `BuyIn.tsx` |
+| 2a | Eliminado não aparece no Rebuy | `rebuyable` deriva de `active` (`!eliminated`) | `LiveActions.tsx` |
+| 2b | Sheet "+ Jogador" sem nomes salvos | `knownPlayers` nunca chega ao `LiveActions` | `App.tsx` / `LiveActions.tsx` |
+| 2c | Nome repetido vira duplicata na lista | `addAndSeat` não checa nome; `jaNoTorneio` só filtra os chips | `seating.ts` / `PlayersPanel.tsx` |
+| 3 | Intervalo default no nível 9 | `breaks: [{ after_level: 9 }]` literal, desconectado do late `auto` | `App.tsx` `defaultConfig()` |
+| 4 | Sobrando 1 jogador, nada indica o fim | gatilho do campeão tem guarda `status === 'idle' → return` | `App.tsx` |
+| 5 | Defaults errados | `target 240` / `addon_enabled true` / `max_rebuys 0` | `App.tsx` `defaultConfig()` |
+| 6 | `Avançar` visível na tela de campeão | `finish` está dentro do `FLOW`; botão só é desabilitado | `App.tsx` |
+| 7 | Sem saída para torneio abandonado | só `Novo torneio` (apaga sem oferecer salvar) | `App.tsx` cabeçalho |
+
+### Decisões travadas nesta rodada (não reabrir sem informação nova)
+
+- **Reentrada é rebuy, não buy-in.** Elegibilidade ao rebuy = `rebuys < max_rebuys` (ou ilimitado)
+  **E** late check-in aberto — **independente de `eliminated`**. Eliminado que volta paga
+  `rebuy_value`; `buy_in_value` só na primeira entrada da vida do jogador naquele torneio.
+  Enquanto não volta, segue contando como eliminado (fora de `playersRemaining`, sem mesa/assento,
+  com colocação provisória). `renumberPlacements` já corrige todo mundo na volta.
+- **`active` continua governando Eliminar e Add-on.** Morto não faz add-on e não é eliminado
+  de novo. Só o Rebuy passa a enxergar a lista inteira.
+- **Nome duplicado é erro bloqueante**, não aviso. Comparação case- e acento-insensível. O caminho
+  de quem já está no torneio é o Rebuy, nunca o `+ Jogador` — com a guarda, os dois param de se
+  sobrepor.
+- **`Finalizar torneio` → `Salvar` não grava direto, navega para `finish`.** Em torneio
+  interrompido, `renumberPlacements` só atribui colocação aos eliminados; os ativos ficam
+  `final_placement: undefined` e gravar assim produziria ranking furado. A `finish` já tem os
+  campos de colocação e o save idempotente.
+
+---
+
+## S16 — Navegação, defaults e saída do torneio  ·  Haiku 4.5 · effort **low**  ·  sem pré-requisito · **feita 11/09/2026 (Sonnet 5)**
+
+Arquivos: `src/App.tsx`, `src/index.css`
+
+- [x] 🔴 **Portão do buy-in (#1).** Na tela `buyin`, esconder o `Avançar →` da nav-row. A única
+      saída é `✓ Todos pagaram — iniciar torneio`. Intenção: o torneio não começa com o caixa
+      incompleto — dívida arrastada prejudica quem vai receber prêmio.
+- [x] 🟡 **`finish` fora do `FLOW` (#6).** Tela terminal não tem nav-row: nem `Voltar`, nem
+      `Avançar` desabilitado. Hoje `FLOW` inclui `finish` e o botão só fica cinza.
+- [x] 🟡 **Defaults (#5)** em `defaultConfig()`: `target_time_minutos: 300`,
+      `addon_enabled: false`, `max_rebuys: 1`.
+- [x] 🔴 **`⏹ Finalizar torneio` (#7)** no cabeçalho, visível quando `entries.length > 0` e a tela
+      não é `home`/`ranking`/`historico`. Abre modal de 3 saídas: **Salvar** (navega para `finish`,
+      ver decisão travada) · **Descartar** (`resetTorneio('home')`, mantendo o `confirm` atual) ·
+      **Cancelar**. Reaproveitou `.qr-overlay`/`.qr-card` do `LiveActions`.
+
+**Validação:** `npm run build` ok; testado no preview de produção —
+`setup→players→buyin` só sai pelo botão verde; `finish` sem nav-row; `⏹ Finalizar` abre as três
+saídas (Salvar navega pra `finish`, Cancelar fecha o modal — testados; Descartar segue o mesmo
+`confirm` do `Novo torneio`, não executado no teste pra não zerar o estado).
+`FLOW` continua incluindo `finish` (só a nav-row some) — nada mais depende disso hoje.
+**Próxima:** S17 · Opus 5 · effort medium.
+
+---
+
+## S17 — Integridade do cadastro ao vivo  ·  Opus 5 · effort **medium**  ·  depende de S16
+
+Arquivos: `src/components/LiveActions.tsx`, `src/components/PlayersPanel.tsx`,
+`src/utils/seating.ts`, `src/App.tsx`, `src/utils/__tests__/`
+
+- [ ] 🔴 **Guarda antiduplicata (#2c).** `addAndSeat` rejeita nome já presente no torneio
+      (case- e acento-insensível, comparando também com eliminados). O chamador mostra erro
+      visível — nada de falha silenciosa. Mesma guarda no `PlayersPanel` (`add` por digitação,
+      não só nos chips) e no sheet `+ Jogador` do `LiveActions`.
+- [ ] 🔴 **Rebuy de eliminado = reentrada (#2a).** `rebuyable` passa a derivar de `entries`, não de
+      `active`: filtro é `rebuys < max_rebuys` (ou ilimitado) + late aberto. Item da lista marca
+      quem está fora ("eliminado — volta pagando rebuy"). Ao confirmar o pagamento de
+      `rebuy_value`: `applyElimination(i, false)` + `addAndSeat` de volta à mesa + `rebuys + 1`.
+- [ ] 🟡 **`knownPlayers` no `LiveActions` (#2b).** Passar a prop do `App` e renderizar chips de
+      1 clique + `datalist`, com a mesma aparência do `PlayersPanel`. Cadastrado que já está no
+      torneio não aparece nos chips (regra `jaNoTorneio` existente).
+- [ ] 🟡 **Testes:** duplicata rejeitada (incluindo contra eliminado e com diferença de
+      caixa/acento); reentrada renumera colocações de todos que caíram antes; reentrada respeita
+      `max_rebuys` e o fechamento do late.
+
+**Validação:** `npx vitest run`; no dev — eliminar jogador, abrir Rebuy, ele aparece marcado,
+pagar, volta à mesa com colocações renumeradas; readicionar nome existente pelo `+ Jogador` dá erro.
+**Próxima:** S18 · Opus 5 · effort medium.
+
+---
+
+## S18 — Intervalo pós-late e fim automático  ·  Opus 5 · effort **medium**  ·  depende de S17
+
+Arquivos: `src/App.tsx`, `src/utils/__tests__/`
+
+- [ ] 🔴 **Intervalo default pós-late (#3).** Regra do produto: o intervalo padrão é **sempre
+      depois do late check-in**, nunca um nível literal. Hoje `defaultConfig()` grava
+      `after_level: 9` e o late é `auto = ceil(níveis/2)` — os dois não conversam. O `after_level`
+      do break default precisa derivar de `resolvedLateCheckinLevel`, que só existe depois de
+      `projectedLevelCount`. Cuidado: `defaultConfig()` roda antes disso. Resolver com sentinela
+      (`after_level: 'late'`) ou com effect de sincronização — não realimentar o cálculo da curva
+      em laço (`sumBreakMin` entra em `effectiveTarget`, que entra em `projectedLevelCount`).
+      Break editado à mão pelo usuário não pode ser sobrescrito.
+- [ ] 🔴 **Fim de torneio sem depender do relógio (#4).** Tirar a guarda
+      `engine.state.status === 'idle' → return` do gatilho do campeão: com relógio nunca iniciado,
+      eliminar até sobrar 1 hoje não sinaliza nada. Além da troca de tela, mostrar na `live` um
+      indicativo explícito ("🏆 <nome> é o campeão — torneio encerrado") antes/junto da transição.
+- [ ] 🟡 **Teste:** break default acompanha o late quando o nº de jogadores muda a curva.
+
+**Validação:** `npm run build`; variar o nº de jogadores e conferir o break colado no late;
+eliminar até 1 com relógio parado **e** com relógio rodando.
 **Próxima:** —

@@ -99,15 +99,15 @@ function defaultConfig(): AppConfig {
     name: 'Home Game',
     start_time: nowLocal(),
     setup,
-    target_time_minutos: 240,
+    target_time_minutos: 300,
     duracao_bloco_nivel: 20,
     buy_in_value: 10,
     rebuy_value: 15,
     addon_value: 20,
     chips_per_rebuy: initialStack(setup), // 3000
     chips_per_addon: initialStack(setup),
-    max_rebuys: 0,          // sem limite
-    addon_enabled: true,
+    max_rebuys: 1,
+    addon_enabled: false,
     late_checkin_level: 'auto',
     ante_enabled: true,
     ante_start_level: 'auto',
@@ -186,6 +186,7 @@ export default function App() {
   const [clockNotice, setClockNotice] = useState<string | null>(null);
   // Painel de personalização visual (cores/fontes/zoom — src/theme.ts).
   const [showTheme, setShowTheme] = useState(false);
+  const [showFinalizarModal, setShowFinalizarModal] = useState(false);
   // Id do torneio já salvo (REDESIGN.md S13): trava "Salvar" contra toque duplo.
   const [savedTournamentId, setSavedTournamentId] = useState<string | null>(saved?.savedTournamentId ?? null);
   const [saving, setSaving] = useState(false);
@@ -545,6 +546,20 @@ export default function App() {
     resetTorneio('home');
   };
 
+  // "⏹ Finalizar torneio" do cabeçalho: saída para torneio em andamento que
+  // não vai até o fim natural (S16 achado #7). Descartar mantém o mesmo
+  // confirm do "Novo torneio".
+  const finalizarSalvar = () => {
+    setShowFinalizarModal(false);
+    setScreen('finish');
+  };
+
+  const finalizarDescartar = () => {
+    if (!confirm('Começar um torneio novo? Os dados atuais serão apagados.')) return;
+    setShowFinalizarModal(false);
+    resetTorneio('home');
+  };
+
   // "● Criar torneio" da home: só confirma/apaga se houver torneio ao vivo em
   // andamento (relógio rodando ou pausado). Sem torneio ativo, só navega.
   const criarTorneio = () => {
@@ -626,7 +641,7 @@ export default function App() {
   // lá pelo hub — então a nav-row fica escondida nessas três telas.
   const flowIdx = FLOW.indexOf(screen);
   const go = (d: number) => setScreen(FLOW[Math.min(Math.max(0, flowIdx + d), FLOW.length - 1)]);
-  const showNavRow = flowIdx !== -1;
+  const showNavRow = flowIdx !== -1 && screen !== 'finish';
   const resumeInfo: ResumeInfo | null =
     (engine.state.status === 'running' || engine.state.status === 'paused')
       ? { name: config.name, levelNumber: engine.state.level_number, totalLevels: engine.state.total_levels, playersRemaining }
@@ -642,6 +657,9 @@ export default function App() {
         <div className="row">
           {screen !== 'home' && <button className="ghost" onClick={() => setScreen('home')}>← Início</button>}
           <button className="ghost" onClick={() => setShowTheme(true)} title="Personalização visual">🎨 Personalizar</button>
+          {entries.length > 0 && screen !== 'home' && screen !== 'ranking' && screen !== 'historico' && (
+            <button className="ghost" onClick={() => setShowFinalizarModal(true)}>⏹ Finalizar torneio</button>
+          )}
           <button className="ghost" onClick={novoTorneio}>Novo torneio</button>
           {session && <button className="ghost" onClick={() => supabase?.auth.signOut()}>Sair</button>}
         </div>
@@ -764,12 +782,28 @@ export default function App() {
 
       {showTheme && <ThemePanel onClose={() => setShowTheme(false)} />}
 
+      {showFinalizarModal && (
+        <div className="qr-overlay" onClick={() => setShowFinalizarModal(false)}>
+          <div className="qr-card" onClick={(e) => e.stopPropagation()}>
+            <h2>Finalizar torneio</h2>
+            <p className="notice">O que fazer com o torneio atual?</p>
+            <div className="row" style={{ justifyContent: 'center', marginTop: 14, flexWrap: 'wrap' }}>
+              <button className="primary" onClick={finalizarSalvar}>Salvar</button>
+              <button className="danger" onClick={finalizarDescartar}>Descartar</button>
+              <button className="ghost" onClick={() => setShowFinalizarModal(false)}>Cancelar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showNavRow && (
         <div className="row nav-row">
           <button className="ghost" disabled={flowIdx === 0} onClick={() => go(-1)}>← Voltar</button>
-          <button className="primary" disabled={flowIdx === FLOW.length - 1} onClick={() => go(1)}>
-            Avançar →
-          </button>
+          {screen !== 'buyin' && (
+            <button className="primary" disabled={flowIdx === FLOW.length - 1} onClick={() => go(1)}>
+              Avançar →
+            </button>
+          )}
         </div>
       )}
     </div>
