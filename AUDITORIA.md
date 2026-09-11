@@ -7,6 +7,9 @@ Legenda: 🔴 bug · 🟠 segurança · 🟡 qualidade
 
 **Feitas:** S1 · S2 · S3 · S4 · S5 · S6 · S7 · S8  ·  **Pendentes:** — (backlog concluído)
 
+> **Backlog ativo migrou para `REDESIGN.md`** (S9–S15, redesenho do fluxo). Este arquivo vira
+> histórico. A numeração de sessões continua de S9.
+
 > **Renumeração (10/09/2026):** o refactor do motor do relógio foi executado logo depois da S3 e
 > passou a ser a **S4**. As antigas S4–S7 desceram um número (S4→S5, S5→S6, S6→S7, S7→S8). A
 > numeração agora acompanha a ordem real de execução. Nada quebrou com isso: o refactor do relógio

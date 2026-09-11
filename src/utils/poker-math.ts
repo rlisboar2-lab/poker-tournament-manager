@@ -87,19 +87,22 @@ const COLORUP: { minBB: number; chip: number }[] = [
   { minBB: 1500, chip: 500 }, // 2000,3000,.. → elimina 100 (só 500/1000)
 ];
 
-export function minChipForBB(bb: number, floorChip = 5): number {
+// `ratchetChip`, quando presente, é a maior ficha mínima já exigida por um nível
+// congelado (jogado): a ficha retirada do jogo não volta, então o resultado nunca
+// fica abaixo dela — mesmo que o BB recalculado sugira uma ficha menor.
+export function minChipForBB(bb: number, floorChip = 5, ratchetChip = 0): number {
   let mc = COLORUP[0].chip;
   for (const b of COLORUP) if (bb >= b.minBB) mc = b.chip;
-  return Math.max(floorChip, mc);
+  return Math.max(floorChip, ratchetChip, mc);
 }
 
-export function quantizeBlind(bb: number, floorChip: number): number {
-  const step = 2 * minChipForBB(bb, floorChip); // BB múltiplo de 2×minChip → SB inteiro em minChip
+export function quantizeBlind(bb: number, floorChip: number, ratchetChip = 0): number {
+  const step = 2 * minChipForBB(bb, floorChip, ratchetChip); // BB múltiplo de 2×minChip → SB inteiro em minChip
   return Math.max(step, Math.round(bb / step) * step);
 }
 
-export function bandStep(bb: number, floorChip = 5): number {
-  return 2 * minChipForBB(bb, floorChip);
+export function bandStep(bb: number, floorChip = 5, ratchetChip = 0): number {
+  return 2 * minChipForBB(bb, floorChip, ratchetChip);
 }
 
 export function sbForBb(bb: number): number {
@@ -152,7 +155,16 @@ export function inserirNivelContinuando(
 }
 
 // ── Cálculo de Curva e Recálculo (Feedback Loop) ────────────────────────
-export function calcularCurvaBlinds(p: CurveParams): CurveResult {
+// `frozen`: níveis já jogados (inclusive o corrente) — saem intactos, nunca
+// reprojetados. `floor`: piso publicado por índice (bb[i] nunca desce dele,
+// mesmo entre sessões — ver `SavedState.publishedFloor` na S10).
+//
+// Invariante por índice i: bb[i] = max(bb_calculado[i], floor[i] ?? 0,
+// bb[i-1] + bandStep(bb[i-1], chip, ratchetChip)).
+export function recalibrarCurva(
+  p: CurveParams,
+  opts?: { frozen?: BlindLevel[]; floor?: number[] }
+): CurveResult {
   const chip = Math.max(1, p.smallest_chip || DEFAULTS.smallest_chip);
   const initial_bb = Math.max(chip * 2, p.initial_bb || DEFAULTS.initial_bb);
   const ratio = p.end_bb_ratio || DEFAULTS.end_bb_ratio;
@@ -164,34 +176,103 @@ export function calcularCurvaBlinds(p: CurveParams): CurveResult {
     p.qnt_acumulada_addons * p.fichas_por_addon;
 
   const alvo_big_blind = c_total * ratio;
+
+  const frozen = opts?.frozen ?? [];
+  const floor = opts?.floor ?? [];
+
   const qnt_niveis_projetados = Math.max(
     2,
+    frozen.length,
     Math.round((p.target_time_minutos || dur) / dur)
   );
 
-  const multiplicador_r = Math.pow(
-    Math.max(alvo_big_blind, initial_bb) / initial_bb,
-    1 / (qnt_niveis_projetados - 1)
-  );
+  // Ficha mínima que não pode voltar: a maior já exigida pelos níveis congelados.
+  const ratchetChip = frozen.reduce((mc, l) => Math.max(mc, minChipForBB(l.big_blind, chip)), chip);
 
   const niveis: BlindLevel[] = [];
   let anterior = 0;
 
-  for (let i = 0; i < qnt_niveis_projetados; i++) {
-    const cru = initial_bb * Math.pow(multiplicador_r, i);
-    let bb = quantizeBlind(cru, chip);
+  // 1) Níveis congelados: copiados byte-idênticos, só renumerados.
+  for (let i = 0; i < frozen.length && i < qnt_niveis_projetados; i++) {
+    niveis.push({ ...frozen[i], nivel: i + 1 });
+    anterior = frozen[i].big_blind;
+  }
 
-    // Impede dois níveis consecutivos idênticos após arredondamento.
-    if (bb <= anterior) {
-      bb = quantizeBlind(anterior + bandStep(anterior, chip), chip);
-      if (bb <= anterior) bb = anterior + bandStep(anterior, chip);
+  // 2) Cauda: progressão geométrica do último nível conhecido até o alvo.
+  const startBB = niveis.length ? anterior : initial_bb;
+  const tailCount = qnt_niveis_projetados - niveis.length;
+  const expOffset = niveis.length ? 1 : 0; // com prefixo congelado, a cauda começa em r^1
+  const finalBB = Math.max(alvo_big_blind, startBB);
+  const denomExp = tailCount - 1 + expOffset;
+  const multiplicador_r =
+    finalBB > startBB && denomExp > 0 ? Math.pow(finalBB / startBB, 1 / denomExp) : 1;
+
+  for (let k = 0; k < tailCount; k++) {
+    const cru = startBB * Math.pow(multiplicador_r, k + expOffset);
+    let bb = quantizeBlind(cru, chip, ratchetChip);
+
+    const step = bandStep(anterior, chip, ratchetChip);
+    const flrVal = Math.max(floor[niveis.length] ?? 0, anterior + step);
+    if (bb < flrVal) {
+      // Reancoragem no piso, arredondada para cima na banda do próprio valor
+      // (a banda pode ser maior aqui se o piso cruzar um degrau de color-up).
+      const stepAtFloor = bandStep(flrVal, chip, ratchetChip);
+      bb = Math.ceil(flrVal / stepAtFloor) * stepAtFloor;
     }
 
     anterior = bb;
-    niveis.push({ nivel: i + 1, small_blind: sbForBb(bb), big_blind: bb });
+    niveis.push({ nivel: niveis.length + 1, small_blind: sbForBb(bb), big_blind: bb });
   }
 
   return { c_total, alvo_big_blind, qnt_niveis_projetados, multiplicador_r, niveis };
+}
+
+// Wrapper sem ratchet — mantém a assinatura e o comportamento anteriores.
+export function calcularCurvaBlinds(p: CurveParams): CurveResult {
+  return recalibrarCurva(p);
+}
+
+// ── Color-up: pontos de troca de ficha mínima ao longo da curva ──────────
+export interface ColorUpPoint {
+  nivel: number;     // primeiro nível que já exige a ficha nova
+  retira: number;    // ficha que sai de jogo
+  passa_a_usar: number; // ficha mínima a partir daqui
+}
+
+export function colorUpPoints(levels: BlindLevel[], chip: number): ColorUpPoint[] {
+  const pontos: ColorUpPoint[] = [];
+  if (!levels.length) return pontos;
+  let prevChip = minChipForBB(levels[0].big_blind, chip);
+  for (let i = 1; i < levels.length; i++) {
+    const mc = minChipForBB(levels[i].big_blind, chip);
+    if (mc > prevChip) {
+      pontos.push({ nivel: levels[i].nivel, retira: prevChip, passa_a_usar: mc });
+      prevChip = mc;
+    }
+  }
+  return pontos;
+}
+
+// Recomenda intervalos alinhados aos pontos de color-up que ainda não caem
+// num intervalo já configurado — prática do setor: nunca trocar ficha no
+// meio do nível. Sugere o intervalo logo após o último nível com a ficha velha.
+export function sugerirBreaksParaColorUp(
+  levels: BlindLevel[],
+  breaks: BreakConfig[]
+): number[] {
+  const pontos = colorUpPoints(levels, CHIP_DENOMINATIONS[0]);
+  const existentes = new Set(breaks.map((b) => b.after_level));
+  const sugestoes: number[] = [];
+  for (const p of pontos) {
+    const afterLevel = p.nivel - 1;
+    if (afterLevel >= 1 && !existentes.has(afterLevel)) sugestoes.push(afterLevel);
+  }
+  return sugestoes;
+}
+
+// ── Níveis automáticos (late check-in / ante) ────────────────────────────
+export function nivelAuto(totalLevels: number, frac: number): number {
+  return Math.max(1, Math.ceil(totalLevels * frac));
 }
 
 // ── Distribuição Financeira (Payouts) ───────────────────────────────────
@@ -230,7 +311,10 @@ export interface BreakConfig {
 export interface ScheduleParams {
   level_duration_minutes: number;
   late_checkin_level: number; // late check-in fecha ao fim deste nível
-  ante_enabled: boolean;      // BB paga dobrado (ante = BB) a partir do late check-in
+  ante_enabled: boolean;      // BB paga dobrado (ante = BB) a partir do ante_start_level
+  // Nível a partir do qual o ante entra, desacoplado do late check-in.
+  // Opcional por compatibilidade: ausente, cai no `late_checkin_level` (comportamento de hoje).
+  ante_start_level?: number;
   breaks: BreakConfig[];
 }
 
@@ -255,11 +339,12 @@ export type ScheduleItem = ScheduleLevel | ScheduleBreak;
 export function buildSchedule(niveis: BlindLevel[], sp: ScheduleParams): ScheduleItem[] {
   const dur = Math.round(Math.max(1, sp.level_duration_minutes) * 60);
   const items: ScheduleItem[] = [];
+  const anteStartLevel = sp.ante_start_level ?? sp.late_checkin_level;
   for (const n of niveis) {
-    // Ante explícito (estrutura fixa) tem prioridade; senão, calcula pelo late check-in.
+    // Ante explícito (estrutura fixa) tem prioridade; senão, calcula pelo ante_start_level.
     const ante = n.ante != null
       ? n.ante
-      : (sp.ante_enabled && n.nivel >= sp.late_checkin_level ? n.big_blind : 0);
+      : (sp.ante_enabled && n.nivel >= anteStartLevel ? n.big_blind : 0);
     items.push({
       kind: 'level',
       level: n.nivel,

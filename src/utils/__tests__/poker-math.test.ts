@@ -6,6 +6,10 @@ import {
   bandStep,
   sbForBb,
   calcularCurvaBlinds,
+  recalibrarCurva,
+  colorUpPoints,
+  sugerirBreaksParaColorUp,
+  nivelAuto,
   inserirNivelContinuando,
   buildSchedule,
   type CurveParams,
@@ -117,6 +121,113 @@ describe('calcularCurvaBlinds', () => {
   });
 });
 
+// ── recalibrarCurva (ratchet) ────────────────────────────────────────────
+describe('recalibrarCurva', () => {
+  it('sem opts é idêntica a calcularCurvaBlinds', () => {
+    expect(recalibrarCurva(baseCurve)).toEqual(calcularCurvaBlinds(baseCurve));
+  });
+
+  it('recalibrar com c_total menor nunca produz BB abaixo do floor', () => {
+    const cheia = calcularCurvaBlinds(baseCurve);
+    const floor = cheia.niveis.map((n) => n.big_blind);
+    const menor = recalibrarCurva(
+      { ...baseCurve, qnt_acumulada_rebuys: 0, qnt_acumulada_addons: 0 },
+      { floor }
+    );
+    menor.niveis.forEach((n, i) => {
+      expect(n.big_blind).toBeGreaterThanOrEqual(floor[i]);
+    });
+  });
+
+  it('nível em `frozen` sai byte-idêntico da recalibração', () => {
+    const cheia = calcularCurvaBlinds(baseCurve);
+    const frozen = cheia.niveis.slice(0, 4).map((l) => ({ ...l }));
+    const out = recalibrarCurva(
+      { ...baseCurve, qnt_acumulada_rebuys: 0, qnt_acumulada_addons: 0 },
+      { frozen }
+    );
+    frozen.forEach((f, i) => expect(out.niveis[i]).toEqual(f));
+  });
+
+  it('mantém monotonicidade e curva pagável mesmo com frozen + floor', () => {
+    const cheia = calcularCurvaBlinds(baseCurve);
+    const frozen = cheia.niveis.slice(0, 3).map((l) => ({ ...l }));
+    const floor = cheia.niveis.map((n) => n.big_blind);
+    const out = recalibrarCurva(
+      { ...baseCurve, qnt_acumulada_rebuys: 4, qnt_acumulada_addons: 0 },
+      { frozen, floor }
+    );
+    for (let i = 1; i < out.niveis.length; i++) {
+      expect(out.niveis[i].big_blind).toBeGreaterThan(out.niveis[i - 1].big_blind);
+    }
+    for (const n of out.niveis) {
+      expect(n.small_blind * 2).toBe(n.big_blind);
+      expect(n.small_blind % minChipForBB(n.big_blind)).toBe(0);
+    }
+  });
+
+  it('color-up monótono: nenhuma sequência exige ficha menor que uma já retirada', () => {
+    const cheia = calcularCurvaBlinds(baseCurve);
+    const frozen = cheia.niveis.slice(0, 5).map((l) => ({ ...l }));
+    const out = recalibrarCurva(
+      { ...baseCurve, qnt_acumulada_rebuys: 0, qnt_acumulada_addons: 0 },
+      { frozen }
+    );
+    let maxChip = 0;
+    for (const n of out.niveis) {
+      const mc = minChipForBB(n.big_blind);
+      expect(mc).toBeGreaterThanOrEqual(maxChip);
+      maxChip = Math.max(maxChip, mc);
+    }
+  });
+});
+
+// ── colorUpPoints / sugerirBreaksParaColorUp ─────────────────────────────
+const niveisFaixaCompleta: BlindLevel[] = [10, 40, 250, 700, 2000].map((bb, i) => ({
+  nivel: i + 1,
+  small_blind: bb / 2,
+  big_blind: bb,
+}));
+
+describe('colorUpPoints', () => {
+  it('acha as 4 fronteiras da escada de COLORUP numa curva que cobre toda a faixa', () => {
+    const pontos = colorUpPoints(niveisFaixaCompleta, 5);
+    expect(pontos.length).toBe(4);
+    expect(pontos.map((p) => p.passa_a_usar)).toEqual([25, 50, 100, 500]);
+  });
+
+  it('lista vazia sem transição', () => {
+    expect(colorUpPoints([], 5)).toEqual([]);
+  });
+});
+
+describe('sugerirBreaksParaColorUp', () => {
+  it('sugere o intervalo logo antes de cada fronteira ainda não coberta', () => {
+    const pontos = colorUpPoints(niveisFaixaCompleta, 5);
+    const sugestoes = sugerirBreaksParaColorUp(niveisFaixaCompleta, []);
+    expect(sugestoes).toEqual(pontos.map((p) => p.nivel - 1));
+  });
+
+  it('não repete sugestão de um intervalo já configurado', () => {
+    const pontos = colorUpPoints(niveisFaixaCompleta, 5);
+    const jaConfigurado = pontos[0].nivel - 1;
+    const sugestoes = sugerirBreaksParaColorUp(niveisFaixaCompleta, [{ after_level: jaConfigurado, minutes: 10 }]);
+    expect(sugestoes).not.toContain(jaConfigurado);
+  });
+});
+
+// ── nivelAuto ─────────────────────────────────────────────────────────────
+describe('nivelAuto', () => {
+  it('arredonda para cima a fração de níveis', () => {
+    expect(nivelAuto(11, 0.75)).toBe(9);
+    expect(nivelAuto(11, 0.5)).toBe(6);
+  });
+
+  it('nunca devolve menos que 1', () => {
+    expect(nivelAuto(1, 0.1)).toBe(1);
+  });
+});
+
 // ── inserirNivelContinuando ─────────────────────────────────────────────
 function mkLevels(bbs: number[]): BlindLevel[] {
   return bbs.map((bb, i) => ({ nivel: i + 1, small_blind: bb / 2, big_blind: bb }));
@@ -215,5 +326,47 @@ describe('buildSchedule', () => {
   it('marca is_late_checkin apenas no nível certo', () => {
     const items = buildSchedule(niveis3, { ...baseSp, breaks: [] }) as ScheduleLevel[];
     expect(items.filter((i) => i.is_late_checkin).map((i) => i.level)).toEqual([2]);
+  });
+
+  it('ante_start_level desacoplado do late_checkin_level', () => {
+    const items = buildSchedule(niveis3, {
+      ...baseSp,
+      late_checkin_level: 1,
+      ante_start_level: 3,
+      breaks: [],
+    }) as ScheduleLevel[];
+    expect(items.filter((i) => i.is_late_checkin).map((i) => i.level)).toEqual([1]);
+    expect(items.map((i) => i.ante)).toEqual([0, 0, 400, 800]);
+  });
+
+  it('sem ante_start_level, cai no late_checkin_level (compat)', () => {
+    const items = buildSchedule(niveis3, { ...baseSp, breaks: [] }) as ScheduleLevel[];
+    const semAnteStart = buildSchedule(niveis3, {
+      level_duration_minutes: baseSp.level_duration_minutes,
+      late_checkin_level: baseSp.late_checkin_level,
+      ante_enabled: baseSp.ante_enabled,
+      breaks: [],
+    }) as ScheduleLevel[];
+    expect(semAnteStart.map((i) => i.ante)).toEqual(items.map((i) => i.ante));
+  });
+
+  it('ante_start_level: auto (0,75 de 11 níveis = 9) reproduz a agenda de hoje com late_checkin_level: 9', () => {
+    const niveis11 = mkLevels([10, 20, 30, 50, 100, 150, 200, 300, 500, 800, 1400]);
+    const anteAuto = nivelAuto(11, 0.75);
+    expect(anteAuto).toBe(9);
+    const hoje = buildSchedule(niveis11, {
+      level_duration_minutes: 20,
+      late_checkin_level: 9,
+      ante_enabled: true,
+      breaks: [],
+    }) as ScheduleLevel[];
+    const novo = buildSchedule(niveis11, {
+      level_duration_minutes: 20,
+      late_checkin_level: nivelAuto(11, 0.5),
+      ante_start_level: anteAuto,
+      ante_enabled: true,
+      breaks: [],
+    }) as ScheduleLevel[];
+    expect(novo.map((i) => i.ante)).toEqual(hoje.map((i) => i.ante));
   });
 });

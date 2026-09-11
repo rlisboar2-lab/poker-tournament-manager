@@ -61,6 +61,7 @@ export function quadraPreset(): Preset {
       max_rebuys: 0,            // ilimitada
       addon_enabled: true,
       late_checkin_level: 10,   // fim do registro após o nível 10
+      ante_start_level: 10,     // ante da Quadra é explícito por nível (BlindLevel.ante); literal por clareza
       ante_enabled: true,
       breaks: [
         { after_level: 5, minutes: 10 },

@@ -14,6 +14,8 @@ import {
 import {
   initialStack,
   inserirNivelContinuando,
+  calcularCurvaBlinds,
+  nivelAuto,
   type BaseSetup,
   type BreakConfig,
   type BlindLevel,
@@ -41,8 +43,11 @@ export interface AppConfig {
   chips_per_addon: number;
   max_rebuys: number;      // por jogador; 0 = sem limite
   addon_enabled: boolean;  // se o torneio oferece add-on
-  late_checkin_level: number;
+  late_checkin_level: number | 'auto'; // 'auto' = nivelAuto(níveis, 0.5)
   ante_enabled: boolean;
+  // Nível a partir do qual o ante entra — desacoplado do late check-in (REDESIGN.md S9).
+  // 'auto' = nivelAuto(níveis, 0.75). Fiação no motor ao vivo é da S10.
+  ante_start_level: number | 'auto';
   breaks: BreakConfig[];
 }
 
@@ -85,8 +90,9 @@ function defaultConfig(): AppConfig {
     chips_per_addon: initialStack(setup),
     max_rebuys: 0,          // sem limite
     addon_enabled: true,
-    late_checkin_level: 9,
+    late_checkin_level: 'auto',
     ante_enabled: true,
+    ante_start_level: 'auto',
     breaks: [{ after_level: 9, minutes: 15 }], // intervalo após o último nível pré-late
   };
 }
@@ -164,6 +170,28 @@ export default function App() {
     config.target_time_minutos - sumBreakMin
   );
 
+  // Nº de níveis projetados, só para resolver 'auto' — o motor recalcula a
+  // curva de novo internamente (função pura, custo desprezível).
+  const projectedLevelCount = useMemo(() => {
+    if (manualLevels && manualLevels.length) return manualLevels.length;
+    return calcularCurvaBlinds({
+      qnt_entradas_primarias: Math.max(1, totals.buyins),
+      valor_fichas_inicial: valorInicial,
+      qnt_acumulada_rebuys: totals.rebuys,
+      fichas_por_rebuy: config.chips_per_rebuy,
+      qnt_acumulada_addons: totals.addons,
+      fichas_por_addon: config.chips_per_addon,
+      target_time_minutos: effectiveTarget,
+      duracao_bloco_nivel: config.duracao_bloco_nivel,
+      initial_bb: config.setup.initial_bb,
+      smallest_chip: config.setup.smallest_chip,
+    }).qnt_niveis_projetados;
+  }, [totals, valorInicial, config, effectiveTarget, manualLevels]);
+
+  const resolvedLateCheckinLevel = config.late_checkin_level === 'auto'
+    ? nivelAuto(projectedLevelCount, 0.5)
+    : config.late_checkin_level;
+
   const derivedParams: EngineParams = useMemo(() => ({
     qnt_entradas_primarias: Math.max(1, totals.buyins),
     valor_fichas_inicial: valorInicial,
@@ -176,11 +204,11 @@ export default function App() {
     initial_bb: config.setup.initial_bb,
     smallest_chip: config.setup.smallest_chip,
     players_remaining: playersRemaining,
-    late_checkin_level: config.late_checkin_level,
+    late_checkin_level: resolvedLateCheckinLevel,
     ante_enabled: config.ante_enabled,
     breaks: config.breaks,
     override_levels: manualLevels,
-  }), [totals, valorInicial, config, playersRemaining, effectiveTarget, manualLevels]);
+  }), [totals, valorInicial, config, playersRemaining, effectiveTarget, manualLevels, resolvedLateCheckinLevel]);
 
   const engine = useTournamentEngine(derivedParams);
 
