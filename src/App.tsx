@@ -3,10 +3,11 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import SetupPanel from './components/SetupPanel';
 import PlayersPanel from './components/PlayersPanel';
 import Clock from './components/Clock';
-import ResultsPanel from './components/ResultsPanel';
+import LiveActions from './components/LiveActions';
 import StatsPanel from './components/StatsPanel';
 import Home, { type ResumeInfo } from './screens/Home';
 import BuyIn from './screens/BuyIn';
+import Finish from './screens/Finish';
 import {
   useTournamentEngine,
   type EngineParams,
@@ -69,6 +70,8 @@ interface SavedState {
   // Piso publicado por índice de nível: o BB que a mesa já viu não desce, nem
   // depois de fechar e reabrir o app (REDESIGN.md S10).
   publishedFloor?: number[] | null;
+  // Id do torneio já salvo — trava o "Salvar" contra toque duplo (REDESIGN.md S13).
+  savedTournamentId?: string | null;
 }
 
 const SAVE_KEY = 'ptm_state_v2';
@@ -182,6 +185,12 @@ export default function App() {
   const [clockNotice, setClockNotice] = useState<string | null>(null);
   // Painel de personalização visual (cores/fontes/zoom — src/theme.ts).
   const [showTheme, setShowTheme] = useState(false);
+  // Id do torneio já salvo (REDESIGN.md S13): trava "Salvar" contra toque duplo.
+  const [savedTournamentId, setSavedTournamentId] = useState<string | null>(saved?.savedTournamentId ?? null);
+  const [saving, setSaving] = useState(false);
+  // Toast de "desfazer" após eliminar (some sozinho em 5s ou no undo).
+  const [eliminationToast, setEliminationToast] = useState<{ text: string; undo: () => void } | null>(null);
+  const toastTimerRef = useRef<number | undefined>(undefined);
   // Jogadores já cadastrados (para reaproveitar nomes ao adicionar buy-in).
   const [knownPlayers, setKnownPlayers] = useState<string[]>([]);
   useEffect(() => {
@@ -322,6 +331,7 @@ export default function App() {
   useEffect(() => {
     saveRef.current = {
       config, entries, payoutPct, screen, manualLevels, liveShareId, publishedFloor,
+      savedTournamentId,
       clock: engine.snapshot,
     };
   });
@@ -375,6 +385,18 @@ export default function App() {
     }
   }, [screen]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Gatilho do penúltimo (REDESIGN.md S13): sobrando 1 ativo, o relógio pausa
+  // (nunca reseta) e abre a tela de fim com o campeão já declarado. A troca de
+  // tela some do `screen === 'live'` da condição, então isto só dispara uma vez.
+  useEffect(() => {
+    if (screen !== 'live' || engine.state.status === 'idle') return;
+    const activeCount = entries.filter((e) => !e.eliminated).length;
+    if (entries.length > 1 && activeCount === 1) {
+      engine.pause();
+      setScreen('finish');
+    }
+  }, [entries, screen]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const prizePool =
     totals.buyins * config.buy_in_value +
     totals.rebuys * config.rebuy_value +
@@ -399,6 +421,13 @@ export default function App() {
 
   const inserirIntervaloAgora = () => {
     const afterLvl = Math.max(1, engine.state.level_number);
+    if (config.breaks.some((b) => b.after_level === afterLvl)) return;
+    patchConfig({ breaks: [...config.breaks, { after_level: afterLvl, minutes: 10 }] });
+  };
+
+  // "+ intervalo aqui" do color-up (REDESIGN.md S13): mesma ideia da anterior,
+  // mas para o nível sugerido por `sugerirBreaksParaColorUp`, não o corrente.
+  const addBreakAfter = (afterLvl: number) => {
     if (config.breaks.some((b) => b.after_level === afterLvl)) return;
     patchConfig({ breaks: [...config.breaks, { after_level: afterLvl, minutes: 10 }] });
   };
@@ -461,9 +490,37 @@ export default function App() {
   // Eliminação ao vivo → preenche colocação e prêmio automaticamente.
   // Renumera a lista inteira: reviver um jogador muda a colocação de todos os
   // que caíram antes dele (ver src/utils/placements.ts).
+  // Eliminar mostra um toast de "desfazer" por 5s (REDESIGN.md S13) — sem
+  // confirm(): em ação frequente ele atrasa o floor, o undo cobre o toque errado.
   const toggleEliminated = (index: number, eliminate: boolean) => {
+    if (eliminate) {
+      const nome = entries[index]?.name ?? '';
+      const colocacao = entries.filter((e) => !e.eliminated).length; // quem cai agora fica nesta posição
+      // A última eliminação (só sobra o campeão) abre a tela de fim, que já
+      // tem seu próprio desfazer ("↩ Não acabou") — o toast seria redundante.
+      if (colocacao > 2) {
+        window.clearTimeout(toastTimerRef.current);
+        setEliminationToast({
+          text: `${nome} eliminado em ${colocacao}º`,
+          undo: () => {
+            window.clearTimeout(toastTimerRef.current);
+            setEliminationToast(null);
+            setEntries((prev) => applyElimination(prev, index, false, prizePool, payoutPct));
+          },
+        });
+        toastTimerRef.current = window.setTimeout(() => setEliminationToast(null), 5000);
+      }
+    }
     setEntries((prev) => applyElimination(prev, index, eliminate, prizePool, payoutPct));
   };
+
+  // Entrada tardia / rebuy / add-on ao vivo — só chamados depois do "Pago" na
+  // CobrancaPix (REDESIGN.md S13): a transação nunca é aplicada antes disso.
+  const addPlayerLive = (nome: string) => setEntries((prev) => addAndSeat(prev, nome));
+  const rebuyLive = (index: number) =>
+    setEntries((prev) => prev.map((e, i) => (i === index ? { ...e, rebuys: e.rebuys + 1 } : e)));
+  const addonLive = (index: number) =>
+    setEntries((prev) => prev.map((e, i) => (i === index ? { ...e, addons: e.addons + 1 } : e)));
 
   // Apaga o torneio atual e volta para a tela indicada. Usado tanto pelo botão
   // "Novo torneio" do cabeçalho (sempre confirma, volta pra home) quanto pelo
@@ -478,6 +535,7 @@ export default function App() {
     setFrozenLevels([]);
     setPublishedFloor(null);
     setLiveShareId(null);
+    setSavedTournamentId(null);
     setScreen(target);
   };
 
@@ -498,10 +556,14 @@ export default function App() {
     setScreen('setup');
   };
 
+  // Idempotente (REDESIGN.md S13): toque duplo em "Salvar" não grava dois
+  // torneios — uma vez com `savedTournamentId`, um novo save só é possível
+  // depois de `resetTorneio` (novo torneio / descartar).
   const onSave = async () => {
+    if (savedTournamentId) return;
     const start = new Date(config.start_time);
     const end = new Date(start.getTime() + config.target_time_minutos * 60_000);
-    await saveTournament({
+    const id = await saveTournament({
       name: config.name,
       start_time: start.toISOString(),
       end_time_projected: end.toISOString(),
@@ -523,6 +585,36 @@ export default function App() {
       levels: engine.curve.niveis,
       level_duration_seconds: Math.round(config.duracao_bloco_nivel * 60),
     });
+    setSavedTournamentId(id);
+  };
+
+  const handleFinishSave = async () => {
+    if (savedTournamentId || saving) return;
+    setSaving(true);
+    try { await onSave(); }
+    catch (e) { alert(`Falha ao salvar: ${(e as Error).message}`); }
+    finally { setSaving(false); }
+  };
+
+  // "↩ Não acabou": revive quem caiu por último (2º lugar) e volta ao relógio,
+  // ainda pausado — retomar é ação explícita do usuário.
+  const onUndoFinish = () => {
+    const idx = entries.findIndex((e) => e.eliminated && e.final_placement === 2);
+    if (idx < 0) return;
+    toggleEliminated(idx, false);
+    setScreen('live');
+  };
+
+  const discardResults = () => {
+    if (!confirm('Descartar os resultados deste torneio? Os dados não serão salvos.')) return;
+    resetTorneio('home');
+  };
+
+  const newTournamentFromFinish = () => {
+    if (!savedTournamentId && !confirm(
+      'O torneio ainda não foi salvo. Começar um novo agora descarta os resultados. Continuar?'
+    )) return;
+    resetTorneio('setup');
   };
 
   if (!authReady) return <div className="app"><p className="notice">Carregando…</p></div>;
@@ -633,19 +725,37 @@ export default function App() {
           </div>
           {liveTab === 'clock'
             ? <Clock engine={engine} editable
-                onAddLevelAfter={addLevelAfter} onDeleteLevel={deleteLevel} onDeleteBreak={deleteBreak} />
+                onAddLevelAfter={addLevelAfter} onDeleteLevel={deleteLevel} onDeleteBreak={deleteBreak}
+                prizePool={prizePool} playersRemaining={playersRemaining}
+                smallestChip={config.setup.smallest_chip} breaksConfig={config.breaks}
+                onAddBreakAfter={addBreakAfter} />
             : <PlayersPanel entries={entries} onChange={setEntries} mode="live" knownPlayers={knownPlayers}
                 maxRebuys={config.max_rebuys} addonEnabled={config.addon_enabled}
                 onAddLive={(name) => setEntries((prev) => addAndSeat(prev, name))}
                 onRebalance={() => setEntries((prev) => rebalanceSeating(prev))}
                 onEliminate={toggleEliminated} />}
+          <LiveActions entries={entries}
+            buyInValue={config.buy_in_value} rebuyValue={config.rebuy_value} addonValue={config.addon_value}
+            maxRebuys={config.max_rebuys} addonEnabled={config.addon_enabled}
+            lateCheckinOpen={engine.state.level_number <= resolvedLateCheckinLevel}
+            onAddPlayer={addPlayerLive} onRebuy={rebuyLive} onAddon={addonLive}
+            onEliminate={(i) => toggleEliminated(i, true)} />
         </>
       )}
 
       {screen === 'finish' && (
-        <ResultsPanel entries={entries} onChange={setEntries}
+        <Finish entries={entries} onChange={setEntries}
           payoutPct={payoutPct} prizePool={prizePool}
-          buyInValue={config.buy_in_value} rebuyValue={config.rebuy_value} addonValue={config.addon_value} />
+          buyInValue={config.buy_in_value} rebuyValue={config.rebuy_value} addonValue={config.addon_value}
+          onUndoFinish={onUndoFinish} onSave={handleFinishSave} saved={!!savedTournamentId} saving={saving}
+          onDiscard={discardResults} onNewTournament={newTournamentFromFinish} />
+      )}
+
+      {eliminationToast && (
+        <div className="toast">
+          <span>{eliminationToast.text}</span>
+          <button className="ghost" onClick={eliminationToast.undo}>desfazer</button>
+        </div>
       )}
 
       {/* Ranking e Histórico reaproveitam o StatsPanel até a S14 separá-los em

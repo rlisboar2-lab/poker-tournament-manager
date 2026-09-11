@@ -161,6 +161,25 @@ body:has(.clock-panel.fs) { overflow: hidden; }
 .podium-mini-name { font-weight: 600; }
 .podium-mini-points { color: var(--gold); font-size: 13px; }
 
+/* Console ao vivo — barra fixa de ações rápidas (REDESIGN.md S13) */
+.live-actions-bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 100;
+  display: flex; gap: 8px; padding: 10px 14px; background: var(--panel);
+  border-top: 1px solid var(--border); justify-content: center; flex-wrap: wrap; }
+.live-actions-bar button { flex: 1 1 0; min-width: 76px; max-width: 160px; }
+.app:has(.live-actions-bar) { padding-bottom: 76px; }
+
+.sheet-list { display: flex; flex-direction: column; gap: 6px; max-height: 50vh; overflow-y: auto; margin: 10px 0; }
+.sheet-item { text-align: left; }
+
+/* Toast de desfazer (eliminação — REDESIGN.md S13) */
+.toast { position: fixed; left: 50%; bottom: 84px; transform: translateX(-50%); z-index: 2100;
+  background: var(--panel-2); border: 1px solid var(--border); border-radius: 10px;
+  padding: 10px 14px; display: flex; gap: 10px; align-items: center; box-shadow: 0 6px 24px rgba(0,0,0,.4); }
+.toast button { white-space: nowrap; }
+
+.finish-champion { text-align: center; font-size: 20px; font-weight: 700; color: var(--gold);
+  padding: 14px; background: var(--panel-2); border-radius: 10px; margin-bottom: 14px; }
+
 /* Responsivo / mobile */
 @media (max-width: 640px) {
   .app { padding: 12px; }

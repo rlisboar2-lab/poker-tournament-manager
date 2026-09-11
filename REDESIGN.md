@@ -5,7 +5,7 @@ Ao final de cada sessão: marcar `[x]`, `npm run build`, commitar, e informar o 
 
 Continuação de `AUDITORIA.md` (S1–S8, concluídas). Numeração segue de S9.
 
-**Feitas:** S9 · S10 · S11 · S12  ·  **Pendentes:** S13 · S14 · S15
+**Feitas:** S9 · S10 · S11 · S12 · S13  ·  **Pendentes:** S14 · S15
 
 ---
 
@@ -304,32 +304,32 @@ Arquivos: `src/components/Clock.tsx`, `src/components/LiveActions.tsx` (novo),
 
 ### Console ao vivo
 
-- [ ] 🟡 **Barra fixa de 4 ações** (`LiveActions.tsx`), no rodapé, alcance de polegar no celular:
+- [x] 🟡 **Barra fixa de 4 ações** (`LiveActions.tsx`), no rodapé, alcance de polegar no celular:
       `[+ Jogador] [✗ Eliminar] [↻ Rebuy] [＋ Add-on]`. Mantém os controles atuais do relógio.
-- [ ] 🟡 **Eliminar = ação mais rápida do app.** Lista de ativos ordenada por mesa/assento, um
+- [x] 🟡 **Eliminar = ação mais rápida do app.** Lista de ativos ordenada por mesa/assento, um
       toque elimina. **Sem `confirm()`** — em vez disso, toast `João eliminado em 7º · desfazer`
       por 5s. Confirm em ação frequente atrasa o floor; undo é melhor.
-- [ ] 🟡 **Adicionar / Rebuy / Add-on** passam por `CobrancaPix`; commit só no "Pago".
-- [ ] 🔴 **Regras que o app não impõe hoje:** rebuy/reentrada **bloqueada** depois que o late
+- [x] 🟡 **Adicionar / Rebuy / Add-on** passam por `CobrancaPix`; commit só no "Pago".
+- [x] 🔴 **Regras que o app não impõe hoje:** rebuy/reentrada **bloqueada** depois que o late
       check-in fecha (`state.level_number > late_checkin_level` resolvido); botão de rebuy
       respeita `max_rebuys`; add-on só se `addon_enabled`.
-- [ ] 🟡 **KPIs no relógio:** `Pote: R$ X · N na mesa · Stack médio · Pressão BB`. Hoje o pote só
+- [x] 🟡 **KPIs no relógio:** `Pote: R$ X · N na mesa · Stack médio · Pressão BB`. Hoje o pote só
       aparece na tela de premiação.
-- [ ] 🟡 **Color-up no cronograma.** Na tabela de níveis do `Clock.tsx`, marcar os níveis de
+- [x] 🟡 **Color-up no cronograma.** Na tabela de níveis do `Clock.tsx`, marcar os níveis de
       `colorUpPoints()` (S9) com `🎨 retirar ficha de N`. Se o color-up não cai em intervalo,
       oferecer `+ intervalo aqui` usando `sugerirBreaksParaColorUp()`.
 
 ### Fim do torneio
 
-- [ ] 🟡 **Gatilho do penúltimo.** Quando `applyElimination` deixar 1 ativo, o relógio **pausa**
+- [x] 🟡 **Gatilho do penúltimo.** Quando `applyElimination` deixar 1 ativo, o relógio **pausa**
       (nunca reseta) e abre `Finish.tsx` com o campeão declarado — `renumberPlacements` já resolve
       o 1º lugar (`placements.ts:196`).
-- [ ] 🔴 **Guarda obrigatória.** `Finish.tsx` é não-destrutiva e reversível: botão
+- [x] 🔴 **Guarda obrigatória.** `Finish.tsx` é não-destrutiva e reversível: botão
       `↩ Não acabou` revive o jogador e volta ao relógio. Toque errado não pode encerrar torneio.
-- [ ] 🟡 **Confirmar colocações e prêmios.** Tabela por jogador: colocação editável, prêmio em R$
+- [x] 🟡 **Confirmar colocações e prêmios.** Tabela por jogador: colocação editável, prêmio em R$
       editável, **investido**, e **líquido = prêmio − investido** (a lógica já existe em
       `ResultsPanel.tsx:236`; migrar e aposentar o painel).
-- [ ] 🟡 **Tela "Torneio finalizado":** `[💾 Salvar torneio] [🗑 Descartar resultados] [＋ Novo torneio]`.
+- [x] 🟡 **Tela "Torneio finalizado":** `[💾 Salvar torneio] [🗑 Descartar resultados] [＋ Novo torneio]`.
       Salvar **idempotente** (toque duplo não grava dois torneios — travar por flag de id salvo).
       Descartar pede `confirm()`.
 
@@ -337,6 +337,51 @@ Arquivos: `src/components/Clock.tsx`, `src/components/LiveActions.tsx` (novo),
 incluindo rebuy, add-on, entrada tardia, eliminar até o penúltimo, desfazer, eliminar de novo,
 salvar.
 **Próxima:** S14 · Sonnet 5 · effort high.
+
+### Como ficou (11/09/2026)
+
+- `LiveActions.tsx` (novo, `src/components/`): barra fixa no rodapé com as 4 ações. `+ Jogador` e
+  `↻ Rebuy` desabilitam com `title="Late check-in fechado"` quando
+  `engine.state.level_number > resolvedLateCheckinLevel`; `↻ Rebuy` também filtra jogadores no
+  `max_rebuys`; `＋ Add-on` some inteiro se `!addon_enabled`. As três ações passam por
+  `CobrancaPix` — o `LocalEntry` só muda (`addAndSeat`/`rebuys+1`/`addons+1`, em `App.tsx`) no
+  callback `onPago`. `✗ Eliminar` lista os ativos por mesa/assento e elimina no toque, sem `confirm()`.
+- Toast de desfazer: estado `eliminationToast` em `App.tsx`, populado dentro de `toggleEliminated`
+  (calcula a colocação como `entries.filter(!eliminated).length` *antes* da eliminação — é
+  exatamente a posição que `renumberPlacements` vai atribuir). Suprimido quando a eliminação é a
+  penúltima (`colocacao <= 2`): nesse caso o app já pula direto para `Finish.tsx`, cujo
+  `↩ Não acabou` cobre o mesmo desfazer.
+- KPIs do relógio: `Clock.tsx` ganhou `prizePool`/`playersRemaining` como props (vêm de `App.tsx`,
+  que já os calculava) — sem tocar no motor.
+- Color-up: `Clock.tsx` deriva `BlindLevel[]` cru direto de `items` (bate com a tabela exibida,
+  inclusive com estrutura editada manualmente) e chama `colorUpPoints`/`sugerirBreaksParaColorUp`
+  (S9, sem alterar assinatura). Nível marcado ganha pill dourada; `+ intervalo aqui` só aparece
+  quando o color-up ainda não cai logo após um intervalo configurado, e chama `onAddBreakAfter`
+  (mesmo padrão de `inserirIntervaloAgora`, para o nível sugerido em vez do corrente).
+- Gatilho de fim: `useEffect` em `App.tsx` observa `entries`/`screen` — com `screen === 'live'`,
+  relógio não `idle` e exatamente 1 ativo sobrando (de um campo com mais de 1 jogador), chama
+  `engine.pause()` e `setScreen('finish')`. A troca de tela tira a própria condição do próximo
+  render, então dispara uma vez só.
+- `Finish.tsx` (novo, `src/screens/`) substitui e aposenta `ResultsPanel.tsx` (removido). Campeão
+  vem de `entries.find(e => !e.eliminated && e.final_placement === 1)`; "↩ Não acabou" acha quem
+  tem `final_placement === 2` (o penúltimo a cair) e chama `toggleEliminated(idx, false)` — revive
+  pela mesma função de `placements.ts` que já cobria isso, sem lógica nova.
+- Salvamento idempotente: novo estado `savedTournamentId` (persistido no autosave, zerado em
+  `resetTorneio`). `onSave` retorna cedo se já houver id; `handleFinishSave` embrulha com
+  `saving`/try-catch para o botão nunca travar em "Salvando…" se a chamada falhar.
+  `🗑 Descartar resultados` pede `confirm()` e cai em `resetTorneio('home')`; `＋ Novo torneio` só
+  confirma se ainda não foi salvo.
+- Testado em `npm run dev` ponta a ponta com 4 jogadores (Ana/Bob/Caio/Dan): `+ intervalo aqui`
+  encaixou o color-up do nível 3 corretamente; entrada tardia, rebuy e add-on recalibraram pote e
+  curva via `CobrancaPix`; eliminar Caio e Bob mostrou o toast (`"Bob eliminado em 3º · desfazer"`)
+  e sumiu em ~5s; eliminar o penúltimo abriu `Finish` com "🏆 Ana é o campeão!", pausado (não
+  reiniciado); "↩ Não acabou" reviveu Dan e voltou ao relógio pausado; "💾 Salvar torneio" sem
+  Supabase configurado mostrou o alerta de erro sem travar o botão; "🗑 Descartar resultados"
+  voltou à home limpa. Também confirmado: avançando ao nível 8 (late check-in fecha no 6 para
+  11 níveis), `+ Jogador` e `↻ Rebuy` desabilitam com o título "Late check-in fechado".
+- Lint: mesmo baseline (0 erros; 9 avisos `react-hooks/set-state-in-effect`/`no-explicit-any`
+  pré-existentes — 1 novo do mesmo tipo, no `useEffect` do gatilho de fim, mesma classe já aceita
+  no restante do arquivo). `npx vitest run`: 60 testes, sem mudança.
 
 ---
 

@@ -1,9 +1,10 @@
 // src/components/Clock.tsx
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { useTournamentEngine } from '../hooks/useTournamentEngine';
 import { useWakeLock } from '../hooks/useWakeLock';
-import { chips, clock } from '../utils/format';
+import { chips, clock, brl } from '../utils/format';
 import { adjustClockZoom } from '../theme';
+import { colorUpPoints, sugerirBreaksParaColorUp, type BlindLevel, type BreakConfig } from '../utils/poker-math';
 import PixQr from './PixQr';
 
 type Engine = ReturnType<typeof useTournamentEngine>;
@@ -14,6 +15,14 @@ interface Props {
   onAddLevelAfter?: (levelNumber: number) => void;
   onDeleteLevel?: (levelNumber: number) => void;
   onDeleteBreak?: (afterLevelNumber: number) => void;
+  // KPIs no relógio (REDESIGN.md S13): pote e nº na mesa não vinham do engine.
+  prizePool?: number;
+  playersRemaining?: number;
+  // Color-up no cronograma: ficha mínima em jogo e intervalos já configurados,
+  // para marcar os níveis de troca e sugerir onde encaixar um intervalo.
+  smallestChip?: number;
+  breaksConfig?: BreakConfig[];
+  onAddBreakAfter?: (afterLevelNumber: number) => void;
 }
 
 // Alarme via Web Audio + vibração. Os osciladores ficam referenciados para
@@ -74,7 +83,10 @@ function makeAlarm() {
   };
 }
 
-export default function Clock({ engine, editable, onAddLevelAfter, onDeleteLevel, onDeleteBreak }: Props) {
+export default function Clock({
+  engine, editable, onAddLevelAfter, onDeleteLevel, onDeleteBreak,
+  prizePool = 0, playersRemaining = 0, smallestChip = 5, breaksConfig = [], onAddBreakAfter,
+}: Props) {
   const { state, items, start, pause, reset, addSeconds, next, prev } = engine;
   const wake = useWakeLock();
   const [alarms, setAlarms] = useState(true);
@@ -167,6 +179,18 @@ export default function Clock({ engine, editable, onAddLevelAfter, onDeleteLevel
 
   const inBreak = state.kind === 'break';
 
+  // Níveis crus (sem intervalos) para o color-up — direto do cronograma
+  // exibido, então casa com o que está na tabela mesmo com estrutura editada.
+  const rawLevels = useMemo<BlindLevel[]>(() => items
+    .filter((it): it is Extract<typeof it, { kind: 'level' }> => it.kind === 'level')
+    .map((it) => ({ nivel: it.level, small_blind: it.small_blind, big_blind: it.big_blind })),
+    [items]);
+  const colorUps = useMemo(() => colorUpPoints(rawLevels, smallestChip), [rawLevels, smallestChip]);
+  const colorUpSuggestions = useMemo(
+    () => new Set(sugerirBreaksParaColorUp(rawLevels, breaksConfig)),
+    [rawLevels, breaksConfig]
+  );
+
   return (
     <div className={`panel clock-panel ${isFs ? 'fs' : ''}`} ref={fsRef}>
       {!audioReady && !isFs && (
@@ -214,6 +238,8 @@ export default function Clock({ engine, editable, onAddLevelAfter, onDeleteLevel
 
       {!isFs && (
         <div className="kpis">
+          <div className="kpi-box"><label>Pote</label><div className="kpi">{brl(prizePool)}</div></div>
+          <div className="kpi-box"><label>Na mesa</label><div className="kpi">{playersRemaining}</div></div>
           <div className="kpi-box"><label>Stack médio</label><div className="kpi">{chips(state.average_stack)}</div></div>
           <div className="kpi-box"><label>Pressão</label><div className="kpi">{state.pressure_bb.toFixed(1)} BB</div></div>
         </div>
@@ -283,6 +309,8 @@ export default function Clock({ engine, editable, onAddLevelAfter, onDeleteLevel
                       );
                     }
                     lastLevel = it.level;
+                    const colorUp = colorUps.find((p) => p.nivel === it.level);
+                    const suggestBreak = colorUp && colorUpSuggestions.has(it.level - 1);
                     return (
                       <tr key={i} style={cls}>
                         <td>{i + 1}</td>
@@ -290,7 +318,21 @@ export default function Clock({ engine, editable, onAddLevelAfter, onDeleteLevel
                         <td>{chips(it.small_blind)}</td>
                         <td>{chips(it.big_blind)}</td>
                         <td>{it.ante ? chips(it.ante) : '—'}</td>
-                        <td>{it.is_late_checkin ? '⚑ late' : ''}</td>
+                        <td>
+                          {it.is_late_checkin && <span className="pill late">⚑ late</span>}
+                          {colorUp && (
+                            <span className="pill" style={{ borderColor: 'var(--gold)', color: 'var(--gold)', marginLeft: 4 }}
+                              title={`Retira a ficha ${chips(colorUp.retira)}, passa a usar ${chips(colorUp.passa_a_usar)}`}>
+                              🎨 retirar ficha de {chips(colorUp.retira)}
+                            </span>
+                          )}
+                          {suggestBreak && (
+                            <button className="ghost" style={{ marginLeft: 4 }}
+                              onClick={() => onAddBreakAfter?.(it.level - 1)}>
+                              + intervalo aqui
+                            </button>
+                          )}
+                        </td>
                         {editable && <td className="row" style={{ flexWrap: 'nowrap' }}>
                           <button className="ghost" title="Adicionar nível abaixo"
                             onClick={() => onAddLevelAfter?.(it.level)}>＋</button>
