@@ -20,7 +20,9 @@
 body { margin: 0; background: var(--bg); color: var(--text); }
 button, input, select { font-family: inherit; }
 
-.app { max-width: 1100px; margin: 0 auto; padding: 20px; }
+.app { max-width: 1100px; margin: 0 auto;
+  padding: calc(20px + env(safe-area-inset-top, 0px)) calc(20px + env(safe-area-inset-right, 0px))
+           calc(32px + env(safe-area-inset-bottom, 0px)) calc(20px + env(safe-area-inset-left, 0px)); }
 h1 { font-size: 22px; margin: 0 0 4px; }
 .credit { margin: 0; font-size: 12px; color: var(--muted); }
 .live-share { background: var(--panel-2); }
@@ -30,7 +32,9 @@ h1 { font-size: 22px; margin: 0 0 4px; }
 .watch { max-width: 100%; padding: 0; }
 .watch .clock-panel { position: relative; margin: 0; border: none; border-radius: 0; text-align: center;
   min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column;
-  justify-content: center; align-items: center; gap: 1vmin; padding: 1.5vmin; }
+  justify-content: center; align-items: center; gap: 1vmin;
+  padding: calc(1.5vmin + env(safe-area-inset-top, 0px)) calc(1.5vmin + env(safe-area-inset-right, 0px))
+           calc(1.5vmin + env(safe-area-inset-bottom, 0px)) calc(1.5vmin + env(safe-area-inset-left, 0px)); }
 .watch .clock-big { font-size: calc(min(46vh, 34vw) * var(--clock-zoom, 1)); line-height: 0.9; }
 .watch .blinds { font-size: calc(min(18vh, 20vw) * var(--clock-zoom, 1)); line-height: 1; }
 .watch .ante { font-size: calc(min(6vh, 7vw) * var(--clock-zoom, 1)); }
@@ -81,6 +85,10 @@ th { color: var(--muted); font-weight: 600; }
 .clock-top { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-bottom: 10px; }
 .kpis { display: flex; gap: 12px; justify-content: center; margin: 16px 0; flex-wrap: wrap; }
 .kpi-box { background: var(--panel-2); border: 1px solid var(--border); border-radius: 10px; padding: 10px 18px; }
+.payout-kpis { margin-top: -6px; }
+.kpi-box.payout { padding: 8px 14px; border-color: var(--gold); }
+.kpi-box.payout label { color: var(--gold); }
+.kpi-box.payout .kpi { font-size: 20px; }
 .clock-controls { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 10px; }
 .clock-controls button { min-width: 56px; }
 button.ghost.on { border-color: var(--accent); color: var(--accent); }
@@ -128,18 +136,20 @@ input[type="range"] { padding: 0; accent-color: var(--accent); }
 .clock-panel.fs { position: fixed; inset: 0; z-index: 1500;
   width: 100vw; height: 100vh; height: 100dvh; overflow: hidden;
   display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 1vmin;
-  background: var(--bg); margin: 0; padding: 1.5vmin; border: none; border-radius: 0; }
+  background: var(--bg); margin: 0; border: none; border-radius: 0;
+  padding: calc(1.5vmin + env(safe-area-inset-top, 0px)) calc(1.5vmin + env(safe-area-inset-right, 0px))
+           calc(1.5vmin + env(safe-area-inset-bottom, 0px)) calc(1.5vmin + env(safe-area-inset-left, 0px)); }
 /* O mais legível possível em telas pequenas: usa a maior dimensão disponível. */
 .clock-panel.fs .clock-big { font-size: calc(min(46vh, 34vw) * var(--clock-zoom, 1)); line-height: 0.9; margin: 0; }
 .clock-panel.fs .blinds { font-size: calc(min(18vh, 20vw) * var(--clock-zoom, 1)); line-height: 1; }
 .clock-panel.fs .ante { font-size: calc(min(6vh, 7vw) * var(--clock-zoom, 1)); }
 .clock-panel.fs .sub { font-size: min(4vh, 4.5vw); }
 .clock-panel.fs .clock-top { margin: 0; }
-.clock-panel.fs .clock-controls { position: absolute; bottom: 1.5vmin; margin: 0; }
+.clock-panel.fs .clock-controls { position: absolute; bottom: calc(1.5vmin + env(safe-area-inset-bottom, 0px)); margin: 0; }
 body:has(.clock-panel.fs) { overflow: hidden; }
 
 /* QR do PIX sempre visível num canto (tela cheia e /watch) */
-.corner-qr { position: absolute; bottom: 1.5vmin; left: 1.5vmin; z-index: 5;
+.corner-qr { position: absolute; bottom: calc(1.5vmin + env(safe-area-inset-bottom, 0px)); left: calc(1.5vmin + env(safe-area-inset-left, 0px)); z-index: 5;
   display: flex; flex-direction: column; align-items: center; gap: 2px; }
 .corner-qr img { width: min(20vmin, 200px); height: auto; background: #fff; border-radius: 6px; padding: 4px; }
 .corner-qr span { font-size: min(2.4vmin, 14px); color: var(--muted); }
@@ -163,16 +173,17 @@ body:has(.clock-panel.fs) { overflow: hidden; }
 
 /* Console ao vivo — barra fixa de ações rápidas (REDESIGN.md S13) */
 .live-actions-bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 100;
-  display: flex; gap: 8px; padding: 10px 14px; background: var(--panel);
+  display: flex; gap: 8px; background: var(--panel);
+  padding: 10px calc(14px + env(safe-area-inset-right, 0px)) calc(10px + env(safe-area-inset-bottom, 0px)) calc(14px + env(safe-area-inset-left, 0px));
   border-top: 1px solid var(--border); justify-content: center; flex-wrap: wrap; }
 .live-actions-bar button { flex: 1 1 0; min-width: 76px; max-width: 160px; }
-.app:has(.live-actions-bar) { padding-bottom: 76px; }
+.app:has(.live-actions-bar) { padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px)); }
 
 .sheet-list { display: flex; flex-direction: column; gap: 6px; max-height: 50vh; overflow-y: auto; margin: 10px 0; }
 .sheet-item { text-align: left; }
 
 /* Toast de desfazer (eliminação — REDESIGN.md S13) */
-.toast { position: fixed; left: 50%; bottom: 84px; transform: translateX(-50%); z-index: 2100;
+.toast { position: fixed; left: 50%; bottom: calc(92px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 2100;
   background: var(--panel-2); border: 1px solid var(--border); border-radius: 10px;
   padding: 10px 14px; display: flex; gap: 10px; align-items: center; box-shadow: 0 6px 24px rgba(0,0,0,.4); }
 .toast button { white-space: nowrap; }
@@ -211,11 +222,41 @@ body:has(.clock-panel.fs) { overflow: hidden; }
 
 /* Responsivo / mobile */
 @media (max-width: 640px) {
-  .app { padding: 12px; }
+  .app { padding: calc(12px + env(safe-area-inset-top, 0px)) calc(12px + env(safe-area-inset-right, 0px))
+                 calc(24px + env(safe-area-inset-bottom, 0px)) calc(12px + env(safe-area-inset-left, 0px)); }
   h1 { font-size: 18px; }
   .clock-big { font-size: calc(clamp(56px, 18vw, 96px) * var(--clock-zoom, 1)); }
   .blinds { font-size: calc(clamp(28px, 9vw, 44px) * var(--clock-zoom, 1)); }
   .tabs button { padding: 7px 10px; font-size: 12px; }
+}
+
+/* PWA instalado no iOS (ícone na tela de início).
+   Manifest usa `display: standalone` (não `fullscreen` — nesse modo o iOS
+   zera `env(safe-area-inset-*)` mesmo com a ilha/notch ocupando espaço físico,
+   bug conhecido do WebKit). Ainda assim, versões antigas do iOS podem devolver
+   `env()` = 0 em standalone também; o piso do `max()` cobre esse caso — onde
+   o `env()` funciona, o valor real do aparelho vence.
+   Só em retrato: deitado a ilha vai para a lateral e um piso no topo comeria
+   altura do visor à toa. */
+@media (display-mode: standalone) and (orientation: portrait),
+       (display-mode: fullscreen) and (orientation: portrait),
+       (display-mode: minimal-ui) and (orientation: portrait) {
+  .app {
+    padding-top: max(calc(12px + env(safe-area-inset-top, 0px)), 60px);
+    padding-bottom: max(calc(24px + env(safe-area-inset-bottom, 0px)), 34px);
+  }
+  .app:has(.live-actions-bar) {
+    padding-bottom: max(calc(84px + env(safe-area-inset-bottom, 0px)), 110px);
+  }
+  .live-actions-bar { padding-bottom: max(calc(10px + env(safe-area-inset-bottom, 0px)), 28px); }
+  .toast { bottom: max(calc(92px + env(safe-area-inset-bottom, 0px)), 118px); }
+  .clock-panel.fs { padding-top: max(calc(1.5vmin + env(safe-area-inset-top, 0px)), 56px); }
+  .clock-panel.fs .clock-controls { bottom: max(calc(1.5vmin + env(safe-area-inset-bottom, 0px)), 28px); }
+  .corner-qr { bottom: max(calc(1.5vmin + env(safe-area-inset-bottom, 0px)), 28px); }
+  .watch .clock-panel {
+    padding-top: max(calc(1.5vmin + env(safe-area-inset-top, 0px)), 56px);
+    padding-bottom: max(calc(1.5vmin + env(safe-area-inset-bottom, 0px)), 28px);
+  }
 }
 
 /* Celular deitado (landscape): dimensiona pela ALTURA pra não estourar a tela */
@@ -224,7 +265,8 @@ body:has(.clock-panel.fs) { overflow: hidden; }
   .blinds { font-size: calc(clamp(26px, 12vh, 70px) * var(--clock-zoom, 1)); }
   .kpis { margin: 8px 0; }
   /* Tela cheia deitada (visor pequeno): o maior possível, sem teto rígido. */
-  .clock-panel.fs { padding: 1vmin; }
+  .clock-panel.fs { padding: calc(1vmin + env(safe-area-inset-top, 0px)) calc(1vmin + env(safe-area-inset-right, 0px))
+                            calc(1vmin + env(safe-area-inset-bottom, 0px)) calc(1vmin + env(safe-area-inset-left, 0px)); }
   .clock-panel.fs .clock-big, .watch .clock-big { font-size: calc(min(52vh, 30vw) * var(--clock-zoom, 1)); }
   .clock-panel.fs .blinds, .watch .blinds { font-size: calc(min(20vh, 18vw) * var(--clock-zoom, 1)); }
   .clock-panel.fs .ante, .watch .ante { font-size: calc(min(7vh, 6vw) * var(--clock-zoom, 1)); }
