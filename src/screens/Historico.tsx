@@ -95,8 +95,12 @@ export default function Historico() {
   };
 
   return (
-    <div className="panel">
-      <h2>Torneios finalizados</h2>
+    <div className="panel historico-screen">
+      <header className="historico-header">
+        <p className="historico-eyebrow">Consulta e manutenção</p>
+        <h2>Torneios finalizados</h2>
+        <p className="notice">Consulte o pódio ou ajuste os resultados já salvos.</p>
+      </header>
 
       {!isSupabaseConfigured && (
         <p className="warn">
@@ -111,21 +115,23 @@ export default function Historico() {
           {tournaments.map((t) => (
             <div className="historico-card" key={t.id}>
               <div className="historico-card-header">
-                <div>
+                <div className="historico-card-summary">
                   <div className="historico-card-name">{t.name}</div>
-                  <p className="notice" style={{ margin: '2px 0 0' }}>
-                    {new Date(t.start_time).toLocaleString('pt-BR')} · {brl(Number(t.total_prize_pool))}
-                    {' '}<span className="pill">{t.status}</span>
+                  <p className="historico-card-meta">
+                    <time dateTime={t.start_time}>{new Date(t.start_time).toLocaleString('pt-BR')}</time>
+                    <span aria-hidden="true">·</span>
+                    <strong>{brl(Number(t.total_prize_pool))}</strong>
+                    <span className="pill">{t.status}</span>
                   </p>
                 </div>
-                <div className="row" style={{ flexWrap: 'nowrap' }}>
-                  <button className="ghost" onClick={() => openEditor(t)}>✏ Resultado</button>
-                  <button className="ghost" onClick={() => doRenameTournament(t)} title="Renomear">✎</button>
-                  <button className="danger" onClick={() => doDeleteTournament(t)}>🗑</button>
+                <div className="historico-card-actions">
+                  <button className="primary" onClick={() => openEditor(t)}>Editar resultado</button>
+                  <button className="ghost" onClick={() => doRenameTournament(t)}>Renomear</button>
+                  <button className="danger" onClick={() => doDeleteTournament(t)}>Excluir</button>
                 </div>
               </div>
               {(podiums[t.id]?.length ?? 0) > 0 && (
-                <div className="historico-podium">
+                <div className="historico-podium" aria-label="Resumo do pódio">
                   {podiums[t.id].map((r, i) => (
                     <span key={r.player_id} className="historico-podium-item">
                       {MEDALS[i]} {r.display_name}
@@ -139,8 +145,12 @@ export default function Historico() {
       )}
 
       {editing && (
-        <div className="panel" style={{ marginTop: 12 }} ref={editorRef}>
-          <h2>Editar resultado — {editing.t.name}</h2>
+        <section className="panel historico-editor" ref={editorRef} aria-labelledby="historico-editor-heading">
+          <header className="historico-editor-header">
+            <p className="historico-eyebrow">Manutenção do resultado</p>
+            <h2 id="historico-editor-heading">Editar resultado</h2>
+            <p className="notice">{editing.t.name}</p>
+          </header>
           {editing.rows.length === 0 ? (
             <p className="warn">
               Este torneio não tem nenhuma entrada gravada — o salvamento parou antes de escrever os
@@ -151,18 +161,18 @@ export default function Historico() {
           <>
           <p className="notice">Ajuste a colocação e o prêmio (R$) de cada jogador. Isso recalcula pontos e ROI.</p>
           <div className="table-wrap">
-            <table>
+            <table className="responsive-card-table historico-editor-table">
               <thead><tr><th>Jogador</th><th>Entradas</th><th>Colocação</th><th>Prêmio (R$)</th></tr></thead>
               <tbody>
                 {editing.rows.map((r, i) => (
                   <tr key={r.player_id}>
-                    <td>{r.display_name}</td>
-                    <td className="notice">{r.buyins}bi · {r.rebuys}re · {r.addons}ad</td>
-                    <td style={{ width: 100 }}>
+                    <td data-label="Jogador"><strong>{r.display_name}</strong></td>
+                    <td data-label="Entradas" className="notice">{r.buyins}bi · {r.rebuys}re · {r.addons}ad</td>
+                    <td data-label="Colocação" style={{ width: 100 }}>
                       <input type="number" min={1} value={r.final_placement ?? ''}
                         onChange={(e) => setRow(i, { final_placement: e.target.value ? Number(e.target.value) : null })} />
                     </td>
-                    <td style={{ width: 130 }}>
+                    <td data-label="Prêmio (R$)" style={{ width: 130 }}>
                       <input type="number" step="1" value={Number((r.payout_amount ?? 0).toFixed(2))}
                         onChange={(e) => setRow(i, { payout_amount: Number(e.target.value) })} />
                     </td>
@@ -173,7 +183,7 @@ export default function Historico() {
           </div>
           </>
           )}
-          <div className="row" style={{ marginTop: 12 }}>
+          <div className="historico-editor-actions">
             {editing.rows.length > 0 && (
               <button className="primary" disabled={busy} onClick={saveEditor}>
                 {busy ? 'Salvando…' : 'Salvar resultado'}
@@ -181,25 +191,27 @@ export default function Historico() {
             )}
             <button className="ghost" onClick={() => setEditing(null)}>Fechar</button>
           </div>
-        </div>
+        </section>
       )}
 
-      <h2 style={{ marginTop: 20 }}>Jogadores cadastrados</h2>
+      <section className="historico-players" aria-labelledby="historico-players-heading">
+      <h2 id="historico-players-heading">Jogadores cadastrados</h2>
       {players.length === 0 ? <p className="notice">Sem jogadores salvos.</p> : (
-        <div className="table-wrap">
-          <table>
+        <div className="table-wrap historico-players-wrap">
+          <table className="responsive-card-table historico-players-table">
             <thead><tr><th>Nome</th><th></th></tr></thead>
             <tbody>
               {players.map((p) => (
                 <tr key={p.id}>
-                  <td>{p.display_name}</td>
-                  <td><button className="ghost" onClick={() => doRenamePlayer(p)}>✏ Renomear</button></td>
+                  <td data-label="Jogador"><strong>{p.display_name}</strong></td>
+                  <td data-label="Ação"><button className="ghost" onClick={() => doRenamePlayer(p)}>Renomear</button></td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       )}
+      </section>
     </div>
   );
 }

@@ -1,0 +1,611 @@
+{
+  "date": "2026-09-15T11:54:31.960Z",
+  "browser": "153.0.8010.36",
+  "assertions": {
+    "setup": {
+      "sectionOrder": [
+        "Dados do torneio",
+        "Stack e blinds",
+        "Financeiro",
+        "Late check-in e ante",
+        "Intervalos"
+      ],
+      "allFieldsPresent": true,
+      "payoutInitiallyClosed": true,
+      "autoLate": 1,
+      "backDisabled": true
+    },
+    "payout": {
+      "initialRows": 3,
+      "valueFromPercent": "36",
+      "percentFromValue": "40",
+      "warningVisible": 1,
+      "rowsAfterAdd": 4,
+      "rowsAfterRemove": 3
+    },
+    "breaks": {
+      "afterAdd": 2,
+      "afterRemove": 1
+    },
+    "presets": {
+      "quadraName": "FREEPLAY 1K GTD",
+      "startPreserved": true,
+      "customName": "Home Game"
+    },
+    "players": {
+      "initialRows": 6,
+      "duplicateBlocked": true,
+      "duplicateMessage": "Ána Exemplo já está na lista.",
+      "rowsAfterEnter": 7,
+      "buyinsAfterPlus": "2",
+      "buyinsAfterMinus": "1",
+      "empty": 1
+    },
+    "knownPlayer": {
+      "chipVisible": true,
+      "added": 1
+    },
+    "buyin": {
+      "rows": 6,
+      "qrLoaded": true,
+      "total": "R$ 60,00",
+      "confirmEnabled": true,
+      "opensLiveWithoutStarting": 1,
+      "emptyMessage": 1,
+      "emptyDisabled": true,
+      "fallbackVisible": true,
+      "fallbackStillConfirmable": true
+    },
+    "liveCompatibility": {
+      "playerRows": 6,
+      "buyinStepper": 12,
+      "notice": 1,
+      "payoutOpen": true
+    },
+    "matrix": [
+      {
+        "screen": "setup",
+        "theme": "escuro",
+        "viewport": "320",
+        "fits": true
+      },
+      {
+        "screen": "setup",
+        "theme": "escuro",
+        "viewport": "360",
+        "fits": true
+      },
+      {
+        "screen": "setup",
+        "theme": "escuro",
+        "viewport": "390",
+        "fits": true
+      },
+      {
+        "screen": "setup",
+        "theme": "escuro",
+        "viewport": "640-zoom200-equivalente",
+        "fits": true
+      },
+      {
+        "screen": "setup",
+        "theme": "escuro",
+        "viewport": "768",
+        "fits": true
+      },
+      {
+        "screen": "setup",
+        "theme": "escuro",
+        "viewport": "1280",
+        "fits": true
+      },
+      {
+        "screen": "setup",
+        "theme": "escuro",
+        "viewport": "1920",
+        "fits": true
+      },
+      {
+        "screen": "setup",
+        "theme": "escuro",
+        "viewport": "844x390",
+        "fits": true
+      },
+      {
+        "screen": "setup",
+        "theme": "claro",
+        "viewport": "390",
+        "fits": true
+      },
+      {
+        "screen": "setup",
+        "theme": "claro",
+        "viewport": "1280",
+        "fits": true
+      },
+      {
+        "screen": "setup",
+        "theme": "feltro",
+        "viewport": "390",
+        "fits": true
+      },
+      {
+        "screen": "setup",
+        "theme": "feltro",
+        "viewport": "1280",
+        "fits": true
+      },
+      {
+        "screen": "players",
+        "theme": "escuro",
+        "viewport": "320",
+        "fits": true
+      },
+      {
+        "screen": "players",
+        "theme": "escuro",
+        "viewport": "360",
+        "fits": true
+      },
+      {
+        "screen": "players",
+        "theme": "escuro",
+        "viewport": "390",
+        "fits": true
+      },
+      {
+        "screen": "players",
+        "theme": "escuro",
+        "viewport": "640-zoom200-equivalente",
+        "fits": true
+      },
+      {
+        "screen": "players",
+        "theme": "escuro",
+        "viewport": "768",
+        "fits": true
+      },
+      {
+        "screen": "players",
+        "theme": "escuro",
+        "viewport": "1280",
+        "fits": true
+      },
+      {
+        "screen": "players",
+        "theme": "escuro",
+        "viewport": "1920",
+        "fits": true
+      },
+      {
+        "screen": "players",
+        "theme": "escuro",
+        "viewport": "844x390",
+        "fits": true
+      },
+      {
+        "screen": "players",
+        "theme": "claro",
+        "viewport": "390",
+        "fits": true
+      },
+      {
+        "screen": "players",
+        "theme": "claro",
+        "viewport": "1280",
+        "fits": true
+      },
+      {
+        "screen": "players",
+        "theme": "feltro",
+        "viewport": "390",
+        "fits": true
+      },
+      {
+        "screen": "players",
+        "theme": "feltro",
+        "viewport": "1280",
+        "fits": true
+      },
+      {
+        "screen": "buyin",
+        "theme": "escuro",
+        "viewport": "320",
+        "fits": true
+      },
+      {
+        "screen": "buyin",
+        "theme": "escuro",
+        "viewport": "360",
+        "fits": true
+      },
+      {
+        "screen": "buyin",
+        "theme": "escuro",
+        "viewport": "390",
+        "fits": true
+      },
+      {
+        "screen": "buyin",
+        "theme": "escuro",
+        "viewport": "640-zoom200-equivalente",
+        "fits": true
+      },
+      {
+        "screen": "buyin",
+        "theme": "escuro",
+        "viewport": "768",
+        "fits": true
+      },
+      {
+        "screen": "buyin",
+        "theme": "escuro",
+        "viewport": "1280",
+        "fits": true
+      },
+      {
+        "screen": "buyin",
+        "theme": "escuro",
+        "viewport": "1920",
+        "fits": true
+      },
+      {
+        "screen": "buyin",
+        "theme": "escuro",
+        "viewport": "844x390",
+        "fits": true
+      },
+      {
+        "screen": "buyin",
+        "theme": "claro",
+        "viewport": "390",
+        "fits": true
+      },
+      {
+        "screen": "buyin",
+        "theme": "claro",
+        "viewport": "1280",
+        "fits": true
+      },
+      {
+        "screen": "buyin",
+        "theme": "feltro",
+        "viewport": "390",
+        "fits": true
+      },
+      {
+        "screen": "buyin",
+        "theme": "feltro",
+        "viewport": "1280",
+        "fits": true
+      }
+    ],
+    "fonts": [
+      {
+        "font": "sistema",
+        "fits": true
+      },
+      {
+        "font": "arial",
+        "fits": true
+      },
+      {
+        "font": "verdana",
+        "fits": true
+      },
+      {
+        "font": "trebuchet",
+        "fits": true
+      },
+      {
+        "font": "georgia",
+        "fits": true
+      },
+      {
+        "font": "courier",
+        "fits": true
+      },
+      {
+        "font": "mono",
+        "fits": true
+      },
+      {
+        "font": "impact",
+        "fits": true
+      }
+    ],
+    "pass": true
+  },
+  "screens": {
+    "configuracao-390": {
+      "viewportWidth": 390,
+      "pageWidth": 390,
+      "controlsBelowMinimum": [],
+      "unlabeledFields": []
+    },
+    "configuracao-1280": {
+      "viewportWidth": 1280,
+      "pageWidth": 1280,
+      "controlsBelowMinimum": [],
+      "unlabeledFields": []
+    },
+    "participantes-390": {
+      "viewportWidth": 390,
+      "pageWidth": 390,
+      "controlsBelowMinimum": [],
+      "unlabeledFields": []
+    },
+    "cobranca-390": {
+      "viewportWidth": 390,
+      "pageWidth": 390,
+      "controlsBelowMinimum": [],
+      "unlabeledFields": []
+    },
+    "matrix-setup-escuro-320": {
+      "viewportWidth": 320,
+      "pageWidth": 320,
+      "controlsBelowMinimum": [],
+      "unlabeledFields": []
+    },
+    "matrix-setup-escuro-360": {
+      "viewportWidth": 360,
+      "pageWidth": 360,
+      "controlsBelowMinimum": [],
+      "unlabeledFields": []
+    },
+    "matrix-setup-escuro-390": {
+      "viewportWidth": 390,
+      "pageWidth": 390,
+      "controlsBelowMinimum": [],
+      "unlabeledFields": []
+    },
+    "matrix-setup-escuro-640-zoom200-equivalente": {
+      "viewportWidth": 640,
+      "pageWidth": 640,
+      "controlsBelowMinimum": [],
+      "unlabeledFields": []
+    },
+    "matrix-setup-escuro-768": {
+      "viewportWidth": 768,
+      "pageWidth": 768,
+      "controlsBelowMinimum": [],
+      "unlabeledFields": []
+    },
+    "matrix-setup-escuro-1280": {
+      "viewportWidth": 1280,
+      "pageWidth": 1280,
+      "controlsBelowMinimum": [],
+      "unlabeledFields": []
+    },
+    "matrix-setup-escuro-1920": {
+      "viewportWidth": 1920,
+      "pageWidth": 1920,
+      "controlsBelowMinimum": [],
+      "unlabeledFields": []
+    },
+    "matrix-setup-escuro-844x390": {
+      "viewportWidth": 844,
+      "pageWidth": 844,
+      "controlsBelowMinimum": [],
+      "unlabeledFields": []
+    },
+    "matrix-setup-claro-390": {
+      "viewportWidth": 390,
+      "pageWidth": 390,
+      "controlsBelowMinimum": [],
+      "unlabeledFields": []
+    },
+    "matrix-setup-claro-1280": {
+      "viewportWidth": 1280,
+      "pageWidth": 1280,
+      "controlsBelowMinimum": [],
+      "unlabeledFields": []
+    },
+    "matrix-setup-feltro-390": {
+      "viewportWidth": 390,
+      "pageWidth": 390,
+      "controlsBelowMinimum": [],
+      "unlabeledFields": []
+    },
+    "matrix-setup-feltro-1280": {
+      "viewportWidth": 1280,
+      "pageWidth": 1280,
+      "controlsBelowMinimum": [],
+      "unlabeledFields": []
+    },
+    "matrix-players-escuro-320": {
+      "viewportWidth": 320,
+      "pageWidth": 320,
+      "controlsBelowMinimum": [],
+      "unlabeledFields": []
+    },
+    "matrix-players-escuro-360": {
+      "viewportWidth": 360,
+      "pageWidth": 360,
+      "controlsBelowMinimum": [],
+      "unlabeledFields": []
+    },
+    "matrix-players-escuro-390": {
+      "viewportWidth": 390,
+      "pageWidth": 390,
+      "controlsBelowMinimum": [],
+      "unlabeledFields": []
+    },
+    "matrix-players-escuro-640-zoom200-equivalente": {
+      "viewportWidth": 640,
+      "pageWidth": 640,
+      "controlsBelowMinimum": [],
+      "unlabeledFields": []
+    },
+    "matrix-players-escuro-768": {
+      "viewportWidth": 768,
+      "pageWidth": 768,
+      "controlsBelowMinimum": [],
+      "unlabeledFields": []
+    },
+    "matrix-players-escuro-1280": {
+      "viewportWidth": 1280,
+      "pageWidth": 1280,
+      "controlsBelowMinimum": [],
+      "unlabeledFields": []
+    },
+    "matrix-players-escuro-1920": {
+      "viewportWidth": 1920,
+      "pageWidth": 1920,
+      "controlsBelowMinimum": [],
+      "unlabeledFields": []
+    },
+    "matrix-players-escuro-844x390": {
+      "viewportWidth": 844,
+      "pageWidth": 844,
+      "controlsBelowMinimum": [],
+      "unlabeledFields": []
+    },
+    "matrix-players-claro-390": {
+      "viewportWidth": 390,
+      "pageWidth": 390,
+      "controlsBelowMinimum": [],
+      "unlabeledFields": []
+    },
+    "matrix-players-claro-1280": {
+      "viewportWidth": 1280,
+      "pageWidth": 1280,
+      "controlsBelowMinimum": [],
+      "unlabeledFields": []
+    },
+    "matrix-players-feltro-390": {
+      "viewportWidth": 390,
+      "pageWidth": 390,
+      "controlsBelowMinimum": [],
+      "unlabeledFields": []
+    },
+    "matrix-players-feltro-1280": {
+      "viewportWidth": 1280,
+      "pageWidth": 1280,
+      "controlsBelowMinimum": [],
+      "unlabeledFields": []
+    },
+    "matrix-buyin-escuro-320": {
+      "viewportWidth": 320,
+      "pageWidth": 320,
+      "controlsBelowMinimum": [],
+      "unlabeledFields": []
+    },
+    "matrix-buyin-escuro-360": {
+      "viewportWidth": 360,
+      "pageWidth": 360,
+      "controlsBelowMinimum": [],
+      "unlabeledFields": []
+    },
+    "matrix-buyin-escuro-390": {
+      "viewportWidth": 390,
+      "pageWidth": 390,
+      "controlsBelowMinimum": [],
+      "unlabeledFields": []
+    },
+    "matrix-buyin-escuro-640-zoom200-equivalente": {
+      "viewportWidth": 640,
+      "pageWidth": 640,
+      "controlsBelowMinimum": [],
+      "unlabeledFields": []
+    },
+    "matrix-buyin-escuro-768": {
+      "viewportWidth": 768,
+      "pageWidth": 768,
+      "controlsBelowMinimum": [],
+      "unlabeledFields": []
+    },
+    "matrix-buyin-escuro-1280": {
+      "viewportWidth": 1280,
+      "pageWidth": 1280,
+      "controlsBelowMinimum": [],
+      "unlabeledFields": []
+    },
+    "matrix-buyin-escuro-1920": {
+      "viewportWidth": 1920,
+      "pageWidth": 1920,
+      "controlsBelowMinimum": [],
+      "unlabeledFields": []
+    },
+    "matrix-buyin-escuro-844x390": {
+      "viewportWidth": 844,
+      "pageWidth": 844,
+      "controlsBelowMinimum": [],
+      "unlabeledFields": []
+    },
+    "matrix-buyin-claro-390": {
+      "viewportWidth": 390,
+      "pageWidth": 390,
+      "controlsBelowMinimum": [],
+      "unlabeledFields": []
+    },
+    "matrix-buyin-claro-1280": {
+      "viewportWidth": 1280,
+      "pageWidth": 1280,
+      "controlsBelowMinimum": [],
+      "unlabeledFields": []
+    },
+    "matrix-buyin-feltro-390": {
+      "viewportWidth": 390,
+      "pageWidth": 390,
+      "controlsBelowMinimum": [],
+      "unlabeledFields": []
+    },
+    "matrix-buyin-feltro-1280": {
+      "viewportWidth": 1280,
+      "pageWidth": 1280,
+      "controlsBelowMinimum": [],
+      "unlabeledFields": []
+    },
+    "font-sistema-320": {
+      "viewportWidth": 320,
+      "pageWidth": 320,
+      "controlsBelowMinimum": [],
+      "unlabeledFields": []
+    },
+    "font-arial-320": {
+      "viewportWidth": 320,
+      "pageWidth": 320,
+      "controlsBelowMinimum": [],
+      "unlabeledFields": []
+    },
+    "font-verdana-320": {
+      "viewportWidth": 320,
+      "pageWidth": 320,
+      "controlsBelowMinimum": [],
+      "unlabeledFields": []
+    },
+    "font-trebuchet-320": {
+      "viewportWidth": 320,
+      "pageWidth": 320,
+      "controlsBelowMinimum": [],
+      "unlabeledFields": []
+    },
+    "font-georgia-320": {
+      "viewportWidth": 320,
+      "pageWidth": 320,
+      "controlsBelowMinimum": [],
+      "unlabeledFields": []
+    },
+    "font-courier-320": {
+      "viewportWidth": 320,
+      "pageWidth": 320,
+      "controlsBelowMinimum": [],
+      "unlabeledFields": []
+    },
+    "font-mono-320": {
+      "viewportWidth": 320,
+      "pageWidth": 320,
+      "controlsBelowMinimum": [],
+      "unlabeledFields": []
+    },
+    "font-impact-320": {
+      "viewportWidth": 320,
+      "pageWidth": 320,
+      "controlsBelowMinimum": [],
+      "unlabeledFields": []
+    }
+  },
+  "errors": [],
+  "blocked": []
+}

@@ -1,0 +1,86 @@
+[
+  {
+    "role": "primary",
+    "fg": "#ffffff",
+    "bg": "#238454",
+    "ratio": 4.666677781251425
+  },
+  {
+    "role": "text",
+    "fg": "#f2f5f3",
+    "bg": "#202d26",
+    "ratio": 13.060606529668366
+  },
+  {
+    "role": "muted",
+    "fg": "#a8b7ae",
+    "bg": "#202d26",
+    "ratio": 6.860901699347187
+  },
+  {
+    "role": "gold",
+    "fg": "#d8b46a",
+    "bg": "#202d26",
+    "ratio": 7.275203318552506
+  },
+  {
+    "role": "danger",
+    "fg": "#f07878",
+    "bg": "#202d26",
+    "ratio": 5.231482340914448
+  },
+  {
+    "role": "border",
+    "fg": "#6d8175",
+    "bg": "#202d26",
+    "ratio": 3.4457680756132745
+  },
+  {
+    "role": "success",
+    "fg": "#8ed7ad",
+    "bg": "#202d26",
+    "ratio": 8.515918617386154
+  },
+  {
+    "role": "tab",
+    "fg": "#ffffff",
+    "bg": "#296a52",
+    "ratio": 6.406860823372227
+  },
+  {
+    "role": "old-primary",
+    "fg": "#ffffff",
+    "bg": "#2ea043",
+    "ratio": 3.3732012123103594
+  },
+  {
+    "role": "light-muted",
+    "fg": "#57606a",
+    "bg": "#eef1f4",
+    "ratio": 5.6363245426101045
+  },
+  {
+    "role": "light-primary",
+    "fg": "#ffffff",
+    "bg": "#1a7f37",
+    "ratio": 5.078795978854816
+  },
+  {
+    "role": "light-gold",
+    "fg": "#9a6700",
+    "bg": "#eef1f4",
+    "ratio": 4.293794901372914
+  },
+  {
+    "role": "feltro-muted",
+    "fg": "#9dbfad",
+    "bg": "#155238",
+    "ratio": 4.568722489536152
+  },
+  {
+    "role": "feltro-primary",
+    "fg": "#ffffff",
+    "bg": "#1a7f37",
+    "ratio": 5.078795978854816
+  }
+]

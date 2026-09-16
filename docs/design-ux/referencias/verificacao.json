@@ -1,0 +1,38 @@
+[
+  {
+    "name": "inicio",
+    "width": 1280,
+    "height": 900,
+    "scrollWidth": 1280
+  },
+  {
+    "name": "inicio",
+    "width": 390,
+    "height": 844,
+    "scrollWidth": 390
+  },
+  {
+    "name": "configuracao",
+    "width": 1280,
+    "height": 900,
+    "scrollWidth": 1280
+  },
+  {
+    "name": "configuracao",
+    "width": 390,
+    "height": 844,
+    "scrollWidth": 390
+  },
+  {
+    "name": "console",
+    "width": 1280,
+    "height": 900,
+    "scrollWidth": 1280
+  },
+  {
+    "name": "console",
+    "width": 390,
+    "height": 844,
+    "scrollWidth": 390
+  }
+]

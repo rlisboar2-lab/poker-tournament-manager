@@ -5,10 +5,12 @@ import { useState } from 'react';
 
 export default function PixQr({ onClose }: { onClose: () => void }) {
   const [ok, setOk] = useState(true);
+  const titleId = 'pix-qr-title';
   return (
     <div className="qr-overlay" onClick={onClose}>
-      <div className="qr-card" onClick={(e) => e.stopPropagation()}>
-        <h2>PIX · buy-in / rebuy / add-on</h2>
+      <div className="qr-card pix-qr-card" role="dialog" aria-modal="true" aria-labelledby={titleId}
+        onClick={(e) => e.stopPropagation()}>
+        <h2 id={titleId}>PIX · buy-in / rebuy / add-on</h2>
         {ok ? (
           <img src="/pix-qr.png" alt="QR PIX para pagamentos" onError={() => setOk(false)} />
         ) : (

@@ -1,0 +1,71 @@
+{
+  "date": "2026-09-15T04:52:42.346Z",
+  "buildMs": 4694.4003,
+  "mode": "production; envDir=false; variantes Supabase vazio e fixture local; gzip local nível 6",
+  "builds": {
+    "home": [
+      {
+        "file": "assets/index-CvDqqruI.css",
+        "bytes": 21446,
+        "gzipBytes": 4695
+      },
+      {
+        "file": "assets/index-DLTw5_gL.js",
+        "bytes": 447457,
+        "gzipBytes": 128412
+      },
+      {
+        "file": "icon.svg",
+        "bytes": 427,
+        "gzipBytes": 297
+      },
+      {
+        "file": "index.html",
+        "bytes": 1079,
+        "gzipBytes": 518
+      },
+      {
+        "file": "manifest.webmanifest",
+        "bytes": 473,
+        "gzipBytes": 295
+      },
+      {
+        "file": "pix-qr.png",
+        "bytes": 828189,
+        "gzipBytes": 823326
+      }
+    ],
+    "login": [
+      {
+        "file": "assets/index-CDGqXpjc.js",
+        "bytes": 447503,
+        "gzipBytes": 128439
+      },
+      {
+        "file": "assets/index-CvDqqruI.css",
+        "bytes": 21446,
+        "gzipBytes": 4695
+      },
+      {
+        "file": "icon.svg",
+        "bytes": 427,
+        "gzipBytes": 297
+      },
+      {
+        "file": "index.html",
+        "bytes": 1084,
+        "gzipBytes": 516
+      },
+      {
+        "file": "manifest.webmanifest",
+        "bytes": 473,
+        "gzipBytes": 295
+      },
+      {
+        "file": "pix-qr.png",
+        "bytes": 828189,
+        "gzipBytes": 823326
+      }
+    ]
+  }
+}

@@ -1,0 +1,369 @@
+{
+  "date": "2026-09-15T04:54:44.981Z",
+  "browser": "153.0.8010.36",
+  "assertions": {
+    "emptyHome": {
+      "resume": 0,
+      "podium": 0,
+      "homeAction": 0,
+      "personalize": 1,
+      "newTournament": 1,
+      "signOut": 0
+    },
+    "resume": {
+      "fullName": true,
+      "nameFits": true,
+      "titleFits": true,
+      "firstHomeChild": true
+    },
+    "matrix": [
+      {
+        "theme": "escuro",
+        "viewport": "320",
+        "fits": true
+      },
+      {
+        "theme": "escuro",
+        "viewport": "360",
+        "fits": true
+      },
+      {
+        "theme": "escuro",
+        "viewport": "390",
+        "fits": true
+      },
+      {
+        "theme": "escuro",
+        "viewport": "768",
+        "fits": true
+      },
+      {
+        "theme": "escuro",
+        "viewport": "1280-zoom200-equivalente",
+        "fits": true
+      },
+      {
+        "theme": "escuro",
+        "viewport": "1280",
+        "fits": true
+      },
+      {
+        "theme": "escuro",
+        "viewport": "1920",
+        "fits": true
+      },
+      {
+        "theme": "escuro",
+        "viewport": "844x390",
+        "fits": true
+      },
+      {
+        "theme": "claro",
+        "viewport": "320",
+        "fits": true
+      },
+      {
+        "theme": "claro",
+        "viewport": "360",
+        "fits": true
+      },
+      {
+        "theme": "claro",
+        "viewport": "390",
+        "fits": true
+      },
+      {
+        "theme": "claro",
+        "viewport": "768",
+        "fits": true
+      },
+      {
+        "theme": "claro",
+        "viewport": "1280-zoom200-equivalente",
+        "fits": true
+      },
+      {
+        "theme": "claro",
+        "viewport": "1280",
+        "fits": true
+      },
+      {
+        "theme": "claro",
+        "viewport": "1920",
+        "fits": true
+      },
+      {
+        "theme": "claro",
+        "viewport": "844x390",
+        "fits": true
+      },
+      {
+        "theme": "feltro",
+        "viewport": "320",
+        "fits": true
+      },
+      {
+        "theme": "feltro",
+        "viewport": "360",
+        "fits": true
+      },
+      {
+        "theme": "feltro",
+        "viewport": "390",
+        "fits": true
+      },
+      {
+        "theme": "feltro",
+        "viewport": "768",
+        "fits": true
+      },
+      {
+        "theme": "feltro",
+        "viewport": "1280-zoom200-equivalente",
+        "fits": true
+      },
+      {
+        "theme": "feltro",
+        "viewport": "1280",
+        "fits": true
+      },
+      {
+        "theme": "feltro",
+        "viewport": "1920",
+        "fits": true
+      },
+      {
+        "theme": "feltro",
+        "viewport": "844x390",
+        "fits": true
+      }
+    ],
+    "fonts": [
+      {
+        "font": "sistema",
+        "fits": true
+      },
+      {
+        "font": "arial",
+        "fits": true
+      },
+      {
+        "font": "verdana",
+        "fits": true
+      },
+      {
+        "font": "trebuchet",
+        "fits": true
+      },
+      {
+        "font": "georgia",
+        "fits": true
+      },
+      {
+        "font": "courier",
+        "fits": true
+      },
+      {
+        "font": "mono",
+        "fits": true
+      },
+      {
+        "font": "impact",
+        "fits": true
+      }
+    ],
+    "header": {
+      "start": 1,
+      "personalize": 1,
+      "finish": 1,
+      "newTournament": 1
+    },
+    "login": {
+      "emailAutocomplete": "username",
+      "passwordAutocomplete": "current-password",
+      "help": 1,
+      "errorVisible": true,
+      "busy": {
+        "disabled": true,
+        "text": "Entrando…"
+      }
+    },
+    "rankedHome": {
+      "cards": 3,
+      "createBeforePodium": true,
+      "signOut": true
+    },
+    "reducedMotion": "1e-05s",
+    "keyboardPodium": true,
+    "pass": true
+  },
+  "screens": {
+    "inicio-vazio-390": {
+      "viewportWidth": 390,
+      "pageWidth": 390,
+      "controlsBelowMinimum": []
+    },
+    "inicio-vazio-1280": {
+      "viewportWidth": 1280,
+      "pageWidth": 1280,
+      "controlsBelowMinimum": []
+    },
+    "retomada-nome-longo-320": {
+      "viewportWidth": 320,
+      "pageWidth": 320,
+      "controlsBelowMinimum": []
+    },
+    "retomada-nome-longo-1280": {
+      "viewportWidth": 1280,
+      "pageWidth": 1280,
+      "controlsBelowMinimum": []
+    },
+    "matrix-escuro-320": {
+      "viewportWidth": 320,
+      "pageWidth": 320,
+      "controlsBelowMinimum": []
+    },
+    "matrix-escuro-360": {
+      "viewportWidth": 360,
+      "pageWidth": 360,
+      "controlsBelowMinimum": []
+    },
+    "matrix-escuro-390": {
+      "viewportWidth": 390,
+      "pageWidth": 390,
+      "controlsBelowMinimum": []
+    },
+    "matrix-escuro-768": {
+      "viewportWidth": 768,
+      "pageWidth": 768,
+      "controlsBelowMinimum": []
+    },
+    "matrix-escuro-1280-zoom200-equivalente": {
+      "viewportWidth": 640,
+      "pageWidth": 640,
+      "controlsBelowMinimum": []
+    },
+    "matrix-escuro-1280": {
+      "viewportWidth": 1280,
+      "pageWidth": 1280,
+      "controlsBelowMinimum": []
+    },
+    "matrix-escuro-1920": {
+      "viewportWidth": 1920,
+      "pageWidth": 1920,
+      "controlsBelowMinimum": []
+    },
+    "matrix-escuro-844x390": {
+      "viewportWidth": 844,
+      "pageWidth": 844,
+      "controlsBelowMinimum": []
+    },
+    "matrix-claro-320": {
+      "viewportWidth": 320,
+      "pageWidth": 320,
+      "controlsBelowMinimum": []
+    },
+    "matrix-claro-360": {
+      "viewportWidth": 360,
+      "pageWidth": 360,
+      "controlsBelowMinimum": []
+    },
+    "matrix-claro-390": {
+      "viewportWidth": 390,
+      "pageWidth": 390,
+      "controlsBelowMinimum": []
+    },
+    "matrix-claro-768": {
+      "viewportWidth": 768,
+      "pageWidth": 768,
+      "controlsBelowMinimum": []
+    },
+    "matrix-claro-1280-zoom200-equivalente": {
+      "viewportWidth": 640,
+      "pageWidth": 640,
+      "controlsBelowMinimum": []
+    },
+    "matrix-claro-1280": {
+      "viewportWidth": 1280,
+      "pageWidth": 1280,
+      "controlsBelowMinimum": []
+    },
+    "matrix-claro-1920": {
+      "viewportWidth": 1920,
+      "pageWidth": 1920,
+      "controlsBelowMinimum": []
+    },
+    "matrix-claro-844x390": {
+      "viewportWidth": 844,
+      "pageWidth": 844,
+      "controlsBelowMinimum": []
+    },
+    "matrix-feltro-320": {
+      "viewportWidth": 320,
+      "pageWidth": 320,
+      "controlsBelowMinimum": []
+    },
+    "matrix-feltro-360": {
+      "viewportWidth": 360,
+      "pageWidth": 360,
+      "controlsBelowMinimum": []
+    },
+    "matrix-feltro-390": {
+      "viewportWidth": 390,
+      "pageWidth": 390,
+      "controlsBelowMinimum": []
+    },
+    "matrix-feltro-768": {
+      "viewportWidth": 768,
+      "pageWidth": 768,
+      "controlsBelowMinimum": []
+    },
+    "matrix-feltro-1280-zoom200-equivalente": {
+      "viewportWidth": 640,
+      "pageWidth": 640,
+      "controlsBelowMinimum": []
+    },
+    "matrix-feltro-1280": {
+      "viewportWidth": 1280,
+      "pageWidth": 1280,
+      "controlsBelowMinimum": []
+    },
+    "matrix-feltro-1920": {
+      "viewportWidth": 1920,
+      "pageWidth": 1920,
+      "controlsBelowMinimum": []
+    },
+    "matrix-feltro-844x390": {
+      "viewportWidth": 844,
+      "pageWidth": 844,
+      "controlsBelowMinimum": []
+    },
+    "cabecalho-completo-390": {
+      "viewportWidth": 390,
+      "pageWidth": 390,
+      "controlsBelowMinimum": []
+    },
+    "login-390": {
+      "viewportWidth": 390,
+      "pageWidth": 390,
+      "controlsBelowMinimum": []
+    },
+    "login-1280": {
+      "viewportWidth": 1280,
+      "pageWidth": 1280,
+      "controlsBelowMinimum": []
+    },
+    "inicio-podio-390": {
+      "viewportWidth": 390,
+      "pageWidth": 390,
+      "controlsBelowMinimum": []
+    },
+    "inicio-podio-1280": {
+      "viewportWidth": 1280,
+      "pageWidth": 1280,
+      "controlsBelowMinimum": []
+    }
+  },
+  "errors": [],
+  "blocked": []
+}

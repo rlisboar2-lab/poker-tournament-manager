@@ -46,8 +46,11 @@ export default function Finish({
   const ranked = [...entries].sort((a, b) => (a.final_placement ?? 999) - (b.final_placement ?? 999));
 
   return (
-    <div className="panel">
-      <h2>Torneio finalizado</h2>
+    <div className="panel finish-screen">
+      <header className="finish-header">
+        <p className="finish-eyebrow">Resultados confirmados</p>
+        <h2>Torneio finalizado</h2>
+      </header>
 
       {champion && <div className="finish-champion">🏆 {champion.name} é o campeão!</div>}
 
@@ -58,9 +61,10 @@ export default function Finish({
         </p>
       )}
 
-      <h2 style={{ marginTop: 22 }}>Confirmar colocações e prêmios</h2>
-      <div className="table-wrap">
-        <table>
+      <section className="finish-section" aria-labelledby="finish-review-heading">
+      <h2 id="finish-review-heading">Confirmar colocações e prêmios</h2>
+      <div className="table-wrap finish-review-wrap">
+        <table className="responsive-card-table finish-review-table">
           <thead>
             <tr><th>Jogador</th><th>Colocação</th><th>Investido</th><th>Prêmio</th><th>Líquido</th></tr>
           </thead>
@@ -70,18 +74,18 @@ export default function Finish({
               const prize = e.payout_amount ?? 0;
               return (
                 <tr key={i}>
-                  <td>{e.name}</td>
-                  <td style={{ width: 100 }}>
+                  <td data-label="Jogador"><strong>{e.name}</strong></td>
+                  <td data-label="Colocação" style={{ width: 100 }}>
                     <input type="number" min={1} max={entries.length}
                       value={e.final_placement ?? ''} placeholder="-"
                       onChange={(ev) => setPlacement(i, ev.target.value ? Number(ev.target.value) : undefined)} />
                   </td>
-                  <td>{brl(inv)}</td>
-                  <td style={{ width: 130 }}>
+                  <td data-label="Investido">{brl(inv)}</td>
+                  <td data-label="Prêmio" style={{ width: 130 }}>
                     <input type="number" step="1" value={Number(prize.toFixed(2))}
                       onChange={(ev) => setPrize(i, Number(ev.target.value))} />
                   </td>
-                  <td style={{ color: prize - inv >= 0 ? 'var(--accent)' : 'var(--danger)' }}>
+                  <td data-label="Líquido" style={{ color: prize - inv >= 0 ? 'var(--accent)' : 'var(--danger)' }}>
                     {brl(prize - inv)}
                   </td>
                 </tr>
@@ -90,8 +94,10 @@ export default function Finish({
           </tbody>
         </table>
       </div>
+      </section>
 
-      <h2 style={{ marginTop: 22 }}>Ranking do torneio</h2>
+      <section className="finish-section finish-tournament-ranking" aria-labelledby="finish-ranking-heading">
+      <h2 id="finish-ranking-heading">Ranking do torneio</h2>
       {ranked.filter((e) => e.final_placement).length === 0 ? (
         <p className="notice">Defina as colocações acima.</p>
       ) : (
@@ -107,8 +113,9 @@ export default function Finish({
           })}
         </ol>
       )}
+      </section>
 
-      <div className="row" style={{ marginTop: 18, justifyContent: 'space-between' }}>
+      <div className="row finish-actions">
         <button className="primary" disabled={saved || saving} onClick={onSave}>
           {saved ? '✓ Salvo' : saving ? 'Salvando…' : '💾 Salvar torneio'}
         </button>

@@ -1,0 +1,3244 @@
+{
+  "date": "2026-09-15T18:53:31.325Z",
+  "browser": "153.0.8010.36",
+  "fullscreen": [
+    {
+      "id": "escuro-320x800-zoom0.5",
+      "pass": true,
+      "geometry": {
+        "viewport": {
+          "width": 320,
+          "height": 800
+        },
+        "page": {
+          "width": 320,
+          "height": 800
+        },
+        "panel": {
+          "left": 0,
+          "top": 0,
+          "right": 320,
+          "bottom": 800,
+          "width": 320,
+          "height": 800
+        },
+        "stage": {
+          "left": 4.796875,
+          "top": 4.796875,
+          "right": 315.203125,
+          "bottom": 677.203125,
+          "width": 310.40625,
+          "height": 672.40625
+        },
+        "controls": {
+          "left": 84.796875,
+          "top": 685.203125,
+          "right": 315.203125,
+          "bottom": 795.203125,
+          "width": 230.40625,
+          "height": 110
+        },
+        "footer": null,
+        "qr": {
+          "left": 4.796875,
+          "top": 708.015625,
+          "right": 76.796875,
+          "bottom": 795.203125,
+          "width": 72,
+          "height": 87.1875
+        },
+        "header": {
+          "left": 71.203125,
+          "top": 4.796875,
+          "right": 248.796875,
+          "bottom": 28.984375,
+          "width": 177.59375,
+          "height": 24.1875
+        },
+        "panelInsideViewport": true,
+        "zonesSeparated": true,
+        "controlsInside": true,
+        "controlsBelowMinimum": [],
+        "readout": {
+          "clientWidth": 310,
+          "clientHeight": 636,
+          "scrollWidth": 310,
+          "scrollHeight": 636,
+          "overflowX": "auto",
+          "overflowY": "auto"
+        },
+        "qrWhite": true,
+        "qrSquare": true,
+        "qrVisible": true,
+        "status": "ProntoNível 1 / 14 níveis",
+        "title": "",
+        "time": "20:00",
+        "blinds": "5 / 10",
+        "ante": ""
+      }
+    },
+    {
+      "id": "escuro-320x800-zoom1",
+      "pass": true,
+      "geometry": {
+        "viewport": {
+          "width": 320,
+          "height": 800
+        },
+        "page": {
+          "width": 320,
+          "height": 800
+        },
+        "panel": {
+          "left": 0,
+          "top": 0,
+          "right": 320,
+          "bottom": 800,
+          "width": 320,
+          "height": 800
+        },
+        "stage": {
+          "left": 4.796875,
+          "top": 4.796875,
+          "right": 315.203125,
+          "bottom": 677.203125,
+          "width": 310.40625,
+          "height": 672.40625
+        },
+        "controls": {
+          "left": 84.796875,
+          "top": 685.203125,
+          "right": 315.203125,
+          "bottom": 795.203125,
+          "width": 230.40625,
+          "height": 110
+        },
+        "footer": null,
+        "qr": {
+          "left": 4.796875,
+          "top": 708.015625,
+          "right": 76.796875,
+          "bottom": 795.203125,
+          "width": 72,
+          "height": 87.1875
+        },
+        "header": {
+          "left": 71.203125,
+          "top": 4.796875,
+          "right": 248.796875,
+          "bottom": 28.984375,
+          "width": 177.59375,
+          "height": 24.1875
+        },
+        "panelInsideViewport": true,
+        "zonesSeparated": true,
+        "controlsInside": true,
+        "controlsBelowMinimum": [],
+        "readout": {
+          "clientWidth": 310,
+          "clientHeight": 636,
+          "scrollWidth": 310,
+          "scrollHeight": 636,
+          "overflowX": "auto",
+          "overflowY": "auto"
+        },
+        "qrWhite": true,
+        "qrSquare": true,
+        "qrVisible": true,
+        "status": "ProntoNível 1 / 14 níveis",
+        "title": "",
+        "time": "20:00",
+        "blinds": "5 / 10",
+        "ante": ""
+      }
+    },
+    {
+      "id": "escuro-320x800-zoom2.5",
+      "pass": true,
+      "geometry": {
+        "viewport": {
+          "width": 320,
+          "height": 800
+        },
+        "page": {
+          "width": 320,
+          "height": 800
+        },
+        "panel": {
+          "left": 0,
+          "top": 0,
+          "right": 320,
+          "bottom": 800,
+          "width": 320,
+          "height": 800
+        },
+        "stage": {
+          "left": 4.796875,
+          "top": 4.796875,
+          "right": 315.203125,
+          "bottom": 677.203125,
+          "width": 310.40625,
+          "height": 672.40625
+        },
+        "controls": {
+          "left": 84.796875,
+          "top": 685.203125,
+          "right": 315.203125,
+          "bottom": 795.203125,
+          "width": 230.40625,
+          "height": 110
+        },
+        "footer": null,
+        "qr": {
+          "left": 4.796875,
+          "top": 708.015625,
+          "right": 76.796875,
+          "bottom": 795.203125,
+          "width": 72,
+          "height": 87.1875
+        },
+        "header": {
+          "left": 71.203125,
+          "top": 4.796875,
+          "right": 248.796875,
+          "bottom": 28.984375,
+          "width": 177.59375,
+          "height": 24.1875
+        },
+        "panelInsideViewport": true,
+        "zonesSeparated": true,
+        "controlsInside": true,
+        "controlsBelowMinimum": [],
+        "readout": {
+          "clientWidth": 310,
+          "clientHeight": 636,
+          "scrollWidth": 610,
+          "scrollHeight": 636,
+          "overflowX": "auto",
+          "overflowY": "auto"
+        },
+        "qrWhite": true,
+        "qrSquare": true,
+        "qrVisible": true,
+        "status": "ProntoNível 1 / 14 níveis",
+        "title": "",
+        "time": "20:00",
+        "blinds": "5 / 10",
+        "ante": ""
+      }
+    },
+    {
+      "id": "escuro-390x844-zoom0.5",
+      "pass": true,
+      "geometry": {
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "page": {
+          "width": 390,
+          "height": 844
+        },
+        "panel": {
+          "left": 0,
+          "top": 0,
+          "right": 390,
+          "bottom": 844,
+          "width": 390,
+          "height": 844
+        },
+        "stage": {
+          "left": 5.84375,
+          "top": 5.84375,
+          "right": 384.15625,
+          "bottom": 720.15625,
+          "width": 378.3125,
+          "height": 714.3125
+        },
+        "controls": {
+          "left": 85.84375,
+          "top": 728.15625,
+          "right": 384.15625,
+          "bottom": 838.15625,
+          "width": 298.3125,
+          "height": 110
+        },
+        "footer": null,
+        "qr": {
+          "left": 5.84375,
+          "top": 750.96875,
+          "right": 77.84375,
+          "bottom": 838.15625,
+          "width": 72,
+          "height": 87.1875
+        },
+        "header": {
+          "left": 106.203125,
+          "top": 5.84375,
+          "right": 283.796875,
+          "bottom": 30.03125,
+          "width": 177.59375,
+          "height": 24.1875
+        },
+        "panelInsideViewport": true,
+        "zonesSeparated": true,
+        "controlsInside": true,
+        "controlsBelowMinimum": [],
+        "readout": {
+          "clientWidth": 378,
+          "clientHeight": 678,
+          "scrollWidth": 378,
+          "scrollHeight": 678,
+          "overflowX": "auto",
+          "overflowY": "auto"
+        },
+        "qrWhite": true,
+        "qrSquare": true,
+        "qrVisible": true,
+        "status": "ProntoNível 1 / 14 níveis",
+        "title": "",
+        "time": "20:00",
+        "blinds": "5 / 10",
+        "ante": ""
+      }
+    },
+    {
+      "id": "escuro-390x844-zoom1",
+      "pass": true,
+      "geometry": {
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "page": {
+          "width": 390,
+          "height": 844
+        },
+        "panel": {
+          "left": 0,
+          "top": 0,
+          "right": 390,
+          "bottom": 844,
+          "width": 390,
+          "height": 844
+        },
+        "stage": {
+          "left": 5.84375,
+          "top": 5.84375,
+          "right": 384.15625,
+          "bottom": 720.15625,
+          "width": 378.3125,
+          "height": 714.3125
+        },
+        "controls": {
+          "left": 85.84375,
+          "top": 728.15625,
+          "right": 384.15625,
+          "bottom": 838.15625,
+          "width": 298.3125,
+          "height": 110
+        },
+        "footer": null,
+        "qr": {
+          "left": 5.84375,
+          "top": 750.96875,
+          "right": 77.84375,
+          "bottom": 838.15625,
+          "width": 72,
+          "height": 87.1875
+        },
+        "header": {
+          "left": 106.203125,
+          "top": 5.84375,
+          "right": 283.796875,
+          "bottom": 30.03125,
+          "width": 177.59375,
+          "height": 24.1875
+        },
+        "panelInsideViewport": true,
+        "zonesSeparated": true,
+        "controlsInside": true,
+        "controlsBelowMinimum": [],
+        "readout": {
+          "clientWidth": 378,
+          "clientHeight": 678,
+          "scrollWidth": 378,
+          "scrollHeight": 678,
+          "overflowX": "auto",
+          "overflowY": "auto"
+        },
+        "qrWhite": true,
+        "qrSquare": true,
+        "qrVisible": true,
+        "status": "ProntoNível 1 / 14 níveis",
+        "title": "",
+        "time": "20:00",
+        "blinds": "5 / 10",
+        "ante": ""
+      }
+    },
+    {
+      "id": "escuro-390x844-zoom2.5",
+      "pass": true,
+      "geometry": {
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "page": {
+          "width": 390,
+          "height": 844
+        },
+        "panel": {
+          "left": 0,
+          "top": 0,
+          "right": 390,
+          "bottom": 844,
+          "width": 390,
+          "height": 844
+        },
+        "stage": {
+          "left": 5.84375,
+          "top": 5.84375,
+          "right": 384.15625,
+          "bottom": 720.15625,
+          "width": 378.3125,
+          "height": 714.3125
+        },
+        "controls": {
+          "left": 85.84375,
+          "top": 728.15625,
+          "right": 384.15625,
+          "bottom": 838.15625,
+          "width": 298.3125,
+          "height": 110
+        },
+        "footer": null,
+        "qr": {
+          "left": 5.84375,
+          "top": 750.96875,
+          "right": 77.84375,
+          "bottom": 838.15625,
+          "width": 72,
+          "height": 87.1875
+        },
+        "header": {
+          "left": 106.203125,
+          "top": 5.84375,
+          "right": 283.796875,
+          "bottom": 30.03125,
+          "width": 177.59375,
+          "height": 24.1875
+        },
+        "panelInsideViewport": true,
+        "zonesSeparated": true,
+        "controlsInside": true,
+        "controlsBelowMinimum": [],
+        "readout": {
+          "clientWidth": 378,
+          "clientHeight": 678,
+          "scrollWidth": 743,
+          "scrollHeight": 678,
+          "overflowX": "auto",
+          "overflowY": "auto"
+        },
+        "qrWhite": true,
+        "qrSquare": true,
+        "qrVisible": true,
+        "status": "ProntoNível 1 / 14 níveis",
+        "title": "",
+        "time": "20:00",
+        "blinds": "5 / 10",
+        "ante": ""
+      }
+    },
+    {
+      "id": "escuro-768x1024-zoom0.5",
+      "pass": true,
+      "geometry": {
+        "viewport": {
+          "width": 768,
+          "height": 1024
+        },
+        "page": {
+          "width": 768,
+          "height": 1024
+        },
+        "panel": {
+          "left": 0,
+          "top": 0,
+          "right": 768,
+          "bottom": 1024,
+          "width": 768,
+          "height": 1024
+        },
+        "stage": {
+          "left": 11.515625,
+          "top": 11.515625,
+          "right": 756.484375,
+          "bottom": 866.984375,
+          "width": 744.96875,
+          "height": 855.46875
+        },
+        "controls": {
+          "left": 138.21875,
+          "top": 951.140625,
+          "right": 756.484375,
+          "bottom": 1012.484375,
+          "width": 618.265625,
+          "height": 61.34375
+        },
+        "footer": null,
+        "qr": {
+          "left": 11.515625,
+          "top": 878.5,
+          "right": 126.703125,
+          "bottom": 1012.484375,
+          "width": 115.1875,
+          "height": 133.984375
+        },
+        "header": {
+          "left": 295.203125,
+          "top": 11.515625,
+          "right": 472.796875,
+          "bottom": 35.703125,
+          "width": 177.59375,
+          "height": 24.1875
+        },
+        "panelInsideViewport": true,
+        "zonesSeparated": true,
+        "controlsInside": true,
+        "controlsBelowMinimum": [],
+        "readout": {
+          "clientWidth": 745,
+          "clientHeight": 815,
+          "scrollWidth": 745,
+          "scrollHeight": 815,
+          "overflowX": "auto",
+          "overflowY": "auto"
+        },
+        "qrWhite": true,
+        "qrSquare": true,
+        "qrVisible": true,
+        "status": "ProntoNível 1 / 14 níveis",
+        "title": "",
+        "time": "20:00",
+        "blinds": "5 / 10",
+        "ante": ""
+      }
+    },
+    {
+      "id": "escuro-768x1024-zoom1",
+      "pass": true,
+      "geometry": {
+        "viewport": {
+          "width": 768,
+          "height": 1024
+        },
+        "page": {
+          "width": 768,
+          "height": 1024
+        },
+        "panel": {
+          "left": 0,
+          "top": 0,
+          "right": 768,
+          "bottom": 1024,
+          "width": 768,
+          "height": 1024
+        },
+        "stage": {
+          "left": 11.515625,
+          "top": 11.515625,
+          "right": 756.484375,
+          "bottom": 866.984375,
+          "width": 744.96875,
+          "height": 855.46875
+        },
+        "controls": {
+          "left": 138.21875,
+          "top": 951.140625,
+          "right": 756.484375,
+          "bottom": 1012.484375,
+          "width": 618.265625,
+          "height": 61.34375
+        },
+        "footer": null,
+        "qr": {
+          "left": 11.515625,
+          "top": 878.5,
+          "right": 126.703125,
+          "bottom": 1012.484375,
+          "width": 115.1875,
+          "height": 133.984375
+        },
+        "header": {
+          "left": 295.203125,
+          "top": 11.515625,
+          "right": 472.796875,
+          "bottom": 35.703125,
+          "width": 177.59375,
+          "height": 24.1875
+        },
+        "panelInsideViewport": true,
+        "zonesSeparated": true,
+        "controlsInside": true,
+        "controlsBelowMinimum": [],
+        "readout": {
+          "clientWidth": 745,
+          "clientHeight": 815,
+          "scrollWidth": 745,
+          "scrollHeight": 815,
+          "overflowX": "auto",
+          "overflowY": "auto"
+        },
+        "qrWhite": true,
+        "qrSquare": true,
+        "qrVisible": true,
+        "status": "ProntoNível 1 / 14 níveis",
+        "title": "",
+        "time": "20:00",
+        "blinds": "5 / 10",
+        "ante": ""
+      }
+    },
+    {
+      "id": "escuro-768x1024-zoom2.5",
+      "pass": true,
+      "geometry": {
+        "viewport": {
+          "width": 768,
+          "height": 1024
+        },
+        "page": {
+          "width": 768,
+          "height": 1024
+        },
+        "panel": {
+          "left": 0,
+          "top": 0,
+          "right": 768,
+          "bottom": 1024,
+          "width": 768,
+          "height": 1024
+        },
+        "stage": {
+          "left": 11.515625,
+          "top": 11.515625,
+          "right": 756.484375,
+          "bottom": 866.984375,
+          "width": 744.96875,
+          "height": 855.46875
+        },
+        "controls": {
+          "left": 138.21875,
+          "top": 951.140625,
+          "right": 756.484375,
+          "bottom": 1012.484375,
+          "width": 618.265625,
+          "height": 61.34375
+        },
+        "footer": null,
+        "qr": {
+          "left": 11.515625,
+          "top": 878.5,
+          "right": 126.703125,
+          "bottom": 1012.484375,
+          "width": 115.1875,
+          "height": 133.984375
+        },
+        "header": {
+          "left": 295.203125,
+          "top": 11.515625,
+          "right": 472.796875,
+          "bottom": 35.703125,
+          "width": 177.59375,
+          "height": 24.1875
+        },
+        "panelInsideViewport": true,
+        "zonesSeparated": true,
+        "controlsInside": true,
+        "controlsBelowMinimum": [],
+        "readout": {
+          "clientWidth": 745,
+          "clientHeight": 815,
+          "scrollWidth": 1464,
+          "scrollHeight": 862,
+          "overflowX": "auto",
+          "overflowY": "auto"
+        },
+        "qrWhite": true,
+        "qrSquare": true,
+        "qrVisible": true,
+        "status": "ProntoNível 1 / 14 níveis",
+        "title": "",
+        "time": "20:00",
+        "blinds": "5 / 10",
+        "ante": ""
+      }
+    },
+    {
+      "id": "escuro-1280x900-zoom0.5",
+      "pass": true,
+      "geometry": {
+        "viewport": {
+          "width": 1280,
+          "height": 900
+        },
+        "page": {
+          "width": 1280,
+          "height": 900
+        },
+        "panel": {
+          "left": 0,
+          "top": 0,
+          "right": 1280,
+          "bottom": 900,
+          "width": 1280,
+          "height": 900
+        },
+        "stage": {
+          "left": 13.5,
+          "top": 13.5,
+          "right": 1266.5,
+          "bottom": 719.203125,
+          "width": 1253,
+          "height": 705.703125
+        },
+        "controls": {
+          "left": 162,
+          "top": 822.5,
+          "right": 1266.5,
+          "bottom": 886.5,
+          "width": 1104.5,
+          "height": 64
+        },
+        "footer": null,
+        "qr": {
+          "left": 13.5,
+          "top": 732.703125,
+          "right": 148.5,
+          "bottom": 886.5,
+          "width": 135,
+          "height": 153.796875
+        },
+        "header": {
+          "left": 551.203125,
+          "top": 13.5,
+          "right": 728.796875,
+          "bottom": 37.6875,
+          "width": 177.59375,
+          "height": 24.1875
+        },
+        "panelInsideViewport": true,
+        "zonesSeparated": true,
+        "controlsInside": true,
+        "controlsBelowMinimum": [],
+        "readout": {
+          "clientWidth": 1253,
+          "clientHeight": 666,
+          "scrollWidth": 1253,
+          "scrollHeight": 666,
+          "overflowX": "auto",
+          "overflowY": "auto"
+        },
+        "qrWhite": true,
+        "qrSquare": true,
+        "qrVisible": true,
+        "status": "ProntoNível 1 / 14 níveis",
+        "title": "",
+        "time": "20:00",
+        "blinds": "5 / 10",
+        "ante": ""
+      }
+    },
+    {
+      "id": "escuro-1280x900-zoom1",
+      "pass": true,
+      "geometry": {
+        "viewport": {
+          "width": 1280,
+          "height": 900
+        },
+        "page": {
+          "width": 1280,
+          "height": 900
+        },
+        "panel": {
+          "left": 0,
+          "top": 0,
+          "right": 1280,
+          "bottom": 900,
+          "width": 1280,
+          "height": 900
+        },
+        "stage": {
+          "left": 13.5,
+          "top": 13.5,
+          "right": 1266.5,
+          "bottom": 719.203125,
+          "width": 1253,
+          "height": 705.703125
+        },
+        "controls": {
+          "left": 162,
+          "top": 822.5,
+          "right": 1266.5,
+          "bottom": 886.5,
+          "width": 1104.5,
+          "height": 64
+        },
+        "footer": null,
+        "qr": {
+          "left": 13.5,
+          "top": 732.703125,
+          "right": 148.5,
+          "bottom": 886.5,
+          "width": 135,
+          "height": 153.796875
+        },
+        "header": {
+          "left": 551.203125,
+          "top": 13.5,
+          "right": 728.796875,
+          "bottom": 37.6875,
+          "width": 177.59375,
+          "height": 24.1875
+        },
+        "panelInsideViewport": true,
+        "zonesSeparated": true,
+        "controlsInside": true,
+        "controlsBelowMinimum": [],
+        "readout": {
+          "clientWidth": 1253,
+          "clientHeight": 666,
+          "scrollWidth": 1253,
+          "scrollHeight": 666,
+          "overflowX": "auto",
+          "overflowY": "auto"
+        },
+        "qrWhite": true,
+        "qrSquare": true,
+        "qrVisible": true,
+        "status": "ProntoNível 1 / 14 níveis",
+        "title": "",
+        "time": "20:00",
+        "blinds": "5 / 10",
+        "ante": ""
+      }
+    },
+    {
+      "id": "escuro-1280x900-zoom2.5",
+      "pass": true,
+      "geometry": {
+        "viewport": {
+          "width": 1280,
+          "height": 900
+        },
+        "page": {
+          "width": 1280,
+          "height": 900
+        },
+        "panel": {
+          "left": 0,
+          "top": 0,
+          "right": 1280,
+          "bottom": 900,
+          "width": 1280,
+          "height": 900
+        },
+        "stage": {
+          "left": 13.5,
+          "top": 13.5,
+          "right": 1266.5,
+          "bottom": 719.203125,
+          "width": 1253,
+          "height": 705.703125
+        },
+        "controls": {
+          "left": 162,
+          "top": 822.5,
+          "right": 1266.5,
+          "bottom": 886.5,
+          "width": 1104.5,
+          "height": 64
+        },
+        "footer": null,
+        "qr": {
+          "left": 13.5,
+          "top": 732.703125,
+          "right": 148.5,
+          "bottom": 886.5,
+          "width": 135,
+          "height": 153.796875
+        },
+        "header": {
+          "left": 551.203125,
+          "top": 13.5,
+          "right": 728.796875,
+          "bottom": 37.6875,
+          "width": 177.59375,
+          "height": 24.1875
+        },
+        "panelInsideViewport": true,
+        "zonesSeparated": true,
+        "controlsInside": true,
+        "controlsBelowMinimum": [],
+        "readout": {
+          "clientWidth": 1253,
+          "clientHeight": 666,
+          "scrollWidth": 2287,
+          "scrollHeight": 962,
+          "overflowX": "auto",
+          "overflowY": "auto"
+        },
+        "qrWhite": true,
+        "qrSquare": true,
+        "qrVisible": true,
+        "status": "ProntoNível 1 / 14 níveis",
+        "title": "",
+        "time": "20:00",
+        "blinds": "5 / 10",
+        "ante": ""
+      }
+    },
+    {
+      "id": "escuro-1920x1080-zoom0.5",
+      "pass": true,
+      "geometry": {
+        "viewport": {
+          "width": 1920,
+          "height": 1080
+        },
+        "page": {
+          "width": 1920,
+          "height": 1080
+        },
+        "panel": {
+          "left": 0,
+          "top": 0,
+          "right": 1920,
+          "bottom": 1080,
+          "width": 1920,
+          "height": 1080
+        },
+        "stage": {
+          "left": 16.1875,
+          "top": 16.1875,
+          "right": 1903.8125,
+          "bottom": 867.015625,
+          "width": 1887.625,
+          "height": 850.828125
+        },
+        "controls": {
+          "left": 194.1875,
+          "top": 996.21875,
+          "right": 1903.8125,
+          "bottom": 1063.8125,
+          "width": 1709.625,
+          "height": 67.59375
+        },
+        "footer": null,
+        "qr": {
+          "left": 16.1875,
+          "top": 883.015625,
+          "right": 178.1875,
+          "bottom": 1063.8125,
+          "width": 162,
+          "height": 180.796875
+        },
+        "header": {
+          "left": 871.203125,
+          "top": 16.1875,
+          "right": 1048.796875,
+          "bottom": 40.375,
+          "width": 177.59375,
+          "height": 24.1875
+        },
+        "panelInsideViewport": true,
+        "zonesSeparated": true,
+        "controlsInside": true,
+        "controlsBelowMinimum": [],
+        "readout": {
+          "clientWidth": 1888,
+          "clientHeight": 811,
+          "scrollWidth": 1888,
+          "scrollHeight": 811,
+          "overflowX": "auto",
+          "overflowY": "auto"
+        },
+        "qrWhite": true,
+        "qrSquare": true,
+        "qrVisible": true,
+        "status": "ProntoNível 1 / 14 níveis",
+        "title": "",
+        "time": "20:00",
+        "blinds": "5 / 10",
+        "ante": ""
+      }
+    },
+    {
+      "id": "escuro-1920x1080-zoom1",
+      "pass": true,
+      "geometry": {
+        "viewport": {
+          "width": 1920,
+          "height": 1080
+        },
+        "page": {
+          "width": 1920,
+          "height": 1080
+        },
+        "panel": {
+          "left": 0,
+          "top": 0,
+          "right": 1920,
+          "bottom": 1080,
+          "width": 1920,
+          "height": 1080
+        },
+        "stage": {
+          "left": 16.1875,
+          "top": 16.1875,
+          "right": 1903.8125,
+          "bottom": 867.015625,
+          "width": 1887.625,
+          "height": 850.828125
+        },
+        "controls": {
+          "left": 194.1875,
+          "top": 996.21875,
+          "right": 1903.8125,
+          "bottom": 1063.8125,
+          "width": 1709.625,
+          "height": 67.59375
+        },
+        "footer": null,
+        "qr": {
+          "left": 16.1875,
+          "top": 883.015625,
+          "right": 178.1875,
+          "bottom": 1063.8125,
+          "width": 162,
+          "height": 180.796875
+        },
+        "header": {
+          "left": 871.203125,
+          "top": 16.1875,
+          "right": 1048.796875,
+          "bottom": 40.375,
+          "width": 177.59375,
+          "height": 24.1875
+        },
+        "panelInsideViewport": true,
+        "zonesSeparated": true,
+        "controlsInside": true,
+        "controlsBelowMinimum": [],
+        "readout": {
+          "clientWidth": 1888,
+          "clientHeight": 811,
+          "scrollWidth": 1888,
+          "scrollHeight": 811,
+          "overflowX": "auto",
+          "overflowY": "auto"
+        },
+        "qrWhite": true,
+        "qrSquare": true,
+        "qrVisible": true,
+        "status": "ProntoNível 1 / 14 níveis",
+        "title": "",
+        "time": "20:00",
+        "blinds": "5 / 10",
+        "ante": ""
+      }
+    },
+    {
+      "id": "escuro-1920x1080-zoom2.5",
+      "pass": true,
+      "geometry": {
+        "viewport": {
+          "width": 1920,
+          "height": 1080
+        },
+        "page": {
+          "width": 1920,
+          "height": 1080
+        },
+        "panel": {
+          "left": 0,
+          "top": 0,
+          "right": 1920,
+          "bottom": 1080,
+          "width": 1920,
+          "height": 1080
+        },
+        "stage": {
+          "left": 16.1875,
+          "top": 16.1875,
+          "right": 1903.8125,
+          "bottom": 867.015625,
+          "width": 1887.625,
+          "height": 850.828125
+        },
+        "controls": {
+          "left": 194.1875,
+          "top": 996.21875,
+          "right": 1903.8125,
+          "bottom": 1063.8125,
+          "width": 1709.625,
+          "height": 67.59375
+        },
+        "footer": null,
+        "qr": {
+          "left": 16.1875,
+          "top": 883.015625,
+          "right": 178.1875,
+          "bottom": 1063.8125,
+          "width": 162,
+          "height": 180.796875
+        },
+        "header": {
+          "left": 871.203125,
+          "top": 16.1875,
+          "right": 1048.796875,
+          "bottom": 40.375,
+          "width": 177.59375,
+          "height": 24.1875
+        },
+        "panelInsideViewport": true,
+        "zonesSeparated": true,
+        "controlsInside": true,
+        "controlsBelowMinimum": [],
+        "readout": {
+          "clientWidth": 1888,
+          "clientHeight": 811,
+          "scrollWidth": 2287,
+          "scrollHeight": 1034,
+          "overflowX": "auto",
+          "overflowY": "auto"
+        },
+        "qrWhite": true,
+        "qrSquare": true,
+        "qrVisible": true,
+        "status": "ProntoNível 1 / 14 níveis",
+        "title": "",
+        "time": "20:00",
+        "blinds": "5 / 10",
+        "ante": ""
+      }
+    },
+    {
+      "id": "escuro-844x390-zoom0.5",
+      "pass": true,
+      "geometry": {
+        "viewport": {
+          "width": 844,
+          "height": 390
+        },
+        "page": {
+          "width": 844,
+          "height": 390
+        },
+        "panel": {
+          "left": 0,
+          "top": 0,
+          "right": 844,
+          "bottom": 390,
+          "width": 844,
+          "height": 390
+        },
+        "stage": {
+          "left": 3.890625,
+          "top": 3.890625,
+          "right": 840.109375,
+          "bottom": 306.109375,
+          "width": 836.21875,
+          "height": 302.21875
+        },
+        "controls": {
+          "left": 83.890625,
+          "top": 332.109375,
+          "right": 840.109375,
+          "bottom": 386.109375,
+          "width": 756.21875,
+          "height": 54
+        },
+        "footer": null,
+        "qr": {
+          "left": 3.890625,
+          "top": 314.109375,
+          "right": 75.890625,
+          "bottom": 386.109375,
+          "width": 72,
+          "height": 72
+        },
+        "header": {
+          "left": 333.203125,
+          "top": 3.890625,
+          "right": 510.796875,
+          "bottom": 28.078125,
+          "width": 177.59375,
+          "height": 24.1875
+        },
+        "panelInsideViewport": true,
+        "zonesSeparated": true,
+        "controlsInside": true,
+        "controlsBelowMinimum": [],
+        "readout": {
+          "clientWidth": 836,
+          "clientHeight": 262,
+          "scrollWidth": 836,
+          "scrollHeight": 262,
+          "overflowX": "auto",
+          "overflowY": "auto"
+        },
+        "qrWhite": true,
+        "qrSquare": true,
+        "qrVisible": true,
+        "status": "ProntoNível 1 / 14 níveis",
+        "title": "",
+        "time": "20:00",
+        "blinds": "5 / 10",
+        "ante": ""
+      }
+    },
+    {
+      "id": "escuro-844x390-zoom1",
+      "pass": true,
+      "geometry": {
+        "viewport": {
+          "width": 844,
+          "height": 390
+        },
+        "page": {
+          "width": 844,
+          "height": 390
+        },
+        "panel": {
+          "left": 0,
+          "top": 0,
+          "right": 844,
+          "bottom": 390,
+          "width": 844,
+          "height": 390
+        },
+        "stage": {
+          "left": 3.890625,
+          "top": 3.890625,
+          "right": 840.109375,
+          "bottom": 306.109375,
+          "width": 836.21875,
+          "height": 302.21875
+        },
+        "controls": {
+          "left": 83.890625,
+          "top": 332.109375,
+          "right": 840.109375,
+          "bottom": 386.109375,
+          "width": 756.21875,
+          "height": 54
+        },
+        "footer": null,
+        "qr": {
+          "left": 3.890625,
+          "top": 314.109375,
+          "right": 75.890625,
+          "bottom": 386.109375,
+          "width": 72,
+          "height": 72
+        },
+        "header": {
+          "left": 333.203125,
+          "top": 3.890625,
+          "right": 510.796875,
+          "bottom": 28.078125,
+          "width": 177.59375,
+          "height": 24.1875
+        },
+        "panelInsideViewport": true,
+        "zonesSeparated": true,
+        "controlsInside": true,
+        "controlsBelowMinimum": [],
+        "readout": {
+          "clientWidth": 836,
+          "clientHeight": 262,
+          "scrollWidth": 836,
+          "scrollHeight": 269,
+          "overflowX": "auto",
+          "overflowY": "auto"
+        },
+        "qrWhite": true,
+        "qrSquare": true,
+        "qrVisible": true,
+        "status": "ProntoNível 1 / 14 níveis",
+        "title": "",
+        "time": "20:00",
+        "blinds": "5 / 10",
+        "ante": ""
+      }
+    },
+    {
+      "id": "escuro-844x390-zoom2.5",
+      "pass": true,
+      "geometry": {
+        "viewport": {
+          "width": 844,
+          "height": 390
+        },
+        "page": {
+          "width": 844,
+          "height": 390
+        },
+        "panel": {
+          "left": 0,
+          "top": 0,
+          "right": 844,
+          "bottom": 390,
+          "width": 844,
+          "height": 390
+        },
+        "stage": {
+          "left": 3.890625,
+          "top": 3.890625,
+          "right": 840.109375,
+          "bottom": 306.109375,
+          "width": 836.21875,
+          "height": 302.21875
+        },
+        "controls": {
+          "left": 83.890625,
+          "top": 332.109375,
+          "right": 840.109375,
+          "bottom": 386.109375,
+          "width": 756.21875,
+          "height": 54
+        },
+        "footer": null,
+        "qr": {
+          "left": 3.890625,
+          "top": 314.109375,
+          "right": 75.890625,
+          "bottom": 386.109375,
+          "width": 72,
+          "height": 72
+        },
+        "header": {
+          "left": 333.203125,
+          "top": 3.890625,
+          "right": 510.796875,
+          "bottom": 28.078125,
+          "width": 177.59375,
+          "height": 24.1875
+        },
+        "panelInsideViewport": true,
+        "zonesSeparated": true,
+        "controlsInside": true,
+        "controlsBelowMinimum": [],
+        "readout": {
+          "clientWidth": 836,
+          "clientHeight": 262,
+          "scrollWidth": 1140,
+          "scrollHeight": 435,
+          "overflowX": "auto",
+          "overflowY": "auto"
+        },
+        "qrWhite": true,
+        "qrSquare": true,
+        "qrVisible": true,
+        "status": "ProntoNível 1 / 14 níveis",
+        "title": "",
+        "time": "20:00",
+        "blinds": "5 / 10",
+        "ante": ""
+      }
+    },
+    {
+      "id": "claro-390x844-zoom1",
+      "pass": true,
+      "geometry": {
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "page": {
+          "width": 390,
+          "height": 844
+        },
+        "panel": {
+          "left": 0,
+          "top": 0,
+          "right": 390,
+          "bottom": 844,
+          "width": 390,
+          "height": 844
+        },
+        "stage": {
+          "left": 5.84375,
+          "top": 5.84375,
+          "right": 384.15625,
+          "bottom": 720.15625,
+          "width": 378.3125,
+          "height": 714.3125
+        },
+        "controls": {
+          "left": 85.84375,
+          "top": 728.15625,
+          "right": 384.15625,
+          "bottom": 838.15625,
+          "width": 298.3125,
+          "height": 110
+        },
+        "footer": null,
+        "qr": {
+          "left": 5.84375,
+          "top": 750.96875,
+          "right": 77.84375,
+          "bottom": 838.15625,
+          "width": 72,
+          "height": 87.1875
+        },
+        "header": {
+          "left": 106.203125,
+          "top": 5.84375,
+          "right": 283.796875,
+          "bottom": 30.03125,
+          "width": 177.59375,
+          "height": 24.1875
+        },
+        "panelInsideViewport": true,
+        "zonesSeparated": true,
+        "controlsInside": true,
+        "controlsBelowMinimum": [],
+        "readout": {
+          "clientWidth": 378,
+          "clientHeight": 678,
+          "scrollWidth": 378,
+          "scrollHeight": 678,
+          "overflowX": "auto",
+          "overflowY": "auto"
+        },
+        "qrWhite": true,
+        "qrSquare": true,
+        "qrVisible": true,
+        "status": "ProntoNível 1 / 14 níveis",
+        "title": "",
+        "time": "20:00",
+        "blinds": "5 / 10",
+        "ante": ""
+      }
+    },
+    {
+      "id": "claro-1280x900-zoom1",
+      "pass": true,
+      "geometry": {
+        "viewport": {
+          "width": 1280,
+          "height": 900
+        },
+        "page": {
+          "width": 1280,
+          "height": 900
+        },
+        "panel": {
+          "left": 0,
+          "top": 0,
+          "right": 1280,
+          "bottom": 900,
+          "width": 1280,
+          "height": 900
+        },
+        "stage": {
+          "left": 13.5,
+          "top": 13.5,
+          "right": 1266.5,
+          "bottom": 719.203125,
+          "width": 1253,
+          "height": 705.703125
+        },
+        "controls": {
+          "left": 162,
+          "top": 822.5,
+          "right": 1266.5,
+          "bottom": 886.5,
+          "width": 1104.5,
+          "height": 64
+        },
+        "footer": null,
+        "qr": {
+          "left": 13.5,
+          "top": 732.703125,
+          "right": 148.5,
+          "bottom": 886.5,
+          "width": 135,
+          "height": 153.796875
+        },
+        "header": {
+          "left": 551.203125,
+          "top": 13.5,
+          "right": 728.796875,
+          "bottom": 37.6875,
+          "width": 177.59375,
+          "height": 24.1875
+        },
+        "panelInsideViewport": true,
+        "zonesSeparated": true,
+        "controlsInside": true,
+        "controlsBelowMinimum": [],
+        "readout": {
+          "clientWidth": 1253,
+          "clientHeight": 666,
+          "scrollWidth": 1253,
+          "scrollHeight": 666,
+          "overflowX": "auto",
+          "overflowY": "auto"
+        },
+        "qrWhite": true,
+        "qrSquare": true,
+        "qrVisible": true,
+        "status": "ProntoNível 1 / 14 níveis",
+        "title": "",
+        "time": "20:00",
+        "blinds": "5 / 10",
+        "ante": ""
+      }
+    },
+    {
+      "id": "feltro-390x844-zoom1",
+      "pass": true,
+      "geometry": {
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "page": {
+          "width": 390,
+          "height": 844
+        },
+        "panel": {
+          "left": 0,
+          "top": 0,
+          "right": 390,
+          "bottom": 844,
+          "width": 390,
+          "height": 844
+        },
+        "stage": {
+          "left": 5.84375,
+          "top": 5.84375,
+          "right": 384.15625,
+          "bottom": 720.15625,
+          "width": 378.3125,
+          "height": 714.3125
+        },
+        "controls": {
+          "left": 85.84375,
+          "top": 728.15625,
+          "right": 384.15625,
+          "bottom": 838.15625,
+          "width": 298.3125,
+          "height": 110
+        },
+        "footer": null,
+        "qr": {
+          "left": 5.84375,
+          "top": 750.96875,
+          "right": 77.84375,
+          "bottom": 838.15625,
+          "width": 72,
+          "height": 87.1875
+        },
+        "header": {
+          "left": 106.203125,
+          "top": 5.84375,
+          "right": 283.796875,
+          "bottom": 30.03125,
+          "width": 177.59375,
+          "height": 24.1875
+        },
+        "panelInsideViewport": true,
+        "zonesSeparated": true,
+        "controlsInside": true,
+        "controlsBelowMinimum": [],
+        "readout": {
+          "clientWidth": 378,
+          "clientHeight": 678,
+          "scrollWidth": 378,
+          "scrollHeight": 678,
+          "overflowX": "auto",
+          "overflowY": "auto"
+        },
+        "qrWhite": true,
+        "qrSquare": true,
+        "qrVisible": true,
+        "status": "ProntoNível 1 / 14 níveis",
+        "title": "",
+        "time": "20:00",
+        "blinds": "5 / 10",
+        "ante": ""
+      }
+    },
+    {
+      "id": "feltro-1280x900-zoom1",
+      "pass": true,
+      "geometry": {
+        "viewport": {
+          "width": 1280,
+          "height": 900
+        },
+        "page": {
+          "width": 1280,
+          "height": 900
+        },
+        "panel": {
+          "left": 0,
+          "top": 0,
+          "right": 1280,
+          "bottom": 900,
+          "width": 1280,
+          "height": 900
+        },
+        "stage": {
+          "left": 13.5,
+          "top": 13.5,
+          "right": 1266.5,
+          "bottom": 719.203125,
+          "width": 1253,
+          "height": 705.703125
+        },
+        "controls": {
+          "left": 162,
+          "top": 822.5,
+          "right": 1266.5,
+          "bottom": 886.5,
+          "width": 1104.5,
+          "height": 64
+        },
+        "footer": null,
+        "qr": {
+          "left": 13.5,
+          "top": 732.703125,
+          "right": 148.5,
+          "bottom": 886.5,
+          "width": 135,
+          "height": 153.796875
+        },
+        "header": {
+          "left": 551.203125,
+          "top": 13.5,
+          "right": 728.796875,
+          "bottom": 37.6875,
+          "width": 177.59375,
+          "height": 24.1875
+        },
+        "panelInsideViewport": true,
+        "zonesSeparated": true,
+        "controlsInside": true,
+        "controlsBelowMinimum": [],
+        "readout": {
+          "clientWidth": 1253,
+          "clientHeight": 666,
+          "scrollWidth": 1253,
+          "scrollHeight": 666,
+          "overflowX": "auto",
+          "overflowY": "auto"
+        },
+        "qrWhite": true,
+        "qrSquare": true,
+        "qrVisible": true,
+        "status": "ProntoNível 1 / 14 níveis",
+        "title": "",
+        "time": "20:00",
+        "blinds": "5 / 10",
+        "ante": ""
+      }
+    }
+  ],
+  "watch": [
+    {
+      "id": "escuro-320x800-zoom0.5",
+      "pass": true,
+      "geometry": {
+        "viewport": {
+          "width": 320,
+          "height": 800
+        },
+        "page": {
+          "width": 320,
+          "height": 800
+        },
+        "panel": {
+          "left": 0,
+          "top": 0,
+          "right": 320,
+          "bottom": 800,
+          "width": 320,
+          "height": 800
+        },
+        "stage": {
+          "left": 4.796875,
+          "top": 77.359375,
+          "right": 315.203125,
+          "bottom": 663.828125,
+          "width": 310.40625,
+          "height": 586.46875
+        },
+        "controls": null,
+        "footer": {
+          "left": 4.796875,
+          "top": 663.828125,
+          "right": 315.203125,
+          "bottom": 795.203125,
+          "width": 310.40625,
+          "height": 131.375
+        },
+        "qr": {
+          "left": 243.203125,
+          "top": 708.015625,
+          "right": 315.203125,
+          "bottom": 795.203125,
+          "width": 72,
+          "height": 87.1875
+        },
+        "header": {
+          "left": 4.796875,
+          "top": 4.796875,
+          "right": 315.203125,
+          "bottom": 77.359375,
+          "width": 310.40625,
+          "height": 72.5625
+        },
+        "panelInsideViewport": true,
+        "zonesSeparated": true,
+        "controlsInside": true,
+        "controlsBelowMinimum": [],
+        "readout": {
+          "clientWidth": 310,
+          "clientHeight": 586,
+          "scrollWidth": 310,
+          "scrollHeight": 586,
+          "overflowX": "auto",
+          "overflowY": "auto"
+        },
+        "qrWhite": true,
+        "qrSquare": true,
+        "qrVisible": true,
+        "status": "Mesa televisionada · Campeonato com nome excepcionalmente longoNível 1 / 2Em andamentoLate check-in",
+        "title": "Mesa televisionada · Campeonato com nome excepcionalmente longo",
+        "time": "19:01",
+        "blinds": "1.000 / 2.000",
+        "ante": "Ante (BB dobrado): 4.000"
+      }
+    },
+    {
+      "id": "escuro-320x800-zoom1",
+      "pass": true,
+      "geometry": {
+        "viewport": {
+          "width": 320,
+          "height": 800
+        },
+        "page": {
+          "width": 320,
+          "height": 800
+        },
+        "panel": {
+          "left": 0,
+          "top": 0,
+          "right": 320,
+          "bottom": 800,
+          "width": 320,
+          "height": 800
+        },
+        "stage": {
+          "left": 4.796875,
+          "top": 77.359375,
+          "right": 315.203125,
+          "bottom": 663.828125,
+          "width": 310.40625,
+          "height": 586.46875
+        },
+        "controls": null,
+        "footer": {
+          "left": 4.796875,
+          "top": 663.828125,
+          "right": 315.203125,
+          "bottom": 795.203125,
+          "width": 310.40625,
+          "height": 131.375
+        },
+        "qr": {
+          "left": 243.203125,
+          "top": 708.015625,
+          "right": 315.203125,
+          "bottom": 795.203125,
+          "width": 72,
+          "height": 87.1875
+        },
+        "header": {
+          "left": 4.796875,
+          "top": 4.796875,
+          "right": 315.203125,
+          "bottom": 77.359375,
+          "width": 310.40625,
+          "height": 72.5625
+        },
+        "panelInsideViewport": true,
+        "zonesSeparated": true,
+        "controlsInside": true,
+        "controlsBelowMinimum": [],
+        "readout": {
+          "clientWidth": 310,
+          "clientHeight": 586,
+          "scrollWidth": 310,
+          "scrollHeight": 586,
+          "overflowX": "auto",
+          "overflowY": "auto"
+        },
+        "qrWhite": true,
+        "qrSquare": true,
+        "qrVisible": true,
+        "status": "Mesa televisionada · Campeonato com nome excepcionalmente longoNível 1 / 2Em andamentoLate check-in",
+        "title": "Mesa televisionada · Campeonato com nome excepcionalmente longo",
+        "time": "19:00",
+        "blinds": "1.000 / 2.000",
+        "ante": "Ante (BB dobrado): 4.000"
+      }
+    },
+    {
+      "id": "escuro-320x800-zoom2.5",
+      "pass": true,
+      "geometry": {
+        "viewport": {
+          "width": 320,
+          "height": 800
+        },
+        "page": {
+          "width": 320,
+          "height": 800
+        },
+        "panel": {
+          "left": 0,
+          "top": 0,
+          "right": 320,
+          "bottom": 800,
+          "width": 320,
+          "height": 800
+        },
+        "stage": {
+          "left": 4.796875,
+          "top": 77.359375,
+          "right": 315.203125,
+          "bottom": 663.828125,
+          "width": 310.40625,
+          "height": 586.46875
+        },
+        "controls": null,
+        "footer": {
+          "left": 4.796875,
+          "top": 663.828125,
+          "right": 315.203125,
+          "bottom": 795.203125,
+          "width": 310.40625,
+          "height": 131.375
+        },
+        "qr": {
+          "left": 243.203125,
+          "top": 708.015625,
+          "right": 315.203125,
+          "bottom": 795.203125,
+          "width": 72,
+          "height": 87.1875
+        },
+        "header": {
+          "left": 4.796875,
+          "top": 4.796875,
+          "right": 315.203125,
+          "bottom": 77.359375,
+          "width": 310.40625,
+          "height": 72.5625
+        },
+        "panelInsideViewport": true,
+        "zonesSeparated": true,
+        "controlsInside": true,
+        "controlsBelowMinimum": [],
+        "readout": {
+          "clientWidth": 310,
+          "clientHeight": 586,
+          "scrollWidth": 582,
+          "scrollHeight": 648,
+          "overflowX": "auto",
+          "overflowY": "auto"
+        },
+        "qrWhite": true,
+        "qrSquare": true,
+        "qrVisible": true,
+        "status": "Mesa televisionada · Campeonato com nome excepcionalmente longoNível 1 / 2Em andamentoLate check-in",
+        "title": "Mesa televisionada · Campeonato com nome excepcionalmente longo",
+        "time": "19:00",
+        "blinds": "1.000 / 2.000",
+        "ante": "Ante (BB dobrado): 4.000"
+      }
+    },
+    {
+      "id": "escuro-390x844-zoom0.5",
+      "pass": true,
+      "geometry": {
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "page": {
+          "width": 390,
+          "height": 844
+        },
+        "panel": {
+          "left": 0,
+          "top": 0,
+          "right": 390,
+          "bottom": 844,
+          "width": 390,
+          "height": 844
+        },
+        "stage": {
+          "left": 5.84375,
+          "top": 78.40625,
+          "right": 384.15625,
+          "bottom": 750.96875,
+          "width": 378.3125,
+          "height": 672.5625
+        },
+        "controls": null,
+        "footer": {
+          "left": 5.84375,
+          "top": 750.96875,
+          "right": 384.15625,
+          "bottom": 838.15625,
+          "width": 378.3125,
+          "height": 87.1875
+        },
+        "qr": {
+          "left": 312.15625,
+          "top": 750.96875,
+          "right": 384.15625,
+          "bottom": 838.15625,
+          "width": 72,
+          "height": 87.1875
+        },
+        "header": {
+          "left": 5.84375,
+          "top": 5.84375,
+          "right": 384.15625,
+          "bottom": 78.40625,
+          "width": 378.3125,
+          "height": 72.5625
+        },
+        "panelInsideViewport": true,
+        "zonesSeparated": true,
+        "controlsInside": true,
+        "controlsBelowMinimum": [],
+        "readout": {
+          "clientWidth": 378,
+          "clientHeight": 673,
+          "scrollWidth": 378,
+          "scrollHeight": 673,
+          "overflowX": "auto",
+          "overflowY": "auto"
+        },
+        "qrWhite": true,
+        "qrSquare": true,
+        "qrVisible": true,
+        "status": "Mesa televisionada · Campeonato com nome excepcionalmente longoNível 1 / 2Em andamentoLate check-in",
+        "title": "Mesa televisionada · Campeonato com nome excepcionalmente longo",
+        "time": "19:00",
+        "blinds": "1.000 / 2.000",
+        "ante": "Ante (BB dobrado): 4.000"
+      }
+    },
+    {
+      "id": "escuro-390x844-zoom1",
+      "pass": true,
+      "geometry": {
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "page": {
+          "width": 390,
+          "height": 844
+        },
+        "panel": {
+          "left": 0,
+          "top": 0,
+          "right": 390,
+          "bottom": 844,
+          "width": 390,
+          "height": 844
+        },
+        "stage": {
+          "left": 5.84375,
+          "top": 78.40625,
+          "right": 384.15625,
+          "bottom": 750.96875,
+          "width": 378.3125,
+          "height": 672.5625
+        },
+        "controls": null,
+        "footer": {
+          "left": 5.84375,
+          "top": 750.96875,
+          "right": 384.15625,
+          "bottom": 838.15625,
+          "width": 378.3125,
+          "height": 87.1875
+        },
+        "qr": {
+          "left": 312.15625,
+          "top": 750.96875,
+          "right": 384.15625,
+          "bottom": 838.15625,
+          "width": 72,
+          "height": 87.1875
+        },
+        "header": {
+          "left": 5.84375,
+          "top": 5.84375,
+          "right": 384.15625,
+          "bottom": 78.40625,
+          "width": 378.3125,
+          "height": 72.5625
+        },
+        "panelInsideViewport": true,
+        "zonesSeparated": true,
+        "controlsInside": true,
+        "controlsBelowMinimum": [],
+        "readout": {
+          "clientWidth": 378,
+          "clientHeight": 673,
+          "scrollWidth": 378,
+          "scrollHeight": 673,
+          "overflowX": "auto",
+          "overflowY": "auto"
+        },
+        "qrWhite": true,
+        "qrSquare": true,
+        "qrVisible": true,
+        "status": "Mesa televisionada · Campeonato com nome excepcionalmente longoNível 1 / 2Em andamentoLate check-in",
+        "title": "Mesa televisionada · Campeonato com nome excepcionalmente longo",
+        "time": "19:00",
+        "blinds": "1.000 / 2.000",
+        "ante": "Ante (BB dobrado): 4.000"
+      }
+    },
+    {
+      "id": "escuro-390x844-zoom2.5",
+      "pass": true,
+      "geometry": {
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "page": {
+          "width": 390,
+          "height": 844
+        },
+        "panel": {
+          "left": 0,
+          "top": 0,
+          "right": 390,
+          "bottom": 844,
+          "width": 390,
+          "height": 844
+        },
+        "stage": {
+          "left": 5.84375,
+          "top": 78.40625,
+          "right": 384.15625,
+          "bottom": 750.96875,
+          "width": 378.3125,
+          "height": 672.5625
+        },
+        "controls": null,
+        "footer": {
+          "left": 5.84375,
+          "top": 750.96875,
+          "right": 384.15625,
+          "bottom": 838.15625,
+          "width": 378.3125,
+          "height": 87.1875
+        },
+        "qr": {
+          "left": 312.15625,
+          "top": 750.96875,
+          "right": 384.15625,
+          "bottom": 838.15625,
+          "width": 72,
+          "height": 87.1875
+        },
+        "header": {
+          "left": 5.84375,
+          "top": 5.84375,
+          "right": 384.15625,
+          "bottom": 78.40625,
+          "width": 378.3125,
+          "height": 72.5625
+        },
+        "panelInsideViewport": true,
+        "zonesSeparated": true,
+        "controlsInside": true,
+        "controlsBelowMinimum": [],
+        "readout": {
+          "clientWidth": 378,
+          "clientHeight": 673,
+          "scrollWidth": 709,
+          "scrollHeight": 763,
+          "overflowX": "auto",
+          "overflowY": "auto"
+        },
+        "qrWhite": true,
+        "qrSquare": true,
+        "qrVisible": true,
+        "status": "Mesa televisionada · Campeonato com nome excepcionalmente longoNível 1 / 2Em andamentoLate check-in",
+        "title": "Mesa televisionada · Campeonato com nome excepcionalmente longo",
+        "time": "19:00",
+        "blinds": "1.000 / 2.000",
+        "ante": "Ante (BB dobrado): 4.000"
+      }
+    },
+    {
+      "id": "escuro-768x1024-zoom0.5",
+      "pass": true,
+      "geometry": {
+        "viewport": {
+          "width": 768,
+          "height": 1024
+        },
+        "page": {
+          "width": 768,
+          "height": 1024
+        },
+        "panel": {
+          "left": 0,
+          "top": 0,
+          "right": 768,
+          "bottom": 1024,
+          "width": 768,
+          "height": 1024
+        },
+        "stage": {
+          "left": 11.515625,
+          "top": 35.703125,
+          "right": 756.484375,
+          "bottom": 878.5,
+          "width": 744.96875,
+          "height": 842.796875
+        },
+        "controls": null,
+        "footer": {
+          "left": 11.515625,
+          "top": 878.5,
+          "right": 756.484375,
+          "bottom": 1012.484375,
+          "width": 744.96875,
+          "height": 133.984375
+        },
+        "qr": {
+          "left": 641.296875,
+          "top": 878.5,
+          "right": 756.484375,
+          "bottom": 1012.484375,
+          "width": 115.1875,
+          "height": 133.984375
+        },
+        "header": {
+          "left": 11.515625,
+          "top": 11.515625,
+          "right": 756.484375,
+          "bottom": 35.703125,
+          "width": 744.96875,
+          "height": 24.1875
+        },
+        "panelInsideViewport": true,
+        "zonesSeparated": true,
+        "controlsInside": true,
+        "controlsBelowMinimum": [],
+        "readout": {
+          "clientWidth": 745,
+          "clientHeight": 843,
+          "scrollWidth": 745,
+          "scrollHeight": 843,
+          "overflowX": "auto",
+          "overflowY": "auto"
+        },
+        "qrWhite": true,
+        "qrSquare": true,
+        "qrVisible": true,
+        "status": "Mesa televisionada · Campeonato com nome excepcionalmente longoNível 1 / 2Em andamentoLate check-in",
+        "title": "Mesa televisionada · Campeonato com nome excepcionalmente longo",
+        "time": "19:00",
+        "blinds": "1.000 / 2.000",
+        "ante": "Ante (BB dobrado): 4.000"
+      }
+    },
+    {
+      "id": "escuro-768x1024-zoom1",
+      "pass": true,
+      "geometry": {
+        "viewport": {
+          "width": 768,
+          "height": 1024
+        },
+        "page": {
+          "width": 768,
+          "height": 1024
+        },
+        "panel": {
+          "left": 0,
+          "top": 0,
+          "right": 768,
+          "bottom": 1024,
+          "width": 768,
+          "height": 1024
+        },
+        "stage": {
+          "left": 11.515625,
+          "top": 35.703125,
+          "right": 756.484375,
+          "bottom": 878.5,
+          "width": 744.96875,
+          "height": 842.796875
+        },
+        "controls": null,
+        "footer": {
+          "left": 11.515625,
+          "top": 878.5,
+          "right": 756.484375,
+          "bottom": 1012.484375,
+          "width": 744.96875,
+          "height": 133.984375
+        },
+        "qr": {
+          "left": 641.296875,
+          "top": 878.5,
+          "right": 756.484375,
+          "bottom": 1012.484375,
+          "width": 115.1875,
+          "height": 133.984375
+        },
+        "header": {
+          "left": 11.515625,
+          "top": 11.515625,
+          "right": 756.484375,
+          "bottom": 35.703125,
+          "width": 744.96875,
+          "height": 24.1875
+        },
+        "panelInsideViewport": true,
+        "zonesSeparated": true,
+        "controlsInside": true,
+        "controlsBelowMinimum": [],
+        "readout": {
+          "clientWidth": 745,
+          "clientHeight": 843,
+          "scrollWidth": 745,
+          "scrollHeight": 843,
+          "overflowX": "auto",
+          "overflowY": "auto"
+        },
+        "qrWhite": true,
+        "qrSquare": true,
+        "qrVisible": true,
+        "status": "Mesa televisionada · Campeonato com nome excepcionalmente longoNível 1 / 2Em andamentoLate check-in",
+        "title": "Mesa televisionada · Campeonato com nome excepcionalmente longo",
+        "time": "19:00",
+        "blinds": "1.000 / 2.000",
+        "ante": "Ante (BB dobrado): 4.000"
+      }
+    },
+    {
+      "id": "escuro-768x1024-zoom2.5",
+      "pass": true,
+      "geometry": {
+        "viewport": {
+          "width": 768,
+          "height": 1024
+        },
+        "page": {
+          "width": 768,
+          "height": 1024
+        },
+        "panel": {
+          "left": 0,
+          "top": 0,
+          "right": 768,
+          "bottom": 1024,
+          "width": 768,
+          "height": 1024
+        },
+        "stage": {
+          "left": 11.515625,
+          "top": 35.703125,
+          "right": 756.484375,
+          "bottom": 878.5,
+          "width": 744.96875,
+          "height": 842.796875
+        },
+        "controls": null,
+        "footer": {
+          "left": 11.515625,
+          "top": 878.5,
+          "right": 756.484375,
+          "bottom": 1012.484375,
+          "width": 744.96875,
+          "height": 133.984375
+        },
+        "qr": {
+          "left": 641.296875,
+          "top": 878.5,
+          "right": 756.484375,
+          "bottom": 1012.484375,
+          "width": 115.1875,
+          "height": 133.984375
+        },
+        "header": {
+          "left": 11.515625,
+          "top": 11.515625,
+          "right": 756.484375,
+          "bottom": 35.703125,
+          "width": 744.96875,
+          "height": 24.1875
+        },
+        "panelInsideViewport": true,
+        "zonesSeparated": true,
+        "controlsInside": true,
+        "controlsBelowMinimum": [],
+        "readout": {
+          "clientWidth": 745,
+          "clientHeight": 843,
+          "scrollWidth": 1397,
+          "scrollHeight": 1130,
+          "overflowX": "auto",
+          "overflowY": "auto"
+        },
+        "qrWhite": true,
+        "qrSquare": true,
+        "qrVisible": true,
+        "status": "Mesa televisionada · Campeonato com nome excepcionalmente longoNível 1 / 2Em andamentoLate check-in",
+        "title": "Mesa televisionada · Campeonato com nome excepcionalmente longo",
+        "time": "19:00",
+        "blinds": "1.000 / 2.000",
+        "ante": "Ante (BB dobrado): 4.000"
+      }
+    },
+    {
+      "id": "escuro-1280x900-zoom0.5",
+      "pass": true,
+      "geometry": {
+        "viewport": {
+          "width": 1280,
+          "height": 900
+        },
+        "page": {
+          "width": 1280,
+          "height": 900
+        },
+        "panel": {
+          "left": 0,
+          "top": 0,
+          "right": 1280,
+          "bottom": 900,
+          "width": 1280,
+          "height": 900
+        },
+        "stage": {
+          "left": 13.5,
+          "top": 37.6875,
+          "right": 1266.5,
+          "bottom": 732.703125,
+          "width": 1253,
+          "height": 695.015625
+        },
+        "controls": null,
+        "footer": {
+          "left": 13.5,
+          "top": 732.703125,
+          "right": 1266.5,
+          "bottom": 886.5,
+          "width": 1253,
+          "height": 153.796875
+        },
+        "qr": {
+          "left": 1131.5,
+          "top": 732.703125,
+          "right": 1266.5,
+          "bottom": 886.5,
+          "width": 135,
+          "height": 153.796875
+        },
+        "header": {
+          "left": 13.5,
+          "top": 13.5,
+          "right": 1266.5,
+          "bottom": 37.6875,
+          "width": 1253,
+          "height": 24.1875
+        },
+        "panelInsideViewport": true,
+        "zonesSeparated": true,
+        "controlsInside": true,
+        "controlsBelowMinimum": [],
+        "readout": {
+          "clientWidth": 1253,
+          "clientHeight": 695,
+          "scrollWidth": 1253,
+          "scrollHeight": 695,
+          "overflowX": "auto",
+          "overflowY": "auto"
+        },
+        "qrWhite": true,
+        "qrSquare": true,
+        "qrVisible": true,
+        "status": "Mesa televisionada · Campeonato com nome excepcionalmente longoNível 1 / 2Em andamentoLate check-in",
+        "title": "Mesa televisionada · Campeonato com nome excepcionalmente longo",
+        "time": "19:00",
+        "blinds": "1.000 / 2.000",
+        "ante": "Ante (BB dobrado): 4.000"
+      }
+    },
+    {
+      "id": "escuro-1280x900-zoom1",
+      "pass": true,
+      "geometry": {
+        "viewport": {
+          "width": 1280,
+          "height": 900
+        },
+        "page": {
+          "width": 1280,
+          "height": 900
+        },
+        "panel": {
+          "left": 0,
+          "top": 0,
+          "right": 1280,
+          "bottom": 900,
+          "width": 1280,
+          "height": 900
+        },
+        "stage": {
+          "left": 13.5,
+          "top": 37.6875,
+          "right": 1266.5,
+          "bottom": 732.703125,
+          "width": 1253,
+          "height": 695.015625
+        },
+        "controls": null,
+        "footer": {
+          "left": 13.5,
+          "top": 732.703125,
+          "right": 1266.5,
+          "bottom": 886.5,
+          "width": 1253,
+          "height": 153.796875
+        },
+        "qr": {
+          "left": 1131.5,
+          "top": 732.703125,
+          "right": 1266.5,
+          "bottom": 886.5,
+          "width": 135,
+          "height": 153.796875
+        },
+        "header": {
+          "left": 13.5,
+          "top": 13.5,
+          "right": 1266.5,
+          "bottom": 37.6875,
+          "width": 1253,
+          "height": 24.1875
+        },
+        "panelInsideViewport": true,
+        "zonesSeparated": true,
+        "controlsInside": true,
+        "controlsBelowMinimum": [],
+        "readout": {
+          "clientWidth": 1253,
+          "clientHeight": 695,
+          "scrollWidth": 1253,
+          "scrollHeight": 695,
+          "overflowX": "auto",
+          "overflowY": "auto"
+        },
+        "qrWhite": true,
+        "qrSquare": true,
+        "qrVisible": true,
+        "status": "Mesa televisionada · Campeonato com nome excepcionalmente longoNível 1 / 2Em andamentoLate check-in",
+        "title": "Mesa televisionada · Campeonato com nome excepcionalmente longo",
+        "time": "19:00",
+        "blinds": "1.000 / 2.000",
+        "ante": "Ante (BB dobrado): 4.000"
+      }
+    },
+    {
+      "id": "escuro-1280x900-zoom2.5",
+      "pass": true,
+      "geometry": {
+        "viewport": {
+          "width": 1280,
+          "height": 900
+        },
+        "page": {
+          "width": 1280,
+          "height": 900
+        },
+        "panel": {
+          "left": 0,
+          "top": 0,
+          "right": 1280,
+          "bottom": 900,
+          "width": 1280,
+          "height": 900
+        },
+        "stage": {
+          "left": 13.5,
+          "top": 37.6875,
+          "right": 1266.5,
+          "bottom": 732.703125,
+          "width": 1253,
+          "height": 695.015625
+        },
+        "controls": null,
+        "footer": {
+          "left": 13.5,
+          "top": 732.703125,
+          "right": 1266.5,
+          "bottom": 886.5,
+          "width": 1253,
+          "height": 153.796875
+        },
+        "qr": {
+          "left": 1131.5,
+          "top": 732.703125,
+          "right": 1266.5,
+          "bottom": 886.5,
+          "width": 135,
+          "height": 153.796875
+        },
+        "header": {
+          "left": 13.5,
+          "top": 13.5,
+          "right": 1266.5,
+          "bottom": 37.6875,
+          "width": 1253,
+          "height": 24.1875
+        },
+        "panelInsideViewport": true,
+        "zonesSeparated": true,
+        "controlsInside": true,
+        "controlsBelowMinimum": [],
+        "readout": {
+          "clientWidth": 1253,
+          "clientHeight": 695,
+          "scrollWidth": 2183,
+          "scrollHeight": 1249,
+          "overflowX": "auto",
+          "overflowY": "auto"
+        },
+        "qrWhite": true,
+        "qrSquare": true,
+        "qrVisible": true,
+        "status": "Mesa televisionada · Campeonato com nome excepcionalmente longoNível 1 / 2Em andamentoLate check-in",
+        "title": "Mesa televisionada · Campeonato com nome excepcionalmente longo",
+        "time": "19:00",
+        "blinds": "1.000 / 2.000",
+        "ante": "Ante (BB dobrado): 4.000"
+      }
+    },
+    {
+      "id": "escuro-1920x1080-zoom0.5",
+      "pass": true,
+      "geometry": {
+        "viewport": {
+          "width": 1920,
+          "height": 1080
+        },
+        "page": {
+          "width": 1920,
+          "height": 1080
+        },
+        "panel": {
+          "left": 0,
+          "top": 0,
+          "right": 1920,
+          "bottom": 1080,
+          "width": 1920,
+          "height": 1080
+        },
+        "stage": {
+          "left": 16.1875,
+          "top": 40.375,
+          "right": 1903.8125,
+          "bottom": 883.015625,
+          "width": 1887.625,
+          "height": 842.640625
+        },
+        "controls": null,
+        "footer": {
+          "left": 16.1875,
+          "top": 883.015625,
+          "right": 1903.8125,
+          "bottom": 1063.8125,
+          "width": 1887.625,
+          "height": 180.796875
+        },
+        "qr": {
+          "left": 1741.8125,
+          "top": 883.015625,
+          "right": 1903.8125,
+          "bottom": 1063.8125,
+          "width": 162,
+          "height": 180.796875
+        },
+        "header": {
+          "left": 16.1875,
+          "top": 16.1875,
+          "right": 1903.8125,
+          "bottom": 40.375,
+          "width": 1887.625,
+          "height": 24.1875
+        },
+        "panelInsideViewport": true,
+        "zonesSeparated": true,
+        "controlsInside": true,
+        "controlsBelowMinimum": [],
+        "readout": {
+          "clientWidth": 1888,
+          "clientHeight": 843,
+          "scrollWidth": 1888,
+          "scrollHeight": 843,
+          "overflowX": "auto",
+          "overflowY": "auto"
+        },
+        "qrWhite": true,
+        "qrSquare": true,
+        "qrVisible": true,
+        "status": "Mesa televisionada · Campeonato com nome excepcionalmente longoNível 1 / 2Em andamentoLate check-in",
+        "title": "Mesa televisionada · Campeonato com nome excepcionalmente longo",
+        "time": "19:01",
+        "blinds": "1.000 / 2.000",
+        "ante": "Ante (BB dobrado): 4.000"
+      }
+    },
+    {
+      "id": "escuro-1920x1080-zoom1",
+      "pass": true,
+      "geometry": {
+        "viewport": {
+          "width": 1920,
+          "height": 1080
+        },
+        "page": {
+          "width": 1920,
+          "height": 1080
+        },
+        "panel": {
+          "left": 0,
+          "top": 0,
+          "right": 1920,
+          "bottom": 1080,
+          "width": 1920,
+          "height": 1080
+        },
+        "stage": {
+          "left": 16.1875,
+          "top": 40.375,
+          "right": 1903.8125,
+          "bottom": 883.015625,
+          "width": 1887.625,
+          "height": 842.640625
+        },
+        "controls": null,
+        "footer": {
+          "left": 16.1875,
+          "top": 883.015625,
+          "right": 1903.8125,
+          "bottom": 1063.8125,
+          "width": 1887.625,
+          "height": 180.796875
+        },
+        "qr": {
+          "left": 1741.8125,
+          "top": 883.015625,
+          "right": 1903.8125,
+          "bottom": 1063.8125,
+          "width": 162,
+          "height": 180.796875
+        },
+        "header": {
+          "left": 16.1875,
+          "top": 16.1875,
+          "right": 1903.8125,
+          "bottom": 40.375,
+          "width": 1887.625,
+          "height": 24.1875
+        },
+        "panelInsideViewport": true,
+        "zonesSeparated": true,
+        "controlsInside": true,
+        "controlsBelowMinimum": [],
+        "readout": {
+          "clientWidth": 1888,
+          "clientHeight": 843,
+          "scrollWidth": 1888,
+          "scrollHeight": 843,
+          "overflowX": "auto",
+          "overflowY": "auto"
+        },
+        "qrWhite": true,
+        "qrSquare": true,
+        "qrVisible": true,
+        "status": "Mesa televisionada · Campeonato com nome excepcionalmente longoNível 1 / 2Em andamentoLate check-in",
+        "title": "Mesa televisionada · Campeonato com nome excepcionalmente longo",
+        "time": "19:01",
+        "blinds": "1.000 / 2.000",
+        "ante": "Ante (BB dobrado): 4.000"
+      }
+    },
+    {
+      "id": "escuro-1920x1080-zoom2.5",
+      "pass": true,
+      "geometry": {
+        "viewport": {
+          "width": 1920,
+          "height": 1080
+        },
+        "page": {
+          "width": 1920,
+          "height": 1080
+        },
+        "panel": {
+          "left": 0,
+          "top": 0,
+          "right": 1920,
+          "bottom": 1080,
+          "width": 1920,
+          "height": 1080
+        },
+        "stage": {
+          "left": 16.1875,
+          "top": 40.375,
+          "right": 1903.8125,
+          "bottom": 883.015625,
+          "width": 1887.625,
+          "height": 842.640625
+        },
+        "controls": null,
+        "footer": {
+          "left": 16.1875,
+          "top": 883.015625,
+          "right": 1903.8125,
+          "bottom": 1063.8125,
+          "width": 1887.625,
+          "height": 180.796875
+        },
+        "qr": {
+          "left": 1741.8125,
+          "top": 883.015625,
+          "right": 1903.8125,
+          "bottom": 1063.8125,
+          "width": 162,
+          "height": 180.796875
+        },
+        "header": {
+          "left": 16.1875,
+          "top": 16.1875,
+          "right": 1903.8125,
+          "bottom": 40.375,
+          "width": 1887.625,
+          "height": 24.1875
+        },
+        "panelInsideViewport": true,
+        "zonesSeparated": true,
+        "controlsInside": true,
+        "controlsBelowMinimum": [],
+        "readout": {
+          "clientWidth": 1888,
+          "clientHeight": 843,
+          "scrollWidth": 2183,
+          "scrollHeight": 1322,
+          "overflowX": "auto",
+          "overflowY": "auto"
+        },
+        "qrWhite": true,
+        "qrSquare": true,
+        "qrVisible": true,
+        "status": "Mesa televisionada · Campeonato com nome excepcionalmente longoNível 1 / 2Em andamentoLate check-in",
+        "title": "Mesa televisionada · Campeonato com nome excepcionalmente longo",
+        "time": "19:00",
+        "blinds": "1.000 / 2.000",
+        "ante": "Ante (BB dobrado): 4.000"
+      }
+    },
+    {
+      "id": "escuro-844x390-zoom0.5",
+      "pass": true,
+      "geometry": {
+        "viewport": {
+          "width": 844,
+          "height": 390
+        },
+        "page": {
+          "width": 844,
+          "height": 390
+        },
+        "panel": {
+          "left": 0,
+          "top": 0,
+          "right": 844,
+          "bottom": 390,
+          "width": 844,
+          "height": 390
+        },
+        "stage": {
+          "left": 3.890625,
+          "top": 36.078125,
+          "right": 840.109375,
+          "bottom": 306.109375,
+          "width": 836.21875,
+          "height": 270.03125
+        },
+        "controls": null,
+        "footer": {
+          "left": 3.890625,
+          "top": 314.109375,
+          "right": 840.109375,
+          "bottom": 386.109375,
+          "width": 836.21875,
+          "height": 72
+        },
+        "qr": {
+          "left": 768.109375,
+          "top": 314.109375,
+          "right": 840.109375,
+          "bottom": 386.109375,
+          "width": 72,
+          "height": 72
+        },
+        "header": {
+          "left": 3.890625,
+          "top": 3.890625,
+          "right": 840.109375,
+          "bottom": 28.078125,
+          "width": 836.21875,
+          "height": 24.1875
+        },
+        "panelInsideViewport": true,
+        "zonesSeparated": true,
+        "controlsInside": true,
+        "controlsBelowMinimum": [],
+        "readout": {
+          "clientWidth": 836,
+          "clientHeight": 270,
+          "scrollWidth": 836,
+          "scrollHeight": 270,
+          "overflowX": "auto",
+          "overflowY": "auto"
+        },
+        "qrWhite": true,
+        "qrSquare": true,
+        "qrVisible": true,
+        "status": "Mesa televisionada · Campeonato com nome excepcionalmente longoNível 1 / 2Em andamentoLate check-in",
+        "title": "Mesa televisionada · Campeonato com nome excepcionalmente longo",
+        "time": "19:00",
+        "blinds": "1.000 / 2.000",
+        "ante": "Ante (BB dobrado): 4.000"
+      }
+    },
+    {
+      "id": "escuro-844x390-zoom1",
+      "pass": true,
+      "geometry": {
+        "viewport": {
+          "width": 844,
+          "height": 390
+        },
+        "page": {
+          "width": 844,
+          "height": 390
+        },
+        "panel": {
+          "left": 0,
+          "top": 0,
+          "right": 844,
+          "bottom": 390,
+          "width": 844,
+          "height": 390
+        },
+        "stage": {
+          "left": 3.890625,
+          "top": 36.078125,
+          "right": 840.109375,
+          "bottom": 306.109375,
+          "width": 836.21875,
+          "height": 270.03125
+        },
+        "controls": null,
+        "footer": {
+          "left": 3.890625,
+          "top": 314.109375,
+          "right": 840.109375,
+          "bottom": 386.109375,
+          "width": 836.21875,
+          "height": 72
+        },
+        "qr": {
+          "left": 768.109375,
+          "top": 314.109375,
+          "right": 840.109375,
+          "bottom": 386.109375,
+          "width": 72,
+          "height": 72
+        },
+        "header": {
+          "left": 3.890625,
+          "top": 3.890625,
+          "right": 840.109375,
+          "bottom": 28.078125,
+          "width": 836.21875,
+          "height": 24.1875
+        },
+        "panelInsideViewport": true,
+        "zonesSeparated": true,
+        "controlsInside": true,
+        "controlsBelowMinimum": [],
+        "readout": {
+          "clientWidth": 836,
+          "clientHeight": 270,
+          "scrollWidth": 836,
+          "scrollHeight": 298,
+          "overflowX": "auto",
+          "overflowY": "auto"
+        },
+        "qrWhite": true,
+        "qrSquare": true,
+        "qrVisible": true,
+        "status": "Mesa televisionada · Campeonato com nome excepcionalmente longoNível 1 / 2Em andamentoLate check-in",
+        "title": "Mesa televisionada · Campeonato com nome excepcionalmente longo",
+        "time": "19:00",
+        "blinds": "1.000 / 2.000",
+        "ante": "Ante (BB dobrado): 4.000"
+      }
+    },
+    {
+      "id": "escuro-844x390-zoom2.5",
+      "pass": true,
+      "geometry": {
+        "viewport": {
+          "width": 844,
+          "height": 390
+        },
+        "page": {
+          "width": 844,
+          "height": 390
+        },
+        "panel": {
+          "left": 0,
+          "top": 0,
+          "right": 844,
+          "bottom": 390,
+          "width": 844,
+          "height": 390
+        },
+        "stage": {
+          "left": 3.890625,
+          "top": 36.078125,
+          "right": 840.109375,
+          "bottom": 306.109375,
+          "width": 836.21875,
+          "height": 270.03125
+        },
+        "controls": null,
+        "footer": {
+          "left": 3.890625,
+          "top": 314.109375,
+          "right": 840.109375,
+          "bottom": 386.109375,
+          "width": 836.21875,
+          "height": 72
+        },
+        "qr": {
+          "left": 768.109375,
+          "top": 314.109375,
+          "right": 840.109375,
+          "bottom": 386.109375,
+          "width": 72,
+          "height": 72
+        },
+        "header": {
+          "left": 3.890625,
+          "top": 3.890625,
+          "right": 840.109375,
+          "bottom": 28.078125,
+          "width": 836.21875,
+          "height": 24.1875
+        },
+        "panelInsideViewport": true,
+        "zonesSeparated": true,
+        "controlsInside": true,
+        "controlsBelowMinimum": [],
+        "readout": {
+          "clientWidth": 836,
+          "clientHeight": 270,
+          "scrollWidth": 1088,
+          "scrollHeight": 494,
+          "overflowX": "auto",
+          "overflowY": "auto"
+        },
+        "qrWhite": true,
+        "qrSquare": true,
+        "qrVisible": true,
+        "status": "Mesa televisionada · Campeonato com nome excepcionalmente longoNível 1 / 2Em andamentoLate check-in",
+        "title": "Mesa televisionada · Campeonato com nome excepcionalmente longo",
+        "time": "19:00",
+        "blinds": "1.000 / 2.000",
+        "ante": "Ante (BB dobrado): 4.000"
+      }
+    },
+    {
+      "id": "claro-390x844-zoom1",
+      "pass": true,
+      "geometry": {
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "page": {
+          "width": 390,
+          "height": 844
+        },
+        "panel": {
+          "left": 0,
+          "top": 0,
+          "right": 390,
+          "bottom": 844,
+          "width": 390,
+          "height": 844
+        },
+        "stage": {
+          "left": 5.84375,
+          "top": 78.40625,
+          "right": 384.15625,
+          "bottom": 750.96875,
+          "width": 378.3125,
+          "height": 672.5625
+        },
+        "controls": null,
+        "footer": {
+          "left": 5.84375,
+          "top": 750.96875,
+          "right": 384.15625,
+          "bottom": 838.15625,
+          "width": 378.3125,
+          "height": 87.1875
+        },
+        "qr": {
+          "left": 312.15625,
+          "top": 750.96875,
+          "right": 384.15625,
+          "bottom": 838.15625,
+          "width": 72,
+          "height": 87.1875
+        },
+        "header": {
+          "left": 5.84375,
+          "top": 5.84375,
+          "right": 384.15625,
+          "bottom": 78.40625,
+          "width": 378.3125,
+          "height": 72.5625
+        },
+        "panelInsideViewport": true,
+        "zonesSeparated": true,
+        "controlsInside": true,
+        "controlsBelowMinimum": [],
+        "readout": {
+          "clientWidth": 378,
+          "clientHeight": 673,
+          "scrollWidth": 378,
+          "scrollHeight": 673,
+          "overflowX": "auto",
+          "overflowY": "auto"
+        },
+        "qrWhite": true,
+        "qrSquare": true,
+        "qrVisible": true,
+        "status": "Mesa televisionada · Campeonato com nome excepcionalmente longoNível 1 / 2Em andamentoLate check-in",
+        "title": "Mesa televisionada · Campeonato com nome excepcionalmente longo",
+        "time": "19:00",
+        "blinds": "1.000 / 2.000",
+        "ante": "Ante (BB dobrado): 4.000"
+      }
+    },
+    {
+      "id": "feltro-390x844-zoom1",
+      "pass": true,
+      "geometry": {
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "page": {
+          "width": 390,
+          "height": 844
+        },
+        "panel": {
+          "left": 0,
+          "top": 0,
+          "right": 390,
+          "bottom": 844,
+          "width": 390,
+          "height": 844
+        },
+        "stage": {
+          "left": 5.84375,
+          "top": 78.40625,
+          "right": 384.15625,
+          "bottom": 750.96875,
+          "width": 378.3125,
+          "height": 672.5625
+        },
+        "controls": null,
+        "footer": {
+          "left": 5.84375,
+          "top": 750.96875,
+          "right": 384.15625,
+          "bottom": 838.15625,
+          "width": 378.3125,
+          "height": 87.1875
+        },
+        "qr": {
+          "left": 312.15625,
+          "top": 750.96875,
+          "right": 384.15625,
+          "bottom": 838.15625,
+          "width": 72,
+          "height": 87.1875
+        },
+        "header": {
+          "left": 5.84375,
+          "top": 5.84375,
+          "right": 384.15625,
+          "bottom": 78.40625,
+          "width": 378.3125,
+          "height": 72.5625
+        },
+        "panelInsideViewport": true,
+        "zonesSeparated": true,
+        "controlsInside": true,
+        "controlsBelowMinimum": [],
+        "readout": {
+          "clientWidth": 378,
+          "clientHeight": 673,
+          "scrollWidth": 378,
+          "scrollHeight": 673,
+          "overflowX": "auto",
+          "overflowY": "auto"
+        },
+        "qrWhite": true,
+        "qrSquare": true,
+        "qrVisible": true,
+        "status": "Mesa televisionada · Campeonato com nome excepcionalmente longoNível 1 / 2Em andamentoLate check-in",
+        "title": "Mesa televisionada · Campeonato com nome excepcionalmente longo",
+        "time": "19:00",
+        "blinds": "1.000 / 2.000",
+        "ante": "Ante (BB dobrado): 4.000"
+      }
+    }
+  ],
+  "states": {
+    "interval": {
+      "label": "Intervalo",
+      "time": "14:01",
+      "status": "Mesa televisionada · Campeonato com nome excepcionalmente longoIntervalo / 2Em andamento"
+    },
+    "unavailable": {
+      "message": "Transmissão ao vivoNão foi possível abrir a transmissãoTransmissão indisponível.",
+      "pageWidth": 390
+    },
+    "qrOverlays": [
+      {
+        "viewport": "320x480",
+        "pass": true,
+        "geometry": {
+          "card": {
+            "top": 42.40625,
+            "right": 304,
+            "bottom": 437.59375,
+            "left": 16
+          },
+          "image": {
+            "top": 113,
+            "right": 284.796875,
+            "bottom": 362.59375,
+            "left": 35.203125,
+            "width": 249.59375,
+            "height": 249.59375
+          },
+          "button": {
+            "top": 376.59375,
+            "right": 201.625,
+            "bottom": 420.59375,
+            "left": 118.359375,
+            "height": 44
+          },
+          "scrollable": true,
+          "imageInside": true,
+          "buttonReachable": true,
+          "imageSquare": true,
+          "whiteArea": true
+        }
+      },
+      {
+        "viewport": "844x390",
+        "pass": true,
+        "geometry": {
+          "card": {
+            "top": 19.59375,
+            "right": 702,
+            "bottom": 370.390625,
+            "left": 142
+          },
+          "image": {
+            "top": 77.390625,
+            "right": 527,
+            "bottom": 287.390625,
+            "left": 317,
+            "width": 210,
+            "height": 210
+          },
+          "button": {
+            "top": 301.390625,
+            "right": 463.625,
+            "bottom": 345.390625,
+            "left": 380.359375,
+            "height": 44
+          },
+          "scrollable": true,
+          "imageInside": true,
+          "buttonReachable": true,
+          "imageSquare": true,
+          "whiteArea": true
+        }
+      }
+    ],
+    "nativeFullscreen": {
+      "apiAvailable": true,
+      "entered": true,
+      "cssFallbackActive": true,
+      "exitedWithButton": true
+    }
+  },
+  "errors": [],
+  "blocked": [],
+  "pass": true
+}

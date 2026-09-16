@@ -2,12 +2,35 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { useTournamentEngine } from '../hooks/useTournamentEngine';
 import { useWakeLock } from '../hooks/useWakeLock';
-import { chips, clock, brl } from '../utils/format';
+import { chips, clock, brl, pct } from '../utils/format';
 import { adjustClockZoom } from '../theme';
-import { colorUpPoints, sugerirBreaksParaColorUp, type BlindLevel, type BreakConfig } from '../utils/poker-math';
+import { aplicarPayouts, colorUpPoints, sugerirBreaksParaColorUp, type BlindLevel, type BreakConfig } from '../utils/poker-math';
 import PixQr from './PixQr';
+import {
+  BellIcon,
+  FullscreenIcon,
+  NextIcon,
+  PauseIcon,
+  PlayIcon,
+  PlusIcon,
+  PreviousIcon,
+  QrIcon,
+  ResetIcon,
+  ScreenIcon,
+  TrashIcon,
+  VolumeIcon,
+  ZoomInIcon,
+  ZoomOutIcon,
+} from './Icons';
 
 type Engine = ReturnType<typeof useTournamentEngine>;
+
+const STATUS_LABELS: Record<string, string> = {
+  idle: 'Pronto',
+  running: 'Em andamento',
+  paused: 'Pausado',
+  finished: 'Encerrado',
+};
 
 interface Props {
   engine: Engine;
@@ -18,6 +41,9 @@ interface Props {
   // KPIs no relógio (REDESIGN.md S13): pote e nº na mesa não vinham do engine.
   prizePool?: number;
   playersRemaining?: number;
+  // Percentuais da premiação — o relógio mostra o prêmio de cada colocação,
+  // não só o pote total.
+  payoutPct?: number[];
   // Color-up no cronograma: ficha mínima em jogo e intervalos já configurados,
   // para marcar os níveis de troca e sugerir onde encaixar um intervalo.
   smallestChip?: number;
@@ -85,7 +111,7 @@ function makeAlarm() {
 
 export default function Clock({
   engine, editable, onAddLevelAfter, onDeleteLevel, onDeleteBreak,
-  prizePool = 0, playersRemaining = 0, smallestChip = 5, breaksConfig = [], onAddBreakAfter,
+  prizePool = 0, playersRemaining = 0, payoutPct, smallestChip = 5, breaksConfig = [], onAddBreakAfter,
 }: Props) {
   const { state, items, start, pause, reset, addSeconds, next, prev } = engine;
   const wake = useWakeLock();
@@ -191,119 +217,168 @@ export default function Clock({
     [rawLevels, breaksConfig]
   );
 
+  // Premiação por colocação. Mesma fonte do PayoutsPanel, então o que a mesa vê
+  // no relógio é exatamente o que será pago na tela de fim.
+  const premios = useMemo(
+    () => aplicarPayouts(prizePool, payoutPct ?? []),
+    [prizePool, payoutPct]
+  );
+  const statusLabel = STATUS_LABELS[state.status] ?? state.status;
+
   return (
     <div className={`panel clock-panel ${isFs ? 'fs' : ''}`} ref={fsRef}>
       {!audioReady && !isFs && (
         <button className="primary enable-audio" onClick={enableAudio}>
-          🔊 Ativar som dos alarmes (toque para liberar áudio)
+          <VolumeIcon size={20} /> Ativar som dos alarmes (toque para liberar áudio)
         </button>
       )}
 
-      <div className="clock-top">
-        <span className="pill">{state.status}</span>
-        <span className="pill">
-          {inBreak ? 'Intervalo' : `Nível ${state.level_number}`} / {state.total_levels} níveis
-        </span>
-        {state.is_late_checkin && <span className="pill late">⚑ Late check-in fecha neste nível</span>}
-      </div>
+      <section className="clock-stage" aria-label="Relógio e blinds">
+        <div className="clock-top">
+          <span className="pill">{statusLabel}</span>
+          <span className="pill">
+            {inBreak ? 'Intervalo' : `Nível ${state.level_number}`} / {state.total_levels} níveis
+          </span>
+          {state.is_late_checkin && <span className="pill late">Late check-in fecha neste nível</span>}
+        </div>
 
-      {inBreak ? (
-        <>
-          <div className="break-label">☕ INTERVALO</div>
-          <div className="clock-big">{clock(state.seconds_until_next)}</div>
-          <div className="sub">
-            Volta no Nível {state.level_number + 1} —{' '}
-            {state.next_big_blind != null
-              ? `${chips(state.next_small_blind ?? 0)} / ${chips(state.next_big_blind)}`
-              : '—'}
-          </div>
-        </>
-      ) : (
-        <>
-          <div className="clock-big">{clock(state.seconds_until_next)}</div>
-          <div className="blinds">{chips(state.small_blind)} / {chips(state.big_blind)}</div>
-          {state.ante > 0 && <div className="ante">ante (BB dobrado): {chips(state.ante)}</div>}
-          <div className="sub">
-            Próximo:&nbsp;
-            {state.next_big_blind != null
-              ? `${chips(state.next_small_blind ?? 0)} / ${chips(state.next_big_blind)}${
-                  state.next_ante ? ` + ante ${chips(state.next_ante)}` : ''
-                }`
-              : '— (último nível)'}
-          </div>
-        </>
+        <div className="clock-readout">
+          {inBreak ? (
+            <>
+              <div className="break-label">Intervalo</div>
+              <div className="clock-big">{clock(state.seconds_until_next)}</div>
+              <div className="sub">
+                Volta no Nível {state.level_number + 1} —{' '}
+                {state.next_big_blind != null
+                  ? `${chips(state.next_small_blind ?? 0)} / ${chips(state.next_big_blind)}`
+                  : '—'}
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="clock-big">{clock(state.seconds_until_next)}</div>
+              <div className="blinds" aria-label={`Blinds ${chips(state.small_blind)} e ${chips(state.big_blind)}`}>
+                {chips(state.small_blind)} / {chips(state.big_blind)}
+              </div>
+              {state.ante > 0 && <div className="ante">Ante (BB dobrado): {chips(state.ante)}</div>}
+              <div className="sub">
+                Próximo:&nbsp;
+                {state.next_big_blind != null
+                  ? `${chips(state.next_small_blind ?? 0)} / ${chips(state.next_big_blind)}${
+                      state.next_ante ? ` + ante ${chips(state.next_ante)}` : ''
+                    }`
+                  : '— (último nível)'}
+              </div>
+            </>
+          )}
+        </div>
+      </section>
+
+      {alarming && (
+        <button className="danger alarm-stop" onClick={stopAlarm}>
+          <BellIcon size={20} /> Parar alarme
+        </button>
       )}
-
-      {alarming && <button className="danger alarm-stop" onClick={stopAlarm}>🔔 Parar alarme</button>}
 
       {!isFs && (
-        <div className="kpis">
-          <div className="kpi-box"><label>Pote</label><div className="kpi">{brl(prizePool)}</div></div>
-          <div className="kpi-box"><label>Na mesa</label><div className="kpi">{playersRemaining}</div></div>
-          <div className="kpi-box"><label>Stack médio</label><div className="kpi">{chips(state.average_stack)}</div></div>
-          <div className="kpi-box"><label>Pressão</label><div className="kpi">{state.pressure_bb.toFixed(1)} BB</div></div>
-        </div>
+        <section className="clock-summary" aria-label="Indicadores do torneio">
+          <div className="kpis clock-kpis">
+            <div className="kpi-box"><span className="kpi-label">Pote</span><div className="kpi">{brl(prizePool)}</div></div>
+            <div className="kpi-box"><span className="kpi-label">Na mesa</span><div className="kpi">{playersRemaining}</div></div>
+            <div className="kpi-box"><span className="kpi-label">Stack médio</span><div className="kpi">{chips(state.average_stack)}</div></div>
+            <div className="kpi-box"><span className="kpi-label">Pressão</span><div className="kpi">{state.pressure_bb.toFixed(1)} BB</div></div>
+          </div>
+
+          {premios.length > 0 && (
+            <div className="kpis payout-kpis" aria-label="Premiação">
+              {premios.map((p) => (
+                <div className="kpi-box payout" key={p.posicao}>
+                  <span className="kpi-label">{p.posicao}º lugar · {pct(p.percentual)}</span>
+                  <div className="kpi">{brl(p.premio)}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
       )}
 
-      <div className="clock-controls">
-        <button className="ghost" onClick={prev} title="Voltar nível">⏮</button>
+      <div className="clock-command-deck">
+        <div className="clock-controls clock-controls--primary" aria-label="Controles principais do relógio">
+        <button className="ghost icon-button" onClick={prev} title="Voltar nível" aria-label="Voltar nível">
+          <PreviousIcon size={20} />
+        </button>
         {state.status !== 'running'
-          ? <button className="primary" onClick={onStart}>▶ Iniciar</button>
-          : <button className="ghost" onClick={pause}>⏸ Pausar</button>}
-        <button className="ghost" onClick={next} title="Avançar nível">⏭</button>
+          ? <button className="primary clock-run" onClick={onStart}><PlayIcon size={20} /> Iniciar</button>
+          : <button className="ghost clock-run" onClick={pause}><PauseIcon size={20} /> Pausar</button>}
+        <button className="ghost icon-button" onClick={next} title="Avançar nível" aria-label="Avançar nível">
+          <NextIcon size={20} />
+        </button>
         {!isFs && <button className="ghost" onClick={() => addSeconds(-60)} title="−1 min">−1m</button>}
         {!isFs && <button className="ghost" onClick={() => addSeconds(60)} title="+1 min">+1m</button>}
-        {!isFs && <button className="danger" onClick={onReset} title="Reiniciar">↺</button>}
-        <button className="ghost" onClick={() => adjustClockZoom(-0.1)} title="Diminuir o visor">🔍−</button>
-        <button className="ghost" onClick={() => adjustClockZoom(+0.1)} title="Aumentar o visor">🔍＋</button>
-        <button className="ghost" onClick={toggleFs}>{isFs ? '✕ Sair' : '⛶ Tela cheia'}</button>
-      </div>
-      {!isFs && (
-        <div className="clock-controls">
-          <button className={`ghost ${alarms ? 'on' : ''}`} onClick={() => setAlarms((v) => !v)}>
-            {alarms ? '🔔 Alarmes' : '🔕 Alarmes'}
+        {!isFs && (
+          <button className="danger icon-button" onClick={onReset} title="Reiniciar relógio" aria-label="Reiniciar relógio">
+            <ResetIcon size={20} />
           </button>
-          <button className="ghost" onClick={() => ensureAlarm().test()}>🔉 Testar som</button>
+        )}
+        <button className="ghost icon-button" onClick={() => adjustClockZoom(-0.1)} title="Diminuir o visor" aria-label="Diminuir o visor">
+          <ZoomOutIcon size={20} />
+        </button>
+        <button className="ghost icon-button" onClick={() => adjustClockZoom(+0.1)} title="Aumentar o visor" aria-label="Aumentar o visor">
+          <ZoomInIcon size={20} />
+        </button>
+        <button className="ghost" onClick={toggleFs}>
+          <FullscreenIcon size={20} /> {isFs ? 'Sair' : 'Tela cheia'}
+        </button>
+        </div>
+
+        {!isFs && (
+          <div className="clock-controls clock-controls--secondary" aria-label="Utilidades do relógio">
+          <button className={`ghost ${alarms ? 'on' : ''}`} aria-pressed={alarms} onClick={() => setAlarms((v) => !v)}>
+            <BellIcon size={19} /> {alarms ? 'Alarmes ligados' : 'Alarmes desligados'}
+          </button>
+          <button className="ghost" onClick={() => ensureAlarm().test()}><VolumeIcon size={19} /> Testar som</button>
           {wake.supported && (
-            <button className={`ghost ${wake.enabled ? 'on' : ''}`} onClick={() => wake.setEnabled((v) => !v)}>
-              {wake.enabled ? '📱 Tela ligada' : '📱 Manter tela'}
+            <button className={`ghost ${wake.enabled ? 'on' : ''}`} aria-pressed={wake.enabled} onClick={() => wake.setEnabled((v) => !v)}>
+              <ScreenIcon size={19} /> {wake.enabled ? 'Tela ligada' : 'Manter tela'}
             </button>
           )}
-          <button className="ghost qr-toggle" onClick={() => setShowQr(true)}>Mostrar QR</button>
-        </div>
-      )}
+          <button className="ghost qr-toggle" onClick={() => setShowQr(true)}><QrIcon size={19} /> Mostrar QR</button>
+          </div>
+        )}
+      </div>
 
       {showQr && <PixQr onClose={() => setShowQr(false)} />}
 
       {/* Em tela cheia o QR fica sempre visível num canto reservado. */}
       {isFs && (
         <div className="corner-qr">
-          <img src="/pix-qr.png" alt="PIX" onError={(e) => { (e.currentTarget.parentElement as HTMLElement).style.display = 'none'; }} />
+          <img src="/pix-qr.png" alt="QR PIX para pagamentos" onError={(e) => { (e.currentTarget.parentElement as HTMLElement).style.display = 'none'; }} />
           <span>PIX</span>
         </div>
       )}
 
       {!isFs && (
-        <>
-          <h2 style={{ marginTop: 22 }}>Cronograma</h2>
+        <section className="clock-schedule" aria-labelledby="clock-schedule-title">
+          <h2 id="clock-schedule-title">Cronograma</h2>
           <div className="table-wrap">
-            <table>
-              <thead><tr><th>#</th><th>Nível</th><th>SB</th><th>BB</th><th>Ante</th><th></th>{editable && <th></th>}</tr></thead>
+            <table className="schedule-table">
+              <caption className="sr-only">Níveis, blinds, ante, marcos e ações de edição do cronograma</caption>
+              <thead><tr><th scope="col">#</th><th scope="col">Nível</th><th scope="col">SB</th><th scope="col">BB</th><th scope="col">Ante</th><th scope="col">Marcos</th>{editable && <th scope="col">Ações</th>}</tr></thead>
               <tbody>
                 {(() => {
                   let lastLevel = 0;
                   return items.map((it, i) => {
-                    const cls = i === state.item_index ? { color: 'var(--gold)', fontWeight: 700 } : undefined;
+                    const rowClass = i === state.item_index ? 'schedule-row--current' : undefined;
                     if (it.kind === 'break') {
                       const afterLvl = lastLevel;
                       return (
-                        <tr key={i} style={cls}>
+                        <tr key={i} className={rowClass}>
                           <td>{i + 1}</td>
-                          <td colSpan={4}>☕ Intervalo ({clock(it.duration_seconds)})</td>
+                          <td colSpan={4}><strong>Intervalo</strong> ({clock(it.duration_seconds)})</td>
                           <td></td>
-                          {editable && <td>
-                            <button className="danger" title="Excluir intervalo"
-                              onClick={() => onDeleteBreak?.(afterLvl)}>🗑</button>
+                          {editable && <td className="schedule-actions">
+                            <button className="danger icon-button" title="Excluir intervalo" aria-label={`Excluir intervalo após o nível ${afterLvl}`}
+                              onClick={() => onDeleteBreak?.(afterLvl)}><TrashIcon size={18} /></button>
                           </td>}
                         </tr>
                       );
@@ -312,32 +387,36 @@ export default function Clock({
                     const colorUp = colorUps.find((p) => p.nivel === it.level);
                     const suggestBreak = colorUp && colorUpSuggestions.has(it.level - 1);
                     return (
-                      <tr key={i} style={cls}>
+                      <tr key={i} className={rowClass}>
                         <td>{i + 1}</td>
                         <td>{it.level}</td>
                         <td>{chips(it.small_blind)}</td>
                         <td>{chips(it.big_blind)}</td>
                         <td>{it.ante ? chips(it.ante) : '—'}</td>
                         <td>
-                          {it.is_late_checkin && <span className="pill late">⚑ late</span>}
+                          <div className="schedule-markers">
+                          {it.is_late_checkin && <span className="pill late">Late</span>}
                           {colorUp && (
-                            <span className="pill" style={{ borderColor: 'var(--gold)', color: 'var(--gold)', marginLeft: 4 }}
+                            <span className="pill schedule-color-up"
                               title={`Retira a ficha ${chips(colorUp.retira)}, passa a usar ${chips(colorUp.passa_a_usar)}`}>
-                              🎨 retirar ficha de {chips(colorUp.retira)}
+                              Retirar ficha de {chips(colorUp.retira)}
                             </span>
                           )}
                           {suggestBreak && (
-                            <button className="ghost" style={{ marginLeft: 4 }}
+                            <button className="ghost schedule-break-action"
                               onClick={() => onAddBreakAfter?.(it.level - 1)}>
-                              + intervalo aqui
+                              <PlusIcon size={17} /> Intervalo aqui
                             </button>
                           )}
+                          </div>
                         </td>
-                        {editable && <td className="row" style={{ flexWrap: 'nowrap' }}>
-                          <button className="ghost" title="Adicionar nível abaixo"
-                            onClick={() => onAddLevelAfter?.(it.level)}>＋</button>
-                          <button className="danger" title="Excluir nível"
-                            onClick={() => onDeleteLevel?.(it.level)}>🗑</button>
+                        {editable && <td>
+                          <div className="schedule-actions">
+                          <button className="ghost icon-button" title="Adicionar nível abaixo" aria-label={`Adicionar nível abaixo do nível ${it.level}`}
+                            onClick={() => onAddLevelAfter?.(it.level)}><PlusIcon size={18} /></button>
+                          <button className="danger icon-button" title="Excluir nível" aria-label={`Excluir nível ${it.level}`}
+                            onClick={() => onDeleteLevel?.(it.level)}><TrashIcon size={18} /></button>
+                          </div>
                         </td>}
                       </tr>
                     );
@@ -346,7 +425,7 @@ export default function Clock({
               </tbody>
             </table>
           </div>
-        </>
+        </section>
       )}
     </div>
   );

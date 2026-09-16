@@ -1,0 +1,91 @@
+{
+  "config": {
+    "name": "Mesa de sexta · demonstração",
+    "start_time": "2026-09-11T20:00",
+    "setup": {
+      "smallest_chip": 5,
+      "initial_sb": 5,
+      "initial_bb": 10,
+      "stack_bb": 300
+    },
+    "target_time_minutos": 300,
+    "duracao_bloco_nivel": 20,
+    "buy_in_value": 10,
+    "rebuy_value": 15,
+    "addon_value": 20,
+    "chips_per_rebuy": 3000,
+    "chips_per_addon": 3000,
+    "max_rebuys": 1,
+    "addon_enabled": false,
+    "late_checkin_level": "auto",
+    "ante_enabled": true,
+    "ante_start_level": "auto",
+    "breaks": [
+      {
+        "after_level": "late",
+        "minutes": 15
+      }
+    ]
+  },
+  "entries": [
+    {
+      "name": "Ana Exemplo",
+      "buyins": 1,
+      "rebuys": 0,
+      "addons": 0,
+      "table": 1,
+      "seat": 1
+    },
+    {
+      "name": "Bruno Exemplo",
+      "buyins": 1,
+      "rebuys": 0,
+      "addons": 0,
+      "table": 1,
+      "seat": 2
+    },
+    {
+      "name": "Carla de Albuquerque Exemplo",
+      "buyins": 1,
+      "rebuys": 0,
+      "addons": 0,
+      "table": 1,
+      "seat": 3
+    },
+    {
+      "name": "Diego Exemplo",
+      "buyins": 1,
+      "rebuys": 0,
+      "addons": 0,
+      "table": 1,
+      "seat": 4
+    },
+    {
+      "name": "Elisa Exemplo",
+      "buyins": 1,
+      "rebuys": 0,
+      "addons": 0,
+      "table": 1,
+      "seat": 5
+    },
+    {
+      "name": "Felipe Exemplo",
+      "buyins": 1,
+      "rebuys": 0,
+      "addons": 0,
+      "table": 1,
+      "seat": 6
+    }
+  ],
+  "payoutPct": [
+    0.5,
+    0.3,
+    0.2
+  ],
+  "screen": "live",
+  "clock": {
+    "status": "idle",
+    "anchorMs": 0,
+    "pausedElapsedMs": 0
+  }
+}

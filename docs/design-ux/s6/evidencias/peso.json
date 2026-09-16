@@ -1,0 +1,39 @@
+{
+  "date": "2026-09-15T18:53:08.282Z",
+  "buildMs": 4099.6948999999995,
+  "mode": "production; envDir=false; Supabase vazio; gzip local nível 6",
+  "builds": {
+    "offline": [
+      {
+        "file": "assets/index-BJxbXRsy.css",
+        "bytes": 41328,
+        "gzipBytes": 7901
+      },
+      {
+        "file": "assets/index-BtrEjTLg.js",
+        "bytes": 460068,
+        "gzipBytes": 130927
+      },
+      {
+        "file": "icon.svg",
+        "bytes": 427,
+        "gzipBytes": 297
+      },
+      {
+        "file": "index.html",
+        "bytes": 1094,
+        "gzipBytes": 518
+      },
+      {
+        "file": "manifest.webmanifest",
+        "bytes": 473,
+        "gzipBytes": 295
+      },
+      {
+        "file": "pix-qr.png",
+        "bytes": 722709,
+        "gzipBytes": 715860
+      }
+    ]
+  }
+}

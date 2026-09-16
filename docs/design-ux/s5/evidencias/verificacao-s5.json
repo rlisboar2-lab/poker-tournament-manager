@@ -1,0 +1,484 @@
+{
+  "date": "2026-09-15T14:26:14.727Z",
+  "browser": "153.0.8010.36",
+  "assertions": {
+    "initial": {
+      "status": "ProntoNível 1 / 14 níveis",
+      "quickActions": 4,
+      "scheduleRows": 15,
+      "time": "20:00",
+      "blinds": "5 / 10"
+    },
+    "clock": {
+      "levelAfterNext": "PausadoNível 2 / 14 níveis",
+      "levelAfterPrev": "PausadoNível 1 / 14 níveis",
+      "timeBeforeAdjust": "20:00",
+      "timeAfterMinus": "19:00",
+      "timeAfterPlus": "20:00",
+      "resetDialog": "Reiniciar o relógio para o início? O tempo decorrido será zerado."
+    },
+    "actions": {
+      "initialRows": 6,
+      "rowsAfterCancelledBuyIn": 6,
+      "undoText": "Ana Exemplo eliminado em 6ºDesfazer",
+      "undoAboveActions": true,
+      "eliminatedPresentation": {
+        "marked": true,
+        "opacity": "1"
+      },
+      "anaCounts": [
+        "1",
+        "1",
+        "1"
+      ],
+      "liveRows": 6
+    },
+    "fallback": {
+      "modalGeometry": {
+        "top": 16,
+        "bottom": 464,
+        "viewportHeight": 480,
+        "scrollable": true,
+        "actionsReachable": true
+      },
+      "cancelEnabled": true
+    },
+    "matrix": [
+      {
+        "theme": "escuro",
+        "viewport": "320",
+        "clockZoom": 1,
+        "fits": true
+      },
+      {
+        "theme": "escuro",
+        "viewport": "360",
+        "clockZoom": 1,
+        "fits": true
+      },
+      {
+        "theme": "escuro",
+        "viewport": "390",
+        "clockZoom": 1,
+        "fits": true
+      },
+      {
+        "theme": "escuro",
+        "viewport": "640-zoom200-equivalente",
+        "clockZoom": 1,
+        "fits": true
+      },
+      {
+        "theme": "escuro",
+        "viewport": "768",
+        "clockZoom": 1,
+        "fits": true
+      },
+      {
+        "theme": "escuro",
+        "viewport": "1280",
+        "clockZoom": 1,
+        "fits": true
+      },
+      {
+        "theme": "escuro",
+        "viewport": "1920",
+        "clockZoom": 1,
+        "fits": true
+      },
+      {
+        "theme": "escuro",
+        "viewport": "844x390",
+        "clockZoom": 1,
+        "fits": true
+      },
+      {
+        "theme": "claro",
+        "viewport": "390",
+        "clockZoom": 1,
+        "fits": true
+      },
+      {
+        "theme": "claro",
+        "viewport": "1280",
+        "clockZoom": 1,
+        "fits": true
+      },
+      {
+        "theme": "feltro",
+        "viewport": "390",
+        "clockZoom": 1,
+        "fits": true
+      },
+      {
+        "theme": "feltro",
+        "viewport": "1280",
+        "clockZoom": 1,
+        "fits": true
+      },
+      {
+        "theme": "escuro",
+        "viewport": "320",
+        "clockZoom": 0.5,
+        "fits": true
+      },
+      {
+        "theme": "escuro",
+        "viewport": "320",
+        "clockZoom": 2.5,
+        "fits": true
+      }
+    ],
+    "fonts": [
+      {
+        "font": "sistema",
+        "fits": true
+      },
+      {
+        "font": "arial",
+        "fits": true
+      },
+      {
+        "font": "verdana",
+        "fits": true
+      },
+      {
+        "font": "trebuchet",
+        "fits": true
+      },
+      {
+        "font": "georgia",
+        "fits": true
+      },
+      {
+        "font": "courier",
+        "fits": true
+      },
+      {
+        "font": "mono",
+        "fits": true
+      },
+      {
+        "font": "impact",
+        "fits": true
+      }
+    ],
+    "pass": true
+  },
+  "screens": {
+    "console-390": {
+      "viewportWidth": 390,
+      "viewportHeight": 844,
+      "pageWidth": 390,
+      "appHeight": 844,
+      "footerPosition": "relative",
+      "footerMeetsScroll": true,
+      "footerInsideViewport": true,
+      "navAboveFooterAtScrollEnd": true,
+      "scrollable": true,
+      "controlsBelowMinimum": [],
+      "unlabeledFields": []
+    },
+    "console-1280": {
+      "viewportWidth": 1280,
+      "viewportHeight": 900,
+      "pageWidth": 1280,
+      "appHeight": 900,
+      "footerPosition": "relative",
+      "footerMeetsScroll": true,
+      "footerInsideViewport": true,
+      "navAboveFooterAtScrollEnd": true,
+      "scrollable": true,
+      "controlsBelowMinimum": [],
+      "unlabeledFields": []
+    },
+    "matrix-escuro-320-zoom1": {
+      "viewportWidth": 320,
+      "viewportHeight": 800,
+      "pageWidth": 320,
+      "appHeight": 800,
+      "footerPosition": "relative",
+      "footerMeetsScroll": true,
+      "footerInsideViewport": true,
+      "navAboveFooterAtScrollEnd": true,
+      "scrollable": true,
+      "controlsBelowMinimum": [],
+      "unlabeledFields": []
+    },
+    "matrix-escuro-360-zoom1": {
+      "viewportWidth": 360,
+      "viewportHeight": 800,
+      "pageWidth": 360,
+      "appHeight": 800,
+      "footerPosition": "relative",
+      "footerMeetsScroll": true,
+      "footerInsideViewport": true,
+      "navAboveFooterAtScrollEnd": true,
+      "scrollable": true,
+      "controlsBelowMinimum": [],
+      "unlabeledFields": []
+    },
+    "matrix-escuro-390-zoom1": {
+      "viewportWidth": 390,
+      "viewportHeight": 844,
+      "pageWidth": 390,
+      "appHeight": 844,
+      "footerPosition": "relative",
+      "footerMeetsScroll": true,
+      "footerInsideViewport": true,
+      "navAboveFooterAtScrollEnd": true,
+      "scrollable": true,
+      "controlsBelowMinimum": [],
+      "unlabeledFields": []
+    },
+    "matrix-escuro-640-zoom200-equivalente-zoom1": {
+      "viewportWidth": 640,
+      "viewportHeight": 450,
+      "pageWidth": 640,
+      "appHeight": 450,
+      "footerPosition": "relative",
+      "footerMeetsScroll": true,
+      "footerInsideViewport": true,
+      "navAboveFooterAtScrollEnd": true,
+      "scrollable": true,
+      "controlsBelowMinimum": [],
+      "unlabeledFields": []
+    },
+    "matrix-escuro-768-zoom1": {
+      "viewportWidth": 768,
+      "viewportHeight": 1024,
+      "pageWidth": 768,
+      "appHeight": 1024,
+      "footerPosition": "relative",
+      "footerMeetsScroll": true,
+      "footerInsideViewport": true,
+      "navAboveFooterAtScrollEnd": true,
+      "scrollable": true,
+      "controlsBelowMinimum": [],
+      "unlabeledFields": []
+    },
+    "matrix-escuro-1280-zoom1": {
+      "viewportWidth": 1280,
+      "viewportHeight": 900,
+      "pageWidth": 1280,
+      "appHeight": 900,
+      "footerPosition": "relative",
+      "footerMeetsScroll": true,
+      "footerInsideViewport": true,
+      "navAboveFooterAtScrollEnd": true,
+      "scrollable": true,
+      "controlsBelowMinimum": [],
+      "unlabeledFields": []
+    },
+    "matrix-escuro-1920-zoom1": {
+      "viewportWidth": 1920,
+      "viewportHeight": 1080,
+      "pageWidth": 1920,
+      "appHeight": 1080,
+      "footerPosition": "relative",
+      "footerMeetsScroll": true,
+      "footerInsideViewport": true,
+      "navAboveFooterAtScrollEnd": true,
+      "scrollable": true,
+      "controlsBelowMinimum": [],
+      "unlabeledFields": []
+    },
+    "matrix-escuro-844x390-zoom1": {
+      "viewportWidth": 844,
+      "viewportHeight": 390,
+      "pageWidth": 844,
+      "appHeight": 390,
+      "footerPosition": "relative",
+      "footerMeetsScroll": true,
+      "footerInsideViewport": true,
+      "navAboveFooterAtScrollEnd": true,
+      "scrollable": true,
+      "controlsBelowMinimum": [],
+      "unlabeledFields": []
+    },
+    "matrix-claro-390-zoom1": {
+      "viewportWidth": 390,
+      "viewportHeight": 844,
+      "pageWidth": 390,
+      "appHeight": 844,
+      "footerPosition": "relative",
+      "footerMeetsScroll": true,
+      "footerInsideViewport": true,
+      "navAboveFooterAtScrollEnd": true,
+      "scrollable": true,
+      "controlsBelowMinimum": [],
+      "unlabeledFields": []
+    },
+    "matrix-claro-1280-zoom1": {
+      "viewportWidth": 1280,
+      "viewportHeight": 900,
+      "pageWidth": 1280,
+      "appHeight": 900,
+      "footerPosition": "relative",
+      "footerMeetsScroll": true,
+      "footerInsideViewport": true,
+      "navAboveFooterAtScrollEnd": true,
+      "scrollable": true,
+      "controlsBelowMinimum": [],
+      "unlabeledFields": []
+    },
+    "matrix-feltro-390-zoom1": {
+      "viewportWidth": 390,
+      "viewportHeight": 844,
+      "pageWidth": 390,
+      "appHeight": 844,
+      "footerPosition": "relative",
+      "footerMeetsScroll": true,
+      "footerInsideViewport": true,
+      "navAboveFooterAtScrollEnd": true,
+      "scrollable": true,
+      "controlsBelowMinimum": [],
+      "unlabeledFields": []
+    },
+    "matrix-feltro-1280-zoom1": {
+      "viewportWidth": 1280,
+      "viewportHeight": 900,
+      "pageWidth": 1280,
+      "appHeight": 900,
+      "footerPosition": "relative",
+      "footerMeetsScroll": true,
+      "footerInsideViewport": true,
+      "navAboveFooterAtScrollEnd": true,
+      "scrollable": true,
+      "controlsBelowMinimum": [],
+      "unlabeledFields": []
+    },
+    "matrix-escuro-320-zoom0.5": {
+      "viewportWidth": 320,
+      "viewportHeight": 800,
+      "pageWidth": 320,
+      "appHeight": 800,
+      "footerPosition": "relative",
+      "footerMeetsScroll": true,
+      "footerInsideViewport": true,
+      "navAboveFooterAtScrollEnd": true,
+      "scrollable": true,
+      "controlsBelowMinimum": [],
+      "unlabeledFields": []
+    },
+    "matrix-escuro-320-zoom2.5": {
+      "viewportWidth": 320,
+      "viewportHeight": 800,
+      "pageWidth": 320,
+      "appHeight": 800,
+      "footerPosition": "relative",
+      "footerMeetsScroll": true,
+      "footerInsideViewport": true,
+      "navAboveFooterAtScrollEnd": true,
+      "scrollable": true,
+      "controlsBelowMinimum": [],
+      "unlabeledFields": []
+    },
+    "font-sistema-320": {
+      "viewportWidth": 320,
+      "viewportHeight": 800,
+      "pageWidth": 320,
+      "appHeight": 800,
+      "footerPosition": "relative",
+      "footerMeetsScroll": true,
+      "footerInsideViewport": true,
+      "navAboveFooterAtScrollEnd": true,
+      "scrollable": true,
+      "controlsBelowMinimum": [],
+      "unlabeledFields": []
+    },
+    "font-arial-320": {
+      "viewportWidth": 320,
+      "viewportHeight": 800,
+      "pageWidth": 320,
+      "appHeight": 800,
+      "footerPosition": "relative",
+      "footerMeetsScroll": true,
+      "footerInsideViewport": true,
+      "navAboveFooterAtScrollEnd": true,
+      "scrollable": true,
+      "controlsBelowMinimum": [],
+      "unlabeledFields": []
+    },
+    "font-verdana-320": {
+      "viewportWidth": 320,
+      "viewportHeight": 800,
+      "pageWidth": 320,
+      "appHeight": 800,
+      "footerPosition": "relative",
+      "footerMeetsScroll": true,
+      "footerInsideViewport": true,
+      "navAboveFooterAtScrollEnd": true,
+      "scrollable": true,
+      "controlsBelowMinimum": [],
+      "unlabeledFields": []
+    },
+    "font-trebuchet-320": {
+      "viewportWidth": 320,
+      "viewportHeight": 800,
+      "pageWidth": 320,
+      "appHeight": 800,
+      "footerPosition": "relative",
+      "footerMeetsScroll": true,
+      "footerInsideViewport": true,
+      "navAboveFooterAtScrollEnd": true,
+      "scrollable": true,
+      "controlsBelowMinimum": [],
+      "unlabeledFields": []
+    },
+    "font-georgia-320": {
+      "viewportWidth": 320,
+      "viewportHeight": 800,
+      "pageWidth": 320,
+      "appHeight": 800,
+      "footerPosition": "relative",
+      "footerMeetsScroll": true,
+      "footerInsideViewport": true,
+      "navAboveFooterAtScrollEnd": true,
+      "scrollable": true,
+      "controlsBelowMinimum": [],
+      "unlabeledFields": []
+    },
+    "font-courier-320": {
+      "viewportWidth": 320,
+      "viewportHeight": 800,
+      "pageWidth": 320,
+      "appHeight": 800,
+      "footerPosition": "relative",
+      "footerMeetsScroll": true,
+      "footerInsideViewport": true,
+      "navAboveFooterAtScrollEnd": true,
+      "scrollable": true,
+      "controlsBelowMinimum": [],
+      "unlabeledFields": []
+    },
+    "font-mono-320": {
+      "viewportWidth": 320,
+      "viewportHeight": 800,
+      "pageWidth": 320,
+      "appHeight": 800,
+      "footerPosition": "relative",
+      "footerMeetsScroll": true,
+      "footerInsideViewport": true,
+      "navAboveFooterAtScrollEnd": true,
+      "scrollable": true,
+      "controlsBelowMinimum": [],
+      "unlabeledFields": []
+    },
+    "font-impact-320": {
+      "viewportWidth": 320,
+      "viewportHeight": 800,
+      "pageWidth": 320,
+      "appHeight": 800,
+      "footerPosition": "relative",
+      "footerMeetsScroll": true,
+      "footerInsideViewport": true,
+      "navAboveFooterAtScrollEnd": true,
+      "scrollable": true,
+      "controlsBelowMinimum": [],
+      "unlabeledFields": []
+    }
+  },
+  "errors": [],
+  "blocked": []
+}

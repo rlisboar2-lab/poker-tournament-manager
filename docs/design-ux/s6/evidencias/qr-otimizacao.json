@@ -1,0 +1,14 @@
+{
+  "date": "2026-09-15",
+  "method": "Recompressão PNG lossless com Pillow optimize=true e compress_level=9",
+  "originalBytes": 828189,
+  "optimizedBytes": 722709,
+  "reductionBytes": 105480,
+  "reductionPercent": 12.74,
+  "dimensions": [2000, 2000],
+  "pixelIdentical": true,
+  "originalPixelSha256": "853ddd6697de7b461e69ecea1d0621ff889782ff31d8c493cf5b95898e26959c",
+  "optimizedPixelSha256": "853ddd6697de7b461e69ecea1d0621ff889782ff31d8c493cf5b95898e26959c",
+  "physicalCameraRead": false,
+  "note": "A matriz de navegador confirmou imagem integral e área branca; leitura por câmera física não foi executada."
+}

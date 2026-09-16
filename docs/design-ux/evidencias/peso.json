@@ -1,0 +1,44 @@
+{
+  "date": "2026-09-11T05:18:00.232Z",
+  "node": "v24.18.0",
+  "buildMs": 3180.5614,
+  "mode": "production; envDir=false; Supabase empty; gzip level default (6)",
+  "files": [
+    {
+      "file": "assets/index-BdEqWmK_.css",
+      "bytes": 11099,
+      "gzipBytes": 2754,
+      "sha256": "a876d35b08e5f50ead7af0c402f13788974404f2d26585ae4bcf9538a6c7c0a7"
+    },
+    {
+      "file": "assets/index-BgPpx5nG.js",
+      "bytes": 439975,
+      "gzipBytes": 125884,
+      "sha256": "ac6376078d38f3c5e8569237a896b01be45432109f0c42dcda4dc697a26a397b"
+    },
+    {
+      "file": "icon.svg",
+      "bytes": 427,
+      "gzipBytes": 297,
+      "sha256": "59e066866f0de1d9700d203b69e06fc2a1e6f79f63ecb994a9794048d8159371"
+    },
+    {
+      "file": "index.html",
+      "bytes": 1054,
+      "gzipBytes": 512,
+      "sha256": "80678eebfbbeee5c34bfbed1e9b30a3cce4fcb5dec1f474d1e08d23bad84c26b"
+    },
+    {
+      "file": "manifest.webmanifest",
+      "bytes": 487,
+      "gzipBytes": 302,
+      "sha256": "74a45817670270dcca670fbe718c3a51d28a8fa592b7017760bef6b454c0e75f"
+    },
+    {
+      "file": "pix-qr.png",
+      "bytes": 828189,
+      "gzipBytes": 823326,
+      "sha256": "b6fff3f4238a5aa524caf43fcad96108ce308f99df2831b0aebf1470bf4bbb26"
+    }
+  ]
+}

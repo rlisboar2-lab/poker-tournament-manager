@@ -40,9 +40,9 @@ export const FONTS: { id: string; label: string; stack: string }[] = [
 
 export const DEFAULT_THEME: ThemeConfig = {
   colors: {
-    bg: '#0d1117', panel: '#161b22', panel2: '#1c232c', border: '#30363d',
-    text: '#e6edf3', muted: '#8b949e', accent: '#2ea043', accent2: '#3b82f6',
-    danger: '#f85149', gold: '#e3b341',
+    bg: '#101715', panel: '#18221e', panel2: '#202d26', border: '#43584a',
+    text: '#f2f5f3', muted: '#a8b7ae', accent: '#238454', accent2: '#296a52',
+    danger: '#f07878', gold: '#d8b46a',
   },
   font: 'sistema',
   clockFont: 'sistema',
@@ -57,20 +57,124 @@ export const THEME_PRESETS: { id: string; label: string; colors: ThemeColors }[]
     colors: {
       bg: '#f6f8fa', panel: '#ffffff', panel2: '#eef1f4', border: '#d0d7de',
       text: '#1f2328', muted: '#57606a', accent: '#1a7f37', accent2: '#0969da',
-      danger: '#cf222e', gold: '#9a6700',
+      danger: '#cf222e', gold: '#805600',
     },
   },
   {
     id: 'feltro', label: '♠️ Feltro verde',
     colors: {
-      bg: '#0b2e1f', panel: '#10402c', panel2: '#155238', border: '#1e6b49',
-      text: '#eaf5ee', muted: '#9dbfad', accent: '#2ea043', accent2: '#3b82f6',
-      danger: '#f85149', gold: '#f2c94c',
+      bg: '#0b2e1f', panel: '#10402c', panel2: '#155238', border: '#387d5e',
+      text: '#eaf5ee', muted: '#9dbfad', accent: '#1a7f37', accent2: '#205f44',
+      danger: '#ffa0a0', gold: '#f2c94c',
     },
   },
 ];
 
 const THEME_KEY = 'ptm_theme_v1';
+
+interface SemanticColors {
+  onAccent: string;
+  onAccent2: string;
+  controlBorder: string;
+  positiveText: string;
+  focusRing: string;
+}
+
+const PRESET_SEMANTICS: Record<string, SemanticColors> = {
+  escuro: {
+    onAccent: '#ffffff', onAccent2: '#ffffff', controlBorder: '#6d8175',
+    positiveText: '#8ed7ad', focusRing: '#d8b46a',
+  },
+  claro: {
+    onAccent: '#ffffff', onAccent2: '#ffffff', controlBorder: '#748078',
+    positiveText: '#176b32', focusRing: '#0969da',
+  },
+  feltro: {
+    onAccent: '#ffffff', onAccent2: '#ffffff', controlBorder: '#84ac95',
+    positiveText: '#b0e8bf', focusRing: '#f2c94c',
+  },
+};
+
+type Rgb = { r: number; g: number; b: number };
+
+function parseHex(value: string): Rgb | null {
+  const match = /^#([\da-f]{6})$/i.exec(value.trim());
+  if (!match) return null;
+  const n = Number.parseInt(match[1], 16);
+  return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+}
+
+function toHex({ r, g, b }: Rgb): string {
+  const channel = (v: number) => Math.round(v).toString(16).padStart(2, '0');
+  return `#${channel(r)}${channel(g)}${channel(b)}`;
+}
+
+function mixHex(from: string, to: string, amount: number): string {
+  const a = parseHex(from);
+  const b = parseHex(to);
+  if (!a || !b) return from;
+  return toHex({
+    r: a.r + (b.r - a.r) * amount,
+    g: a.g + (b.g - a.g) * amount,
+    b: a.b + (b.b - a.b) * amount,
+  });
+}
+
+function luminance(value: string): number {
+  const rgb = parseHex(value);
+  if (!rgb) return 0;
+  const channel = (v: number) => {
+    const n = v / 255;
+    return n <= 0.04045 ? n / 12.92 : ((n + 0.055) / 1.055) ** 2.4;
+  };
+  return 0.2126 * channel(rgb.r) + 0.7152 * channel(rgb.g) + 0.0722 * channel(rgb.b);
+}
+
+export function contrastRatio(a: string, b: string): number {
+  const [lighter, darker] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
+function minimumContrast(color: string, backgrounds: string[]): number {
+  return Math.min(...backgrounds.map((background) => contrastRatio(color, background)));
+}
+
+function ensureContrast(color: string, backgrounds: string[], minimum: number): string {
+  if (minimumContrast(color, backgrounds) >= minimum) return color.toLowerCase();
+  const targets = ['#000000', '#ffffff'];
+  const target = targets.sort(
+    (a, b) => minimumContrast(b, backgrounds) - minimumContrast(a, backgrounds),
+  )[0];
+  for (let step = 1; step <= 20; step += 1) {
+    const candidate = mixHex(color, target, step / 20);
+    if (minimumContrast(candidate, backgrounds) >= minimum) return candidate;
+  }
+  return target;
+}
+
+export function themeColorsEqual(a: ThemeColors, b: ThemeColors): boolean {
+  return (Object.keys(a) as (keyof ThemeColors)[])
+    .every((key) => a[key].toLowerCase() === b[key].toLowerCase());
+}
+
+export function semanticColorsFor(colors: ThemeColors): SemanticColors {
+  const preset = THEME_PRESETS.find((item) => themeColorsEqual(item.colors, colors));
+  if (preset) return PRESET_SEMANTICS[preset.id];
+  const surfaces = [colors.panel, colors.panel2];
+  return {
+    onAccent: contrastRatio('#ffffff', colors.accent) >= contrastRatio('#000000', colors.accent)
+      ? '#ffffff' : '#000000',
+    onAccent2: contrastRatio('#ffffff', colors.accent2) >= contrastRatio('#000000', colors.accent2)
+      ? '#ffffff' : '#000000',
+    controlBorder: ensureContrast(colors.border, surfaces, 3),
+    positiveText: ensureContrast(colors.accent, surfaces, 4.5),
+    focusRing: ensureContrast(colors.gold, [colors.bg, ...surfaces], 3),
+  };
+}
+
+function cloneTheme(theme: ThemeConfig): ThemeConfig {
+  return { ...theme, colors: { ...theme.colors } };
+}
 
 export function clampZoom(z: number): number {
   const v = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, z));
@@ -80,7 +184,7 @@ export function clampZoom(z: number): number {
 export function loadTheme(): ThemeConfig {
   try {
     const raw = localStorage.getItem(THEME_KEY);
-    if (!raw) return DEFAULT_THEME;
+    if (!raw) return cloneTheme(DEFAULT_THEME);
     const t = JSON.parse(raw) as Partial<ThemeConfig>;
     return {
       colors: { ...DEFAULT_THEME.colors, ...(t.colors ?? {}) },
@@ -89,7 +193,7 @@ export function loadTheme(): ThemeConfig {
       clockZoom: clampZoom(typeof t.clockZoom === 'number' ? t.clockZoom : 1),
     };
   } catch {
-    return DEFAULT_THEME;
+    return cloneTheme(DEFAULT_THEME);
   }
 }
 
@@ -104,6 +208,8 @@ function stackOf(id: string): string {
 // Aplica o tema sobrescrevendo as variáveis CSS do :root.
 export function applyTheme(t: ThemeConfig) {
   const s = document.documentElement.style;
+  const semantic = semanticColorsFor(t.colors);
+  s.setProperty('color-scheme', contrastRatio('#ffffff', t.colors.bg) >= contrastRatio('#000000', t.colors.bg) ? 'dark' : 'light');
   s.setProperty('--bg', t.colors.bg);
   s.setProperty('--panel', t.colors.panel);
   s.setProperty('--panel-2', t.colors.panel2);
@@ -114,6 +220,11 @@ export function applyTheme(t: ThemeConfig) {
   s.setProperty('--accent-2', t.colors.accent2);
   s.setProperty('--danger', t.colors.danger);
   s.setProperty('--gold', t.colors.gold);
+  s.setProperty('--on-accent', semantic.onAccent);
+  s.setProperty('--on-accent-2', semantic.onAccent2);
+  s.setProperty('--control-border', semantic.controlBorder);
+  s.setProperty('--positive-text', semantic.positiveText);
+  s.setProperty('--focus-ring', semantic.focusRing);
   s.setProperty('--font', stackOf(t.font));
   s.setProperty('--clock-font', stackOf(t.clockFont));
   s.setProperty('--clock-zoom', String(t.clockZoom));

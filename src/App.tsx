@@ -32,6 +32,7 @@ import { saveTournament, listKnownPlayers, type LocalEntry } from './services/to
 import { supabase, isSupabaseConfigured } from './lib/supabase';
 import Login from './components/Login';
 import ThemePanel from './components/ThemePanel';
+import { BackIcon, PaletteIcon, PlusIcon, SettingsIcon, SpadeIcon } from './components/Icons';
 import type { Session } from '@supabase/supabase-js';
 
 export interface AppConfig {
@@ -173,7 +174,9 @@ export default function App() {
     if (clockStatus === 'running' || clockStatus === 'paused') return 'home';
     return resolveScreen(saved);
   });
-  const [liveTab, setLiveTab] = useState<'clock' | 'mesa'>('clock');
+  // Aba 'config' abre o Setup sem sair do torneio: dá para mudar valores,
+  // duração, late check-in, intervalos e premiação com o relógio andando.
+  const [liveTab, setLiveTab] = useState<'clock' | 'mesa' | 'config'>('clock');
   // Estrutura editada manualmente ao vivo (null = usar a curva calculada).
   const [manualLevels, setManualLevels] = useState<BlindLevel[] | null>(saved?.manualLevels ?? null);
   // Passado congelado e piso publicado — devolvidos ao motor a cada recalibração.
@@ -703,22 +706,38 @@ export default function App() {
       : null;
 
   return (
-    <div className="app">
-      <div className="row" style={{ justifyContent: 'space-between' }}>
-        <div>
-          <h1>♠ Gerenciador de Torneios — Texas Hold'em</h1>
+    <div className={`app${screen === 'live' ? ' app--live' : ''}`}>
+      <div className="app-scroll">
+      <header className="app-header">
+        <div className="app-brand">
+          <h1 className="app-title">
+            <SpadeIcon size={26} />
+            <span>Gerenciador de Torneios — Texas Hold'em</span>
+          </h1>
           <p className="credit">Criado por @RodLisboa_</p>
         </div>
-        <div className="row">
-          {screen !== 'home' && <button className="ghost" onClick={() => setScreen('home')}>← Início</button>}
-          <button className="ghost" onClick={() => setShowTheme(true)} title="Personalização visual">🎨 Personalizar</button>
-          {entries.length > 0 && screen !== 'home' && screen !== 'ranking' && screen !== 'historico' && (
-            <button className="ghost" onClick={() => setShowFinalizarModal(true)}>⏹ Finalizar torneio</button>
-          )}
-          <button className="ghost" onClick={novoTorneio}>Novo torneio</button>
-          {session && <button className="ghost" onClick={() => supabase?.auth.signOut()}>Sair</button>}
-        </div>
-      </div>
+        <nav className="header-actions" aria-label="Ações do aplicativo">
+          <div className="header-primary-actions">
+            {screen !== 'home' && (
+              <button className="ghost" onClick={() => setScreen('home')}>
+                <BackIcon size={18} /> Início
+              </button>
+            )}
+            {entries.length > 0 && screen !== 'home' && screen !== 'ranking' && screen !== 'historico' && (
+              <button className="danger" onClick={() => setShowFinalizarModal(true)}>Finalizar torneio</button>
+            )}
+          </div>
+          <div className="header-secondary-actions">
+            <button className="ghost" onClick={() => setShowTheme(true)} title="Personalização visual">
+              <PaletteIcon size={18} /> Personalizar
+            </button>
+            <button className="ghost" onClick={novoTorneio}>
+              <PlusIcon size={18} /> Novo torneio
+            </button>
+            {session && <button className="ghost" onClick={() => supabase?.auth.signOut()}>Sair</button>}
+          </div>
+        </nav>
+      </header>
       {screen !== 'home' && (
         <p className="notice">
           {totals.buyins} entradas · {totals.rebuys} rebuys · {totals.addons} add-ons ·
@@ -767,16 +786,17 @@ export default function App() {
       )}
 
       {screen === 'live' && (
-        <>
+        <section className="live-console" aria-label="Console ao vivo">
           {isSupabaseConfigured && session && (
             <div className="panel live-share">
               {!liveShareId ? (
-                <button className="ghost" onClick={publicarAoVivo}>🔴 Publicar ao vivo (gerar link)</button>
+                <button className="ghost" onClick={publicarAoVivo}>Publicar ao vivo (gerar link)</button>
               ) : (
-                <div className="row" style={{ justifyContent: 'space-between' }}>
-                  <div className="row" style={{ flex: 1, minWidth: 0 }}>
-                    <span className="pill" style={{ borderColor: 'var(--danger)', color: 'var(--danger)' }}>● no ar</span>
-                    <input readOnly value={liveUrl} style={{ flex: 1, minWidth: 120 }} onFocus={(e) => e.target.select()} />
+                <div className="live-share-row">
+                  <div className="live-share-link">
+                    <span className="pill live-share-status">No ar</span>
+                    <label className="sr-only" htmlFor="live-share-url">Link da transmissão</label>
+                    <input id="live-share-url" readOnly value={liveUrl} onFocus={(e) => e.target.select()} />
                     <button className="ghost" onClick={copiarLink}>{copied ? '✓ copiado' : 'Copiar'}</button>
                   </div>
                   <button className="danger" onClick={pararTransmissao}>Parar</button>
@@ -793,33 +813,42 @@ export default function App() {
             </div>
           )}
           {championName && (
-            <div className="panel" style={{ borderColor: 'var(--accent)', marginBottom: 12 }}>
+            <div className="panel live-champion" role="status">
               <strong>🏆 {championName} é o campeão — torneio encerrado</strong>
             </div>
           )}
-          <div className="tabs">
-            <button className={liveTab === 'clock' ? 'active' : ''} onClick={() => setLiveTab('clock')}>Relógio</button>
-            <button className={liveTab === 'mesa' ? 'active' : ''} onClick={() => setLiveTab('mesa')}>Mesa</button>
-            <button className="ghost" onClick={inserirIntervaloAgora}>+ Intervalo após nível atual</button>
+          <div className="tabs live-tabs" aria-label="Áreas do console">
+            <button aria-pressed={liveTab === 'clock'} className={liveTab === 'clock' ? 'active' : ''} onClick={() => setLiveTab('clock')}>Relógio</button>
+            <button aria-pressed={liveTab === 'mesa'} className={liveTab === 'mesa' ? 'active' : ''} onClick={() => setLiveTab('mesa')}>Mesa</button>
+            <button aria-pressed={liveTab === 'config'} className={liveTab === 'config' ? 'active' : ''} onClick={() => setLiveTab('config')}>
+              <SettingsIcon size={18} /> Configurações
+            </button>
+            {liveTab !== 'config' && (
+              <button className="ghost live-add-break" onClick={inserirIntervaloAgora}><PlusIcon size={18} /> Intervalo após nível atual</button>
+            )}
           </div>
-          {liveTab === 'clock'
-            ? <Clock engine={engine} editable
-                onAddLevelAfter={addLevelAfter} onDeleteLevel={deleteLevel} onDeleteBreak={deleteBreak}
-                prizePool={prizePool} playersRemaining={playersRemaining}
-                smallestChip={config.setup.smallest_chip} breaksConfig={resolvedBreaks}
-                onAddBreakAfter={addBreakAfter} />
-            : <PlayersPanel entries={entries} onChange={setEntries} mode="live" knownPlayers={knownPlayers}
-                maxRebuys={config.max_rebuys} addonEnabled={config.addon_enabled}
-                onAddLive={addPlayerLive}
-                onRebalance={() => setEntries((prev) => rebalanceSeating(prev))}
-                onEliminate={toggleEliminated} />}
-          <LiveActions entries={entries} knownPlayers={knownPlayers}
-            buyInValue={config.buy_in_value} rebuyValue={config.rebuy_value} addonValue={config.addon_value}
-            maxRebuys={config.max_rebuys} addonEnabled={config.addon_enabled}
-            lateCheckinOpen={engine.state.level_number <= resolvedLateCheckinLevel}
-            onAddPlayer={addPlayerLive} onRebuy={rebuyLive} onAddon={addonLive}
-            onEliminate={(i) => toggleEliminated(i, true)} />
-        </>
+          {liveTab === 'clock' && (
+            <Clock engine={engine} editable
+              onAddLevelAfter={addLevelAfter} onDeleteLevel={deleteLevel} onDeleteBreak={deleteBreak}
+              prizePool={prizePool} playersRemaining={playersRemaining} payoutPct={payoutPct}
+              smallestChip={config.setup.smallest_chip} breaksConfig={resolvedBreaks}
+              onAddBreakAfter={addBreakAfter} />
+          )}
+          {liveTab === 'mesa' && (
+            <PlayersPanel entries={entries} onChange={setEntries} mode="live" knownPlayers={knownPlayers}
+              maxRebuys={config.max_rebuys} addonEnabled={config.addon_enabled}
+              onAddLive={addPlayerLive}
+              onRebalance={() => setEntries((prev) => rebalanceSeating(prev))}
+              onEliminate={toggleEliminated} />
+          )}
+          {/* Setup ao vivo: sem "Restaurar padrão" nem presets — os dois
+              trocam a estrutura inteira e zerariam o torneio em andamento. */}
+          {liveTab === 'config' && (
+            <SetupPanel config={config} onChange={patchConfig} live
+              prizePool={prizePool} playerCount={entries.length} lateLevel={resolvedLateCheckinLevel}
+              payoutPct={payoutPct} onPayoutChange={setPayoutPct} />
+          )}
+        </section>
       )}
 
       {screen === 'finish' && (
@@ -828,13 +857,6 @@ export default function App() {
           buyInValue={config.buy_in_value} rebuyValue={config.rebuy_value} addonValue={config.addon_value}
           onUndoFinish={onUndoFinish} onSave={handleFinishSave} saved={!!savedTournamentId} saving={saving}
           onDiscard={discardResults} onNewTournament={newTournamentFromFinish} />
-      )}
-
-      {eliminationToast && (
-        <div className="toast">
-          <span>{eliminationToast.text}</span>
-          <button className="ghost" onClick={eliminationToast.undo}>desfazer</button>
-        </div>
       )}
 
       {screen === 'ranking' && <Ranking />}
@@ -864,6 +886,33 @@ export default function App() {
               Avançar →
             </button>
           )}
+        </div>
+      )}
+      </div>
+
+      {screen === 'live' && (liveTab !== 'config' || eliminationToast) && (
+        <div className="live-footer">
+          {eliminationToast && (
+            <div className="toast toast--live" role="status" aria-live="polite">
+              <span>{eliminationToast.text}</span>
+              <button className="ghost" onClick={eliminationToast.undo}>Desfazer</button>
+            </div>
+          )}
+          {liveTab !== 'config' && (
+            <LiveActions entries={entries} knownPlayers={knownPlayers}
+              buyInValue={config.buy_in_value} rebuyValue={config.rebuy_value} addonValue={config.addon_value}
+              maxRebuys={config.max_rebuys} addonEnabled={config.addon_enabled}
+              lateCheckinOpen={engine.state.level_number <= resolvedLateCheckinLevel}
+              onAddPlayer={addPlayerLive} onRebuy={rebuyLive} onAddon={addonLive}
+              onEliminate={(i) => toggleEliminated(i, true)} />
+          )}
+        </div>
+      )}
+
+      {screen !== 'live' && eliminationToast && (
+        <div className="toast" role="status" aria-live="polite">
+          <span>{eliminationToast.text}</span>
+          <button className="ghost" onClick={eliminationToast.undo}>Desfazer</button>
         </div>
       )}
     </div>

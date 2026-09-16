@@ -27,8 +27,11 @@ export default function Ranking() {
   ].filter((x): x is { p: PlayerStat; place: number } => !!x);
 
   return (
-    <div className="panel">
-      <h2>Ranking de jogadores</h2>
+    <div className="panel ranking-screen">
+      <header className="ranking-header">
+        <p className="ranking-eyebrow">Classificação geral</p>
+        <h2>Ranking de jogadores</h2>
+      </header>
 
       {!isSupabaseConfigured && (
         <p className="warn">Supabase não configurado — sem dados de ranking.</p>
@@ -44,6 +47,7 @@ export default function Ranking() {
             return (
               <div key={p.display_name} className={`ranking-podium-card place-${place}`}>
                 <span className="ranking-podium-medal">{MEDALS[place - 1]}</span>
+                <span className="ranking-podium-place">{place}º lugar</span>
                 <span className="ranking-podium-name">{p.display_name}</span>
                 <span className="ranking-podium-points">{p.points} pts</span>
                 <span className="ranking-podium-net" style={{ color: net >= 0 ? 'var(--accent)' : 'var(--danger)' }}>
@@ -75,8 +79,9 @@ export default function Ranking() {
 
       {board.length > 0 && (
         <>
-          <h2 style={{ marginTop: 20 }}>Tabela geral</h2>
-          <div className="table-wrap">
+          <section className="ranking-table-section" aria-labelledby="ranking-table-heading">
+          <h2 id="ranking-table-heading">Tabela geral</h2>
+          <div className="table-wrap ranking-table-wrap">
             <table>
               <thead>
                 <tr><th>#</th><th>Jogador</th><th>Pontos</th><th>Eventos</th><th>Investido</th><th>Ganhos</th><th>Líquido</th><th>ROI</th></tr>
@@ -100,6 +105,7 @@ export default function Ranking() {
               </tbody>
             </table>
           </div>
+          </section>
         </>
       )}
     </div>

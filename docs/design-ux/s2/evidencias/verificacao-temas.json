@@ -1,0 +1,216 @@
+{
+  "date": "2026-09-15T04:25:50.796Z",
+  "browser": "153.0.8010.36",
+  "assertions": {
+    "controlCounts": {
+      "colors": 10,
+      "appFonts": 8,
+      "clockFonts": 8,
+      "zoomMin": "0.5",
+      "zoomMax": "2.5",
+      "zoomStep": "0.05"
+    },
+    "persisted": {
+      "font": "georgia",
+      "clockFont": "mono",
+      "clockZoom": "1.35",
+      "colors": {
+        "bg": "#0b2e1f",
+        "panel": "#10402c",
+        "panel2": "#155238",
+        "border": "#387d5e",
+        "text": "#eaf5ee",
+        "muted": "#9dbfad",
+        "accent": "#1a7f37",
+        "accent2": "#205f44",
+        "danger": "#ffa0a0",
+        "gold": "#f2c94c"
+      }
+    },
+    "focus": {
+      "outlineStyle": "solid",
+      "outlineWidth": "3px",
+      "outlineOffset": "3px",
+      "outlineColor": "rgb(242, 201, 76)"
+    },
+    "disabled": {
+      "borderStyle": "dashed",
+      "opacity": "1",
+      "cursor": "not-allowed"
+    },
+    "reducedMotion": "1e-05s",
+    "legacy": {
+      "storageUnchanged": true,
+      "appliedBg": "#0d1117",
+      "appliedFont": "Verdana, Geneva, sans-serif",
+      "appliedZoom": "1.4",
+      "derivedControlBorder": "#6e7277"
+    },
+    "pass": true
+  },
+  "themes": {
+    "escuro": {
+      "saved": null,
+      "css": {
+        "bg": "#101715",
+        "panel": "#18221e",
+        "panel2": "#202d26",
+        "border": "#43584a",
+        "text": "#f2f5f3",
+        "muted": "#a8b7ae",
+        "accent": "#238454",
+        "accent2": "#296a52",
+        "danger": "#f07878",
+        "gold": "#d8b46a",
+        "onAccent": "#ffffff",
+        "onAccent2": "#ffffff",
+        "controlBorder": "#6d8175",
+        "positiveText": "#8ed7ad",
+        "focusRing": "#d8b46a"
+      },
+      "geometry": {
+        "left": 16,
+        "right": 374,
+        "top": 16,
+        "bottom": 828,
+        "viewportWidth": 390,
+        "viewportHeight": 844,
+        "pageWidth": 390
+      },
+      "contrast": {
+        "text": 13.060606529668366,
+        "muted": 6.860901699347187,
+        "primary": 4.666677781251425,
+        "secondary": 6.406860823372227,
+        "control": 3.4457680756132745,
+        "positive": 8.515918617386154,
+        "focus": 7.275203318552506
+      },
+      "foundationGeometry": {
+        "viewportWidth": 390,
+        "pageWidth": 390,
+        "controlsBelowMinimum": 0
+      }
+    },
+    "claro": {
+      "saved": {
+        "colors": {
+          "bg": "#f6f8fa",
+          "panel": "#ffffff",
+          "panel2": "#eef1f4",
+          "border": "#d0d7de",
+          "text": "#1f2328",
+          "muted": "#57606a",
+          "accent": "#1a7f37",
+          "accent2": "#0969da",
+          "danger": "#cf222e",
+          "gold": "#805600"
+        },
+        "font": "sistema",
+        "clockFont": "sistema",
+        "clockZoom": 1
+      },
+      "css": {
+        "bg": "#f6f8fa",
+        "panel": "#ffffff",
+        "panel2": "#eef1f4",
+        "border": "#d0d7de",
+        "text": "#1f2328",
+        "muted": "#57606a",
+        "accent": "#1a7f37",
+        "accent2": "#0969da",
+        "danger": "#cf222e",
+        "gold": "#805600",
+        "onAccent": "#ffffff",
+        "onAccent2": "#ffffff",
+        "controlBorder": "#748078",
+        "positiveText": "#176b32",
+        "focusRing": "#0969da"
+      },
+      "geometry": {
+        "left": 16,
+        "right": 374,
+        "top": 16,
+        "bottom": 828,
+        "viewportWidth": 390,
+        "viewportHeight": 844,
+        "pageWidth": 390
+      },
+      "contrast": {
+        "text": 13.934913144827231,
+        "muted": 5.6363245426101045,
+        "primary": 5.078795978854816,
+        "secondary": 5.192060987927794,
+        "control": 3.6310774156513497,
+        "positive": 5.814938063907137,
+        "focus": 4.579862127416467
+      },
+      "foundationGeometry": {
+        "viewportWidth": 390,
+        "pageWidth": 390,
+        "controlsBelowMinimum": 0
+      }
+    },
+    "feltro": {
+      "saved": {
+        "colors": {
+          "bg": "#0b2e1f",
+          "panel": "#10402c",
+          "panel2": "#155238",
+          "border": "#387d5e",
+          "text": "#eaf5ee",
+          "muted": "#9dbfad",
+          "accent": "#1a7f37",
+          "accent2": "#205f44",
+          "danger": "#ffa0a0",
+          "gold": "#f2c94c"
+        },
+        "font": "sistema",
+        "clockFont": "sistema",
+        "clockZoom": 1
+      },
+      "css": {
+        "bg": "#0b2e1f",
+        "panel": "#10402c",
+        "panel2": "#155238",
+        "border": "#387d5e",
+        "text": "#eaf5ee",
+        "muted": "#9dbfad",
+        "accent": "#1a7f37",
+        "accent2": "#205f44",
+        "danger": "#ffa0a0",
+        "gold": "#f2c94c",
+        "onAccent": "#ffffff",
+        "onAccent2": "#ffffff",
+        "controlBorder": "#84ac95",
+        "positiveText": "#b0e8bf",
+        "focusRing": "#f2c94c"
+      },
+      "geometry": {
+        "left": 16,
+        "right": 374,
+        "top": 16,
+        "bottom": 828,
+        "viewportWidth": 390,
+        "viewportHeight": 844,
+        "pageWidth": 390
+      },
+      "contrast": {
+        "text": 8.185893184684966,
+        "muted": 4.568722489536152,
+        "primary": 5.078795978854816,
+        "secondary": 7.549150764404687,
+        "control": 3.6221405860909894,
+        "positive": 6.594769523896082,
+        "focus": 5.76437185916914
+      },
+      "foundationGeometry": {
+        "viewportWidth": 390,
+        "pageWidth": 390,
+        "controlsBelowMinimum": 0
+      }
+    }
+  },
+  "errors": [],
+  "blocked": []
+}

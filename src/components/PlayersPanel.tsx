@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import type { LocalEntry } from '../services/tournaments';
 import { hasPlayerNamed } from '../utils/seating';
+import { PlusIcon, ResetIcon, TableIcon, TrashIcon, UserMinusIcon } from './Icons';
 
 interface Props {
   entries: LocalEntry[];
@@ -60,35 +61,42 @@ export default function PlayersPanel({ entries, onChange, mode = 'setup', knownP
   ).sort((a, b) => a - b);
 
   return (
-    <div className="panel">
+    <div className={`panel players-panel players-panel--${mode}`}>
       <h2>
-        {live ? 'Mesa ao vivo' : 'Participantes & Entradas'}
+        {live ? 'Mesa ao vivo' : 'Participantes e entradas'}
         {live && <span className="pill" style={{ marginLeft: 8 }}>{remaining} na mesa</span>}
         {live && tables.length > 0 && <span className="pill" style={{ marginLeft: 6 }}>{tables.length} mesa(s)</span>}
       </h2>
       <datalist id="known-players">
         {knownPlayers.map((n) => <option key={n} value={n} />)}
       </datalist>
-      <div className="row" style={{ marginBottom: 12 }}>
-        <input list="known-players" placeholder={live ? 'Entrada tardia (nome)' : 'Nome do jogador'} value={name}
-          onChange={(e) => { setName(e.target.value); setErro(''); }}
-          onKeyDown={(e) => e.key === 'Enter' && add()} />
-        <button className="primary" onClick={add}>{live ? 'Entrar agora' : 'Adicionar'}</button>
+      <div className="player-add-row">
+        <div className="player-name-field">
+          <label htmlFor="player-name">{live ? 'Entrada tardia (nome)' : 'Nome do jogador'}</label>
+          <input id="player-name" list="known-players" placeholder="Digite um nome" value={name}
+            onChange={(e) => { setName(e.target.value); setErro(''); }}
+            onKeyDown={(e) => e.key === 'Enter' && add()} />
+        </div>
+        <button type="button" className="primary player-add-button" onClick={add}>
+          <PlusIcon size={18} /> {live ? 'Entrar agora' : 'Adicionar'}
+        </button>
         {live && onRebalance && (
-          <button className="ghost" onClick={onRebalance}>🎲 Calcular posições na mesa</button>
+          <button type="button" className="ghost player-rebalance" onClick={onRebalance}>
+            <TableIcon size={18} /> Calcular posições na mesa
+          </button>
         )}
       </div>
 
       {erro && (
-        <p className="notice" style={{ marginTop: -4, marginBottom: 12, color: 'var(--danger)' }}>⚠ {erro}</p>
+        <p className="notice player-error" role="alert">{erro}</p>
       )}
 
       {disponiveis.length > 0 && (
-        <div style={{ marginBottom: 12 }}>
-          <label>Adicionar cadastrados (1 clique)</label>
+        <div className="known-players">
+          <p className="known-players-label">Adicionar cadastrados (1 clique)</p>
           <div className="quick-add">
             {disponiveis.map((n) => (
-              <button key={n} className="chip" onClick={() => addByName(n)}>+ {n}</button>
+              <button type="button" key={n} className="chip" onClick={() => addByName(n)}>+ {n}</button>
             ))}
           </div>
         </div>
@@ -97,8 +105,8 @@ export default function PlayersPanel({ entries, onChange, mode = 'setup', knownP
       {entries.length === 0 ? (
         <p className="notice">Nenhum jogador ainda.</p>
       ) : (
-        <div className="table-wrap">
-          <table>
+        <div className={`table-wrap players-table-wrap players-table-wrap--${mode}`}>
+          <table className={`players-table players-table--${mode}${live ? '' : ' responsive-card-table'}`}>
             <thead>
               <tr>
                 <th>Jogador</th>
@@ -113,24 +121,25 @@ export default function PlayersPanel({ entries, onChange, mode = 'setup', knownP
             </thead>
             <tbody>
               {entries.map((e, i) => (
-                <tr key={i} style={e.eliminated ? { opacity: 0.5 } : undefined}>
-                  <td>{e.name}</td>
-                  {live && <td>{e.table ? `Mesa ${e.table}` : '—'}</td>}
-                  {live && <td>{e.seat ?? '—'}</td>}
-                  <td><Stepper value={e.buyins} onMinus={() => step(i, 'buyins', -1)} onPlus={() => step(i, 'buyins', 1)} /></td>
-                  {live && <td><Stepper value={e.rebuys} onMinus={() => step(i, 'rebuys', -1)} onPlus={() => step(i, 'rebuys', 1)} /></td>}
-                  {live && addonEnabled && <td><Stepper value={e.addons} onMinus={() => step(i, 'addons', -1)} onPlus={() => step(i, 'addons', 1)} /></td>}
+                <tr key={i} className={e.eliminated ? 'player-row--eliminated' : undefined}>
+                  <td data-label="Jogador"><strong>{e.name}</strong></td>
+                  {live && <td data-label="Mesa">{e.table ? `Mesa ${e.table}` : '—'}</td>}
+                  {live && <td data-label="Assento">{e.seat ?? '—'}</td>}
+                  <td data-label="Buy-ins"><Stepper value={e.buyins} label={`Buy-ins de ${e.name}`} onMinus={() => step(i, 'buyins', -1)} onPlus={() => step(i, 'buyins', 1)} /></td>
+                  {live && <td data-label="Rebuys"><Stepper value={e.rebuys} label={`Rebuys de ${e.name}`} onMinus={() => step(i, 'rebuys', -1)} onPlus={() => step(i, 'rebuys', 1)} /></td>}
+                  {live && addonEnabled && <td data-label="Add-ons"><Stepper value={e.addons} label={`Add-ons de ${e.name}`} onMinus={() => step(i, 'addons', -1)} onPlus={() => step(i, 'addons', 1)} /></td>}
                   {live && (
-                    <td>
+                    <td data-label="Status">
                       <button className={e.eliminated ? 'ghost' : 'danger'}
                         onClick={() => onEliminate
                           ? onEliminate(i, !e.eliminated)
                           : patch(i, { eliminated: !e.eliminated, table: undefined, seat: undefined })}>
-                        {e.eliminated ? `↩ ${e.final_placement ?? ''}º · Reentrar` : '✗ Eliminar'}
+                        {e.eliminated ? <><ResetIcon size={18} /> {e.final_placement ?? ''}º · Reentrar</> : <><UserMinusIcon size={18} /> Eliminar</>}
                       </button>
                     </td>
                   )}
-                  <td><button className="danger" onClick={() => remove(i)}>✕</button></td>
+                  <td data-label="Ação"><button type="button" className="danger icon-button" aria-label={`Remover ${e.name}`}
+                    title="Remover jogador" onClick={() => remove(i)}><TrashIcon size={18} /></button></td>
                 </tr>
               ))}
             </tbody>
@@ -159,12 +168,12 @@ export default function PlayersPanel({ entries, onChange, mode = 'setup', knownP
   );
 }
 
-function Stepper({ value, onMinus, onPlus }: { value: number; onMinus: () => void; onPlus: () => void }) {
+function Stepper({ value, label, onMinus, onPlus }: { value: number; label: string; onMinus: () => void; onPlus: () => void }) {
   return (
-    <div className="row">
-      <button className="ghost" onClick={onMinus}>−</button>
-      <span style={{ minWidth: 20, textAlign: 'center' }}>{value}</span>
-      <button className="ghost" onClick={onPlus}>+</button>
+    <div className="stepper" aria-label={label}>
+      <button type="button" className="ghost icon-button" aria-label={`Diminuir ${label}`} onClick={onMinus}>−</button>
+      <output aria-live="polite">{value}</output>
+      <button type="button" className="ghost icon-button" aria-label={`Aumentar ${label}`} onClick={onPlus}>+</button>
     </div>
   );
 }

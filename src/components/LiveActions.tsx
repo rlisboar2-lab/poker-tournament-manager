@@ -7,6 +7,7 @@ import { useState } from 'react';
 import type { LocalEntry } from '../services/tournaments';
 import { hasPlayerNamed } from '../utils/seating';
 import CobrancaPix from './CobrancaPix';
+import { PlusIcon, ResetIcon, UserMinusIcon, UserPlusIcon } from './Icons';
 
 interface Props {
   entries: LocalEntry[];
@@ -70,34 +71,36 @@ export default function LiveActions({
 
   return (
     <>
-      <div className="live-actions-bar">
+      <div className="live-actions-bar" role="toolbar" aria-label="Ações rápidas do torneio">
         <button className="ghost" disabled={!lateCheckinOpen}
           title={!lateCheckinOpen ? 'Late check-in fechado' : undefined}
-          onClick={() => setSheet('add')}>+ Jogador</button>
+          onClick={() => setSheet('add')}><UserPlusIcon size={19} /> Jogador</button>
         <button className="danger" disabled={active.length === 0}
-          onClick={() => setSheet('eliminate')}>✗ Eliminar</button>
+          onClick={() => setSheet('eliminate')}><UserMinusIcon size={19} /> Eliminar</button>
         <button className="ghost" disabled={!lateCheckinOpen || rebuyable.length === 0}
           title={!lateCheckinOpen ? 'Late check-in fechado' : undefined}
-          onClick={() => setSheet('rebuy')}>↻ Rebuy</button>
+          onClick={() => setSheet('rebuy')}><ResetIcon size={19} /> Rebuy</button>
         {addonEnabled && (
           <button className="ghost" disabled={active.length === 0}
-            onClick={() => setSheet('addon')}>＋ Add-on</button>
+            onClick={() => setSheet('addon')}><PlusIcon size={19} /> Add-on</button>
         )}
       </div>
 
       {sheet === 'add' && (
-        <div className="qr-overlay" onClick={close}>
-          <div className="qr-card" onClick={(e) => e.stopPropagation()}>
-            <h2>Entrada tardia</h2>
+        <div className="qr-overlay live-sheet-overlay" onClick={close}>
+          <div className="qr-card live-sheet" role="dialog" aria-modal="true" aria-labelledby="live-add-title" onClick={(e) => e.stopPropagation()}>
+            <span className="setup-eyebrow">Ação rápida</span>
+            <h2 id="live-add-title">Entrada tardia</h2>
             <datalist id="known-players-live">
               {knownPlayers.map((n) => <option key={n} value={n} />)}
             </datalist>
-            <input autoFocus list="known-players-live" placeholder="Nome do jogador" value={name}
+            <label htmlFor="live-player-name">Nome do jogador</label>
+            <input id="live-player-name" autoFocus list="known-players-live" placeholder="Digite um nome" value={name}
               onChange={(e) => { setName(e.target.value); setAddError(''); }}
               onKeyDown={(e) => e.key === 'Enter' && confirmAdd()} />
             {disponiveis.length > 0 && (
-              <div style={{ marginTop: 12 }}>
-                <label>Adicionar cadastrados (1 clique)</label>
+              <div className="live-known-players">
+                <p className="known-players-label">Adicionar cadastrados (1 clique)</p>
                 <div className="quick-add">
                   {disponiveis.map((n) => (
                     <button key={n} className="chip" onClick={() => cobrarBuyIn(n)}>+ {n}</button>
@@ -106,9 +109,9 @@ export default function LiveActions({
               </div>
             )}
             {addError && (
-              <p className="notice" style={{ marginTop: 10, color: 'var(--danger)' }}>⚠ {addError}</p>
+              <p className="notice live-sheet-error" role="alert">{addError}</p>
             )}
-            <div className="row" style={{ justifyContent: 'center', marginTop: 14 }}>
+            <div className="live-sheet-actions">
               <button className="ghost" onClick={close}>Cancelar</button>
               <button className="primary" disabled={!name.trim()} onClick={confirmAdd}>Cobrar buy-in</button>
             </div>
@@ -117,19 +120,22 @@ export default function LiveActions({
       )}
 
       {sheet === 'eliminate' && (
-        <div className="qr-overlay" onClick={close}>
-          <div className="qr-card" onClick={(e) => e.stopPropagation()}>
-            <h2>Eliminar</h2>
+        <div className="qr-overlay live-sheet-overlay" onClick={close}>
+          <div className="qr-card live-sheet" role="dialog" aria-modal="true" aria-labelledby="live-eliminate-title" onClick={(e) => e.stopPropagation()}>
+            <span className="setup-eyebrow">Ação imediata</span>
+            <h2 id="live-eliminate-title">Eliminar jogador</h2>
+            <p className="notice live-sheet-help">A eliminação é aplicada ao escolher um nome. Você poderá desfazer por 5 segundos.</p>
             {active.length === 0 ? <p className="notice">Ninguém na mesa.</p> : (
               <div className="sheet-list">
                 {active.map(({ e, i }) => (
                   <button key={i} className="ghost sheet-item" onClick={() => { onEliminate(i); close(); }}>
-                    {e.table ? `Mesa ${e.table} · ${e.seat ?? '—'} — ` : ''}{e.name}
+                    <strong>{e.name}</strong>
+                    <span>{e.table ? `Mesa ${e.table} · Assento ${e.seat ?? '—'}` : 'Sem posição de mesa'}</span>
                   </button>
                 ))}
               </div>
             )}
-            <div className="row" style={{ justifyContent: 'center', marginTop: 14 }}>
+            <div className="live-sheet-actions live-sheet-actions--single">
               <button className="ghost" onClick={close}>Cancelar</button>
             </div>
           </div>
@@ -137,21 +143,23 @@ export default function LiveActions({
       )}
 
       {sheet === 'rebuy' && (
-        <div className="qr-overlay" onClick={close}>
-          <div className="qr-card" onClick={(e) => e.stopPropagation()}>
-            <h2>Rebuy</h2>
+        <div className="qr-overlay live-sheet-overlay" onClick={close}>
+          <div className="qr-card live-sheet" role="dialog" aria-modal="true" aria-labelledby="live-rebuy-title" onClick={(e) => e.stopPropagation()}>
+            <span className="setup-eyebrow">Cobrança</span>
+            <h2 id="live-rebuy-title">Rebuy</h2>
             {rebuyable.length === 0 ? <p className="notice">Ninguém elegível (limite de rebuys atingido).</p> : (
               <div className="sheet-list">
                 {rebuyable.map(({ e, i }) => (
                   <button key={i} className="ghost sheet-item"
                     onClick={() => { setPending({ tipo: 'rebuy', index: i, nome: e.name }); setSheet(null); }}>
-                    {e.name} {maxRebuys > 0 ? `(${e.rebuys}/${maxRebuys})` : `(${e.rebuys})`}
-                    {e.eliminated && <span className="notice"> — eliminado, volta pagando rebuy</span>}
+                    <strong>{e.name}</strong>
+                    <span>{maxRebuys > 0 ? `${e.rebuys} de ${maxRebuys} rebuys` : `${e.rebuys} rebuys`}</span>
+                    {e.eliminated && <span className="pill late">Eliminado · volta após o pagamento</span>}
                   </button>
                 ))}
               </div>
             )}
-            <div className="row" style={{ justifyContent: 'center', marginTop: 14 }}>
+            <div className="live-sheet-actions live-sheet-actions--single">
               <button className="ghost" onClick={close}>Cancelar</button>
             </div>
           </div>
@@ -159,20 +167,22 @@ export default function LiveActions({
       )}
 
       {sheet === 'addon' && (
-        <div className="qr-overlay" onClick={close}>
-          <div className="qr-card" onClick={(e) => e.stopPropagation()}>
-            <h2>Add-on</h2>
+        <div className="qr-overlay live-sheet-overlay" onClick={close}>
+          <div className="qr-card live-sheet" role="dialog" aria-modal="true" aria-labelledby="live-addon-title" onClick={(e) => e.stopPropagation()}>
+            <span className="setup-eyebrow">Cobrança</span>
+            <h2 id="live-addon-title">Add-on</h2>
             {active.length === 0 ? <p className="notice">Ninguém na mesa.</p> : (
               <div className="sheet-list">
                 {active.map(({ e, i }) => (
                   <button key={i} className="ghost sheet-item"
                     onClick={() => { setPending({ tipo: 'addon', index: i, nome: e.name }); setSheet(null); }}>
-                    {e.name} ({e.addons})
+                    <strong>{e.name}</strong>
+                    <span>{e.addons} add-on{e.addons === 1 ? '' : 's'}</span>
                   </button>
                 ))}
               </div>
             )}
-            <div className="row" style={{ justifyContent: 'center', marginTop: 14 }}>
+            <div className="live-sheet-actions live-sheet-actions--single">
               <button className="ghost" onClick={close}>Cancelar</button>
             </div>
           </div>

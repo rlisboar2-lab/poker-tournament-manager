@@ -1,6 +1,7 @@
 // src/components/Login.tsx
 import { useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { SpadeIcon } from './Icons';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -17,29 +18,42 @@ export default function Login() {
   };
 
   return (
-    <div className="app">
-      <h1>♠ Gerenciador de Torneios</h1>
-      <div className="panel" style={{ maxWidth: 380 }}>
-        <h2>Entrar</h2>
-        <div style={{ marginBottom: 10 }}>
-          <label>E-mail</label>
-          <input type="email" value={email} autoComplete="username"
-            onChange={(e) => setEmail(e.target.value)} />
+    <div className="app login-shell">
+      <main className="login-layout">
+        <div className="login-brand">
+          <h1 className="app-title">
+            <SpadeIcon size={26} />
+            <span>Gerenciador de Torneios</span>
+          </h1>
+          <p className="credit">Texas Hold'em · Torneios entre amigos</p>
         </div>
-        <div style={{ marginBottom: 14 }}>
-          <label>Senha</label>
-          <input type="password" value={password} autoComplete="current-password"
-            onChange={(e) => setPassword(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && signIn()} />
-        </div>
-        <button className="primary" disabled={busy} onClick={signIn}>
-          {busy ? 'Entrando…' : 'Entrar'}
-        </button>
-        {msg && <p className="warn" style={{ marginTop: 10 }}>{msg}</p>}
-        <p className="notice" style={{ marginTop: 14 }}>
-          O usuário é criado no painel do Supabase em Authentication → Users → Add user.
-        </p>
-      </div>
+
+        <form className="panel login-card" onSubmit={(e) => { e.preventDefault(); signIn(); }}>
+          <div className="login-heading">
+            <h2>Entrar</h2>
+            <p className="notice">Acesse a gestão dos seus torneios.</p>
+          </div>
+
+          <div className="login-fields">
+            <div>
+              <label htmlFor="login-email">E-mail</label>
+              <input id="login-email" name="email" type="email" value={email} autoComplete="username"
+                onChange={(e) => setEmail(e.target.value)} />
+            </div>
+            <div>
+              <label htmlFor="login-password">Senha</label>
+              <input id="login-password" name="password" type="password" value={password}
+                autoComplete="current-password" onChange={(e) => setPassword(e.target.value)} />
+            </div>
+          </div>
+
+          <button className="primary login-submit" type="submit" disabled={busy}>
+            {busy ? 'Entrando…' : 'Entrar'}
+          </button>
+          {msg && <p className="login-message" role="alert">{msg}</p>}
+          <p className="notice login-help">Novos acessos são criados pelo administrador do aplicativo.</p>
+        </form>
+      </main>
     </div>
   );
 }
