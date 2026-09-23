@@ -90,7 +90,9 @@ input[readonly] { color: var(--muted); }
            calc(var(--space-8) + env(safe-area-inset-bottom, 0px)) calc(var(--space-8) + env(safe-area-inset-left, 0px)); }
 .app.app--live { display: grid; grid-template-rows: minmax(0, 1fr) auto; width: 100%; max-width: none;
   height: 100vh; height: 100dvh; padding: 0; overflow: hidden; }
-.app--live .app-scroll { width: 100%; max-width: var(--content-width); min-height: 0; margin: 0 auto; overflow-y: auto;
+/* `position: relative` segura filhos absolutos (ex.: `.sr-only` do cronograma)
+   dentro do recorte; sem ele o documento cresce e a barra sobe na tela. */
+.app--live .app-scroll { position: relative; width: 100%; max-width: var(--content-width); min-height: 0; margin: 0 auto; overflow-y: auto;
   overscroll-behavior-y: contain; scroll-padding-block: var(--space-6);
   padding: calc(var(--space-6) + env(safe-area-inset-top, 0px)) calc(var(--space-8) + env(safe-area-inset-right, 0px))
            var(--space-6) calc(var(--space-8) + env(safe-area-inset-left, 0px)); }
@@ -621,6 +623,9 @@ body:has(.clock-panel.fs) { overflow: hidden; }
   .buyin-qr { min-height: 0; padding: var(--space-3); }
   .buyin-total { justify-items: start; text-align: left; }
   .responsive-card-table, .responsive-card-table tbody, .responsive-card-table tr, .responsive-card-table td { display: block; width: 100%; }
+  /* Em cartões a tabela não precisa do piso de 480px do `.table-wrap table`;
+     sem zerar, ela alarga o grid do pai e os cards vizinhos saem da tela. */
+  .table-wrap .responsive-card-table { min-width: 0; }
   .responsive-card-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden;
     clip: rect(0, 0, 0, 0); white-space: nowrap; }
   .responsive-card-table tbody { display: grid; gap: var(--space-3); padding: var(--space-3); }
