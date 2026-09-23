@@ -9,6 +9,7 @@ interface Props {
   onChange: (entries: LocalEntry[]) => void;
   mode?: 'setup' | 'live';
   knownPlayers?: string[];               // nomes já cadastrados (autocompletar)
+  inactivePlayers?: string[];            // nomes preservados no histórico, mas bloqueados para novas entradas
   maxRebuys?: number;                    // por jogador; 0 = sem limite
   addonEnabled?: boolean;               // torneio oferece add-on?
   onAddLive?: (name: string) => boolean; // adiciona + acomoda na mesa (live); false = duplicata
@@ -16,7 +17,7 @@ interface Props {
   onEliminate?: (index: number, eliminate: boolean) => void; // colocação automática
 }
 
-export default function PlayersPanel({ entries, onChange, mode = 'setup', knownPlayers = [], maxRebuys = 0, addonEnabled = true, onAddLive, onRebalance, onEliminate }: Props) {
+export default function PlayersPanel({ entries, onChange, mode = 'setup', knownPlayers = [], inactivePlayers = [], maxRebuys = 0, addonEnabled = true, onAddLive, onRebalance, onEliminate }: Props) {
   const [name, setName] = useState('');
   const [erro, setErro] = useState('');
   const live = mode === 'live';
@@ -27,6 +28,10 @@ export default function PlayersPanel({ entries, onChange, mode = 'setup', knownP
   const addByName = (n: string): boolean => {
     const nome = n.trim();
     if (!nome) return false;
+    if (inactivePlayers.some((p) => p.localeCompare(nome, 'pt-BR', { sensitivity: 'accent' }) === 0)) {
+      setErro(`${nome} está inativo e não pode participar de novos torneios.`);
+      return false;
+    }
     if (hasPlayerNamed(entries, nome)) {
       setErro(live
         ? `${nome} já está no torneio — use ↻ Rebuy para a reentrada.`

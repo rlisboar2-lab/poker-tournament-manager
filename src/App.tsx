@@ -28,7 +28,7 @@ import { addAndSeat, rebalanceSeating, seatEntry, hasPlayerNamed } from './utils
 import { applyElimination } from './utils/placements';
 import { uuidV4 } from './utils/uuid';
 import { quadraPreset } from './presets';
-import { saveTournament, listKnownPlayers, type LocalEntry } from './services/tournaments';
+import { saveTournament, listInactivePlayerNames, listKnownPlayers, type LocalEntry } from './services/tournaments';
 import { supabase, isSupabaseConfigured } from './lib/supabase';
 import Login from './components/Login';
 import ThemePanel from './components/ThemePanel';
@@ -204,8 +204,10 @@ export default function App() {
   const championFiredRef = useRef(false);
   // Jogadores já cadastrados (para reaproveitar nomes ao adicionar buy-in).
   const [knownPlayers, setKnownPlayers] = useState<string[]>([]);
+  const [inactivePlayers, setInactivePlayers] = useState<string[]>([]);
   useEffect(() => {
     listKnownPlayers().then((ps) => setKnownPlayers(ps.map((p) => p.display_name))).catch(() => {});
+    listInactivePlayerNames().then(setInactivePlayers).catch(() => {});
   }, [session]);
 
   const totals = useMemo(() => ({
@@ -778,7 +780,7 @@ export default function App() {
           payoutPct={payoutPct} onPayoutChange={setPayoutPct} />
       )}
 
-      {screen === 'players' && <PlayersPanel entries={entries} onChange={setEntries} mode="setup" knownPlayers={knownPlayers}
+      {screen === 'players' && <PlayersPanel entries={entries} onChange={setEntries} mode="setup" knownPlayers={knownPlayers} inactivePlayers={inactivePlayers}
         maxRebuys={config.max_rebuys} addonEnabled={config.addon_enabled} />}
 
       {screen === 'buyin' && (
@@ -835,7 +837,7 @@ export default function App() {
               onAddBreakAfter={addBreakAfter} />
           )}
           {liveTab === 'mesa' && (
-            <PlayersPanel entries={entries} onChange={setEntries} mode="live" knownPlayers={knownPlayers}
+            <PlayersPanel entries={entries} onChange={setEntries} mode="live" knownPlayers={knownPlayers} inactivePlayers={inactivePlayers}
               maxRebuys={config.max_rebuys} addonEnabled={config.addon_enabled}
               onAddLive={addPlayerLive}
               onRebalance={() => setEntries((prev) => rebalanceSeating(prev))}
@@ -899,7 +901,7 @@ export default function App() {
             </div>
           )}
           {liveTab !== 'config' && (
-            <LiveActions entries={entries} knownPlayers={knownPlayers}
+            <LiveActions entries={entries} knownPlayers={knownPlayers} inactivePlayers={inactivePlayers}
               buyInValue={config.buy_in_value} rebuyValue={config.rebuy_value} addonValue={config.addon_value}
               maxRebuys={config.max_rebuys} addonEnabled={config.addon_enabled}
               lateCheckinOpen={engine.state.level_number <= resolvedLateCheckinLevel}

@@ -16,6 +16,7 @@ interface Props {
   addonValue: number;
   maxRebuys: number;        // por jogador; 0 = sem limite
   knownPlayers?: string[];  // nomes já cadastrados (chips de 1 clique + datalist)
+  inactivePlayers?: string[];
   addonEnabled: boolean;
   lateCheckinOpen: boolean; // false = late check-in fechado (bloqueia + Jogador / Rebuy)
   onAddPlayer: (name: string) => boolean; // false = nome já no torneio
@@ -29,7 +30,7 @@ type Pending = { tipo: 'buyin' | 'rebuy' | 'addon'; index?: number; nome: string
 
 export default function LiveActions({
   entries, buyInValue, rebuyValue, addonValue, maxRebuys, addonEnabled, lateCheckinOpen,
-  knownPlayers = [], onAddPlayer, onRebuy, onAddon, onEliminate,
+  knownPlayers = [], inactivePlayers = [], onAddPlayer, onRebuy, onAddon, onEliminate,
 }: Props) {
   const [sheet, setSheet] = useState<Sheet>(null);
   const [name, setName] = useState('');
@@ -58,6 +59,10 @@ export default function LiveActions({
   const cobrarBuyIn = (n: string) => {
     const nome = n.trim();
     if (!nome) return;
+    if (inactivePlayers.some((p) => p.localeCompare(nome, 'pt-BR', { sensitivity: 'accent' }) === 0)) {
+      setAddError(`${nome} está inativo e não pode participar de novos torneios.`);
+      return;
+    }
     if (hasPlayerNamed(entries, nome)) {
       setAddError(`${nome} já está no torneio — use ↻ Rebuy para a reentrada.`);
       return;

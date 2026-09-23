@@ -133,9 +133,19 @@ export async function updateTournamentResults(
 export async function listKnownPlayers(): Promise<KnownPlayer[]> {
   if (!isSupabaseConfigured || !supabase) return [];
   const { data, error } = await supabase
-    .from('sub_players').select('id, display_name').order('display_name');
+    .from('sub_players').select('id, display_name').eq('is_active', true).order('display_name');
   if (error) throw error;
   return (data ?? []) as KnownPlayer[];
+}
+
+// Nomes inativos continuam no histórico, mas não podem ser incluídos em novos
+// torneios. A validação definitiva também acontece em `save_tournament` no banco.
+export async function listInactivePlayerNames(): Promise<string[]> {
+  if (!isSupabaseConfigured || !supabase) return [];
+  const { data, error } = await supabase
+    .from('sub_players').select('display_name').eq('is_active', false).order('display_name');
+  if (error) throw error;
+  return (data ?? []).map((p) => String(p.display_name));
 }
 
 export async function renamePlayer(id: string, display_name: string): Promise<void> {
