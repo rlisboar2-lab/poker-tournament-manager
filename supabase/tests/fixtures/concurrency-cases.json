@@ -1,0 +1,55 @@
+{
+  "fixture_version": 1,
+  "name": "concorrência e idempotência mínimas",
+  "lock_order": ["tournament", "participant", "authorization", "request"],
+  "cases": [
+    {
+      "id": "start-double-click",
+      "parallel_commands": ["confirm_buyins_and_start v1 set-A", "confirm_buyins_and_start v1 set-A"],
+      "expected": ["one success", "one VERSION_CONFLICT or same idempotent result"],
+      "invariants": ["runtime starts once", "one transaction per reviewed request"]
+    },
+    {
+      "id": "two-admins-confirm-purchase",
+      "parallel_commands": ["confirm_purchase request-X v1", "confirm_purchase request-X v1"],
+      "expected": ["one success", "one VERSION_CONFLICT or same confirmed result"],
+      "invariants": ["transactions.request_id unique", "chips granted once", "money recorded once"]
+    },
+    {
+      "id": "same-idempotency-key-same-command",
+      "parallel_commands": ["request_purchase key-K offer-A", "request_purchase key-K offer-A"],
+      "expected": ["same request envelope twice"],
+      "invariants": ["one request row", "one unit reservation"]
+    },
+    {
+      "id": "same-idempotency-key-different-command",
+      "parallel_commands": ["request_purchase key-K offer-A", "request_purchase key-K offer-B"],
+      "expected": ["one success", "one IDEMPOTENCY_CONFLICT"],
+      "invariants": ["one request row", "no mixed snapshot"]
+    },
+    {
+      "id": "simple-versus-double",
+      "parallel_commands": ["request first_simple", "request double"],
+      "expected": ["one success", "one PURCHASE_PENDING or OFFER_NOT_ELIGIBLE"],
+      "invariants": ["at most one non-terminal request", "reserved units never exceed two"]
+    },
+    {
+      "id": "revoke-during-use",
+      "parallel_commands": ["request_purchase authorization-A", "revoke_purchase_authorization authorization-A"],
+      "expected": ["serializable terminal outcome"],
+      "invariants": ["no request is created from an authorization already revoked under lock"]
+    },
+    {
+      "id": "buyin-arrives-during-start",
+      "parallel_commands": ["confirm_buyins_and_start v1 set-A", "request_buyin key-B"],
+      "expected": ["late request rejected or start returns REQUEST_SET_CHANGED"],
+      "invariants": ["no unreviewed buy-in confirmed", "registration closes atomically with start"]
+    },
+    {
+      "id": "response-lost-after-commit",
+      "parallel_commands": ["confirm_purchase request-X v1", "retry confirm_purchase request-X v1"],
+      "expected": ["confirmed result can be recovered"],
+      "invariants": ["one transaction", "one chips grant"]
+    }
+  ]
+}

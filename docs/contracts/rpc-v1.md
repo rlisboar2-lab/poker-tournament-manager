@@ -1,0 +1,149 @@
+# Contrato RPC v1 — portal público, PIX e compras
+
+Versão: 1
+Fixado em: 17/09/2026 (S19)
+Aplica-se às RPCs novas das sessões S20–S27.
+
+## Convenções
+
+- IDs são UUID em texto.
+- Datas são ISO 8601 em UTC.
+- Dinheiro cruza a API como texto decimal com duas casas, por exemplo "15.00".
+- Versões são inteiros positivos e usam concorrência otimista.
+- Tokens de dispositivo nunca são devolvidos, persistidos em texto puro, registrados em log ou colocados em URL.
+- Toda RPC nova retorna jsonb com um dos envelopes abaixo. Erros inesperados de infraestrutura continuam no
+  canal de erro do Supabase.
+
+Sucesso:
+
+    { "ok": true, "data": {} }
+
+Erro de domínio:
+
+    {
+      "ok": false,
+      "error": {
+        "code": "VERSION_CONFLICT",
+        "message": "O torneio mudou. Recarregue e revise antes de confirmar.",
+        "retryable": true,
+        "details": { "current_version": 4 }
+      }
+    }
+
+Uma repetição com a mesma idempotency_key e o mesmo comando devolve o envelope originalmente persistido.
+A mesma chave com conteúdo diferente devolve IDEMPOTENCY_CONFLICT.
+
+## Formatos compartilhados
+
+TournamentSummary:
+
+    {
+      "id": "uuid",
+      "public_id": "texto-opaco",
+      "name": "Torneio",
+      "public_status": "draft|published|registration_closed|running|finished|cancelled",
+      "state_version": 1,
+      "start_time": "2026-09-17T22:00:00Z"
+    }
+
+Offer:
+
+    {
+      "id": "uuid",
+      "kind": "buyin|rebuy|addon",
+      "name": "1º rebuy",
+      "price": "15.00",
+      "chips_granted": 10000,
+      "rebuy_units": 1,
+      "eligible_after_units": [0],
+      "max_uses": 1
+    }
+
+PurchaseRequest:
+
+    {
+      "id": "uuid",
+      "kind": "buyin|rebuy|addon",
+      "status": "requested|payment_reported|confirmed|rejected|cancelled|expired",
+      "offer_name": "1º rebuy",
+      "price": "15.00",
+      "chips_granted": 10000,
+      "rebuy_units": 1,
+      "created_at": "2026-09-17T22:00:00Z",
+      "updated_at": "2026-09-17T22:00:00Z"
+    }
+
+## RPCs públicas
+
+| RPC | Entrada | data no sucesso | Erros de domínio previstos |
+|---|---|---|---|
+| get_public_tournament | public_id text default null | tournament, offers, payment | NOT_FOUND, NOT_PUBLIC |
+| identify_player | public_id text, claimed_name text, device_token text, idempotency_key uuid | session, tournament, next_action | INVALID_ARGUMENT, NOT_PUBLIC, REGISTRATION_CLOSED, IDENTITY_CONFLICT, IDEMPOTENCY_CONFLICT |
+| get_player_portal | device_token text, public_id text default null | session, tournament, participant, requests, authorizations, offers, payment | SESSION_PENDING, SESSION_REVOKED, SESSION_EXPIRED, NOT_FOUND |
+| request_buyin | device_token text, offer_id uuid, idempotency_key uuid | request | SESSION_PENDING, SESSION_REVOKED, SESSION_EXPIRED, REGISTRATION_CLOSED, OFFER_NOT_ELIGIBLE, PURCHASE_PENDING, IDEMPOTENCY_CONFLICT |
+| request_purchase | device_token text, authorization_id uuid, offer_id uuid, idempotency_key uuid | request | SESSION_REVOKED, SESSION_EXPIRED, AUTHORIZATION_REQUIRED, AUTHORIZATION_EXPIRED, AUTHORIZATION_REVOKED, AUTHORIZATION_CONSUMED, OFFER_NOT_ELIGIBLE, PURCHASE_PENDING, IDEMPOTENCY_CONFLICT |
+| report_payment | device_token text, request_id uuid | request | SESSION_REVOKED, SESSION_EXPIRED, NOT_FOUND, REQUEST_STATE_CONFLICT |
+| cancel_purchase_request | device_token text, request_id uuid | request | SESSION_REVOKED, SESSION_EXPIRED, NOT_FOUND, REQUEST_STATE_CONFLICT |
+| revoke_device_session | device_token text | revoked_at | SESSION_REVOKED, SESSION_EXPIRED |
+
+As respostas públicas nunca incluem UUID de usuário administrativo, hash/token, pedidos de outro jogador,
+campos internos de auditoria ou configurações PIX de torneio não publicado.
+
+## RPCs administrativas
+
+Todas exigem JWT autenticado cujo auth.uid() exista em public.app_admins. Falha retorna AUTH_REQUIRED ou
+ADMIN_REQUIRED sem revelar se outro UUID é administrador.
+
+| RPC | Entrada | data no sucesso | Erros adicionais previstos |
+|---|---|---|---|
+| create_operational_tournament | payload jsonb com nome, início, configuração, ofertas e PIX | tournament, offers, payment_version | INVALID_ARGUMENT, TOURNAMENT_STATE_CONFLICT |
+| publish_tournament | tournament_id uuid, expected_version bigint | tournament | NOT_FOUND, VERSION_CONFLICT, TOURNAMENT_STATE_CONFLICT |
+| resolve_player_claim | session_id uuid, player_id uuid default null, new_display_name text default null | session, participant | NOT_FOUND, INVALID_ARGUMENT, IDENTITY_CONFLICT, REGISTRATION_CLOSED |
+| confirm_buyins_and_start | tournament_id uuid, expected_version bigint, reviewed_request_ids uuid[] | tournament, runtime, confirmed_requests, transactions | VERSION_CONFLICT, REQUEST_SET_CHANGED, REQUEST_STATE_CONFLICT, TOURNAMENT_STATE_CONFLICT, DUPLICATE_TRANSACTION |
+| authorize_purchase | participant_id uuid, kind text, offer_ids uuid[], expires_at timestamptz | authorization, offers | INVALID_ARGUMENT, NOT_FOUND, OFFER_NOT_ELIGIBLE, TOURNAMENT_STATE_CONFLICT, PURCHASE_PENDING |
+| confirm_purchase | request_id uuid, expected_version bigint | request, transaction, participant, tournament | VERSION_CONFLICT, REQUEST_STATE_CONFLICT, DUPLICATE_TRANSACTION, OFFER_NOT_ELIGIBLE |
+| reject_purchase | request_id uuid, reason text | request | NOT_FOUND, REQUEST_STATE_CONFLICT |
+| revoke_purchase_authorization | authorization_id uuid, reason text | authorization | NOT_FOUND, AUTHORIZATION_CONSUMED, REQUEST_STATE_CONFLICT |
+| update_tournament_runtime | tournament_id uuid, expected_version bigint, payload jsonb | runtime, tournament | VERSION_CONFLICT, INVALID_ARGUMENT, TOURNAMENT_STATE_CONFLICT |
+| finish_operational_tournament | tournament_id uuid, expected_version bigint, results jsonb | tournament, participants, transactions | VERSION_CONFLICT, PENDING_PAYMENT, INVALID_ARGUMENT, TOURNAMENT_STATE_CONFLICT |
+
+## Catálogo fechado de erros v1
+
+| Código | Significado | Repetir sem mudança? |
+|---|---|---:|
+| INVALID_ARGUMENT | campo ausente, tipo/faixa inválida ou combinação impossível | não |
+| AUTH_REQUIRED | JWT administrativo ausente ou inválido | após autenticar |
+| ADMIN_REQUIRED | usuário autenticado não está em app_admins | não |
+| NOT_FOUND | recurso não existe ou não pode ser revelado ao chamador | não |
+| NOT_PUBLIC | torneio existe, mas não está publicamente acessível | não |
+| REGISTRATION_CLOSED | cadastro/buy-in inicial já fechou | não |
+| SESSION_PENDING | identidade ainda aguarda validação | depois da validação |
+| SESSION_REVOKED | sessão do dispositivo foi revogada | após nova identificação |
+| SESSION_EXPIRED | sessão venceu | após nova identificação |
+| IDENTITY_CONFLICT | nome/jogador conflita com associação existente | após revisão admin |
+| VERSION_CONFLICT | expected_version não é a versão atual | sim, após recarregar |
+| IDEMPOTENCY_CONFLICT | chave foi reutilizada com comando diferente | não; use nova chave |
+| REQUEST_SET_CHANGED | lote de buy-ins mudou desde a revisão | sim, após recarregar |
+| REQUEST_STATE_CONFLICT | pedido já está em estado incompatível | não |
+| PURCHASE_PENDING | já existe compra adicional não terminal | depois de resolver |
+| OFFER_NOT_ELIGIBLE | oferta não é válida para a contagem/estado atual | não |
+| AUTHORIZATION_REQUIRED | compra adicional não foi autorizada | depois de autorizar |
+| AUTHORIZATION_EXPIRED | autorização venceu | depois de nova autorização |
+| AUTHORIZATION_REVOKED | autorização foi revogada | depois de nova autorização |
+| AUTHORIZATION_CONSUMED | autorização de uso único já foi consumida | não |
+| TOURNAMENT_STATE_CONFLICT | ação incompatível com o estado do torneio | não |
+| PENDING_PAYMENT | há pagamento declarado ainda sem resolução | depois de resolver |
+| DUPLICATE_TRANSACTION | transactions.request_id já foi consumido | não; recarregue |
+
+Novos códigos exigem nova versão deste documento ou registro explícito de compatibilidade. O cliente depende
+do code, nunca do texto da mensagem.
+
+## Invariantes transacionais
+
+1. A confirmação inicial bloqueia o torneio antes de validar a versão e o conjunto revisado.
+2. Compras adicionais bloqueiam nesta ordem: torneio, participante, autorização e pedido.
+3. Só o estado confirmed cria transactions, concede fichas e altera totais.
+4. O snapshot do pedido preserva oferta, preço, fichas, unidades e instrução PIX vistos na solicitação.
+5. Unidades elegíveis somam confirmações e reservas não terminais; término sem confirmação libera a reserva.
+6. transactions.request_id é único e a repetição idempotente devolve o resultado já confirmado.
+7. O cliente não envia preço efetivo, fichas efetivas, unidades efetivas nem identidade administrativa.

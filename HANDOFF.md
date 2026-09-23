@@ -38,10 +38,17 @@ O site precisa de 2 valores do Supabase. Eles ficam em **dois lugares**:
 
 ## 4. Migrações do banco (Supabase → SQL Editor)
 
-Já aplicadas no banco atual: `0001`, `0003`, `0005`, `0006`, `0007`, `0008` (as quatro últimas em
-10/09/2026). `0002` foi substituída por `0003`. `0004` é obsoleta (o ranking é calculado das
-transações, não precisa). **Nada pendente.** Se você recriar o banco do zero um dia, rode na ordem:
-`0001` → `0003` → `0005` → `0006` → `0007` → `0008`.
+Corte confirmado no banco em uso: `0001`, `0003`, `0005`–`0010` aplicadas (`0006`–`0008` em
+10/09/2026; `0009` e `0010` confirmadas em 17/09/2026 por inventário read-only direto ao catálogo
+remoto — ver `docs/superpowers/specs/2026-09-17-s19-baseline-contracts-db-environment.md`). `0002`
+foi substituída por `0003` e `0004` é obsoleta. A presença do arquivo no Git não prova aplicação no
+Supabase; `supabase migration list` também não serve de fonte aqui, porque as migrações foram
+aplicadas manualmente pelo SQL Editor e a tabela de controle do CLI nunca foi populada — a
+confirmação real é por consulta direta ao catálogo (`information_schema`/`pg_proc`/`pg_policies`).
+
+Para banco local novo, o Supabase CLI reaplica todos os arquivos versionados em ordem; `0002` e
+`0004` são históricos aditivos e não devem ser apagados ou renomeados sem uma migração/baseline
+deliberada.
 
 > Se depois do push o console do navegador reclamar de `save_tournament ausente`, é o cache de schema
 > da API: Supabase → Settings → API → **Reload schema cache** (ou espere ~1 min).
@@ -122,6 +129,13 @@ Passo a passo com o Claude na conta nova:
       Início" → abrir pelo ícone (PWA).
 - [ ] **Backup** (recomendado): de tempos em tempos, exportar as tabelas do Supabase em CSV
       (Table Editor → Export). O plano gratuito não faz backup automático.
+- [x] **S19 — backup lógico antes das novas migrações:** executado em 23/09/2026. Schema, dados e
+      roles em `supabase/backups/`, com SHA-256 em `SHA256SUMS-2026-09-23.txt`. O dump de dados
+      fica fora do Git (contém `auth.users`, `auth.sessions` e `auth.refresh_tokens`). O dump
+      anterior, de 17/09, tinha **0 bytes** — nunca houve backup válido antes desta data.
+      Resultados completos em `docs/runbooks/s19-resultados-2026-09-23.md`.
+- [ ] **Drift de schema:** `rls_auto_enable` existe em produção sem migração versionada.
+      Confirmar no painel se o event trigger está ativo e, em caso positivo, versionar como `0011`.
 
 ## 8. Prompt para colar no Claude da conta nova
 

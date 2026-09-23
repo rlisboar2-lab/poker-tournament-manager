@@ -1,0 +1,12 @@
+# Supabase
+.branches
+.temp
+
+# dotenvx
+.env.keys
+.env.local
+.env.*.local
+
+# Dumps de dados do remoto — contêm auth.users (hash de senha),
+# auth.sessions e auth.refresh_tokens. Nunca versionar.
+backups/*-data-*.sql

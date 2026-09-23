@@ -1,0 +1,96 @@
+{
+  "fixture_version": 1,
+  "name": "duas unidades de rebuy",
+  "currency": "BRL",
+  "tournament": {
+    "id": "10000000-0000-4000-8000-000000000001",
+    "public_id": "s19-dois-rebuys",
+    "state_version": 1,
+    "status": "running"
+  },
+  "participant": {
+    "id": "20000000-0000-4000-8000-000000000001",
+    "player_id": "30000000-0000-4000-8000-000000000001",
+    "display_name": "Jogador Teste",
+    "confirmed_rebuy_units": 0,
+    "reserved_rebuy_units": 0
+  },
+  "offers": [
+    {
+      "id": "40000000-0000-4000-8000-000000000001",
+      "kind": "rebuy",
+      "name": "1º simples",
+      "eligible_after_units": [0],
+      "rebuy_units": 1,
+      "price": "15.00",
+      "chips_granted": 10000,
+      "max_uses": 1
+    },
+    {
+      "id": "40000000-0000-4000-8000-000000000002",
+      "kind": "rebuy",
+      "name": "2º simples",
+      "eligible_after_units": [1],
+      "rebuy_units": 1,
+      "price": "20.00",
+      "chips_granted": 10000,
+      "max_uses": 1
+    },
+    {
+      "id": "40000000-0000-4000-8000-000000000003",
+      "kind": "rebuy",
+      "name": "Duplo",
+      "eligible_after_units": [0],
+      "rebuy_units": 2,
+      "price": "35.00",
+      "chips_granted": 20000,
+      "max_uses": 1
+    }
+  ],
+  "scenarios": [
+    {
+      "name": "dois simples confirmados",
+      "commands": ["confirm first_simple", "confirm second_simple"],
+      "expected": {
+        "transactions": 2,
+        "total_amount": "35.00",
+        "total_rebuy_units": 2,
+        "total_chips_granted": 20000,
+        "eligible_offer_ids": []
+      }
+    },
+    {
+      "name": "duplo confirmado",
+      "commands": ["confirm double"],
+      "expected": {
+        "transactions": 1,
+        "transaction_amount": "35.00",
+        "total_rebuy_units": 2,
+        "total_chips_granted": 20000,
+        "eligible_offer_ids": []
+      }
+    },
+    {
+      "name": "simples pendente reserva uma unidade",
+      "commands": ["request first_simple"],
+      "expected": {
+        "confirmed_rebuy_units": 0,
+        "reserved_rebuy_units": 1,
+        "double_offer_eligible": false,
+        "pot_delta": "0.00",
+        "chips_delta": 0
+      }
+    },
+    {
+      "name": "cancelar simples libera reserva",
+      "commands": ["request first_simple", "cancel request"],
+      "expected": {
+        "confirmed_rebuy_units": 0,
+        "reserved_rebuy_units": 0,
+        "double_offer_eligible": true,
+        "pot_delta": "0.00",
+        "chips_delta": 0
+      }
+    }
+  ]
+}
