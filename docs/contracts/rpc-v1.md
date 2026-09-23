@@ -147,3 +147,54 @@ do code, nunca do texto da mensagem.
 5. Unidades elegíveis somam confirmações e reservas não terminais; término sem confirmação libera a reserva.
 6. transactions.request_id é único e a repetição idempotente devolve o resultado já confirmado.
 7. O cliente não envia preço efetivo, fichas efetivas, unidades efetivas nem identidade administrativa.
+
+## Registro de compatibilidade v1 — implementação S21 (23/09/2026)
+
+Nenhum código novo: o catálogo acima continua fechado (código fora dele aborta a RPC). As notas abaixo
+são aditivas e não mudam formatos existentes. Implementação: `supabase/migrations/0013_payment_flow_rpcs.sql`.
+
+Nomes de parâmetro: exatamente os da coluna "Entrada" (ex.: `supabase.rpc('request_buyin', { device_token, offer_id, idempotency_key })`).
+
+Códigos do catálogo que as RPCs podem devolver além dos "previstos" da tabela:
+
+- toda RPC: INVALID_ARGUMENT para entrada ausente ou malformada (inclusive token fora do formato base64url 43–128).
+- RPCs públicas com token: NOT_FOUND para token bem formado que nunca foi registrado; a checagem da
+  sessão (SESSION_PENDING/REVOKED/EXPIRED) vem antes de qualquer outra.
+- identify_player: SESSION_REVOKED / SESSION_EXPIRED ao reusar token encerrado (o cliente gera token novo).
+- request_buyin: NOT_FOUND e IDENTITY_CONFLICT (`details.reason = player_inactive`).
+- request_purchase: NOT_FOUND, SESSION_PENDING, TOURNAMENT_STATE_CONFLICT (torneio fora de `running`).
+- report_payment / cancel_purchase_request: SESSION_PENDING.
+- revoke_device_session: NOT_FOUND.
+- admin: AUTH_REQUIRED / ADMIN_REQUIRED em todas; NOT_FOUND quando o id não existe; confirm_buyins_and_start
+  pode devolver TOURNAMENT_STATE_CONFLICT (`no_buyins`); authorize_purchase pode devolver OFFER_NOT_ELIGIBLE
+  (`window_closed`) e TOURNAMENT_STATE_CONFLICT (`participant_status`).
+
+Campos aditivos nas respostas: TournamentSummary ganha `started_at`, `registration_closed_at` e
+`is_public_current`; PurchaseRequest ganha `offer_id`, `authorization_id`, `payment` (snapshot PIX),
+`version`, `payment_reported_at` e `rejection_reason` (o admin recebe também `participant_id`,
+`player_id`, `display_name`, `session_id`, `resolved_at`). `participant` traz unidades confirmadas e
+reservadas, add-ons confirmados e `eligible_offer_ids`. identify_player e get_player_portal trazem
+`next_action`: `await_validation | request_buyin | await_buyin_confirmation | open_portal`.
+
+`retryable` é `true` quando o mesmo pedido pode dar certo depois de um evento externo, sem trocar a
+entrada: AUTH_REQUIRED, SESSION_PENDING, IDENTITY_CONFLICT, VERSION_CONFLICT, REQUEST_SET_CHANGED,
+PURCHASE_PENDING, AUTHORIZATION_REQUIRED e PENDING_PAYMENT.
+
+RPC administrativa aditiva (leitura): `get_operational_tournament(tournament_id uuid default null)` →
+tournament, runtime, payment, offers, participants, pending_sessions, requests, authorizations. Sem
+argumento, devolve o torneio do fluxo 2 mais recente ainda não finalizado.
+
+Semântica fixada na implementação:
+
+- Idempotência grava só sucesso; erro não prende a chave. A chave é por sessão e vale entre comandos:
+  reusar a chave em outro comando dá IDEMPOTENCY_CONFLICT.
+- Sessão nova com inscrição fechada só é aceita para nome de participante já inscrito (recuperação após
+  limpar o navegador); continua pendente até o admin validar.
+- Autorização é consumida quando o pedido nasce. Cancelar ou rejeitar libera a reserva de unidades, mas
+  uma nova compra exige nova autorização.
+- Cancelar só vale antes de "informei o pagamento"; depois disso o admin rejeita.
+- confirm_purchase de pedido já confirmado devolve o resultado confirmado (sem checar versão).
+  confirm_purchase e update_tournament_runtime incrementam `state_version` do torneio.
+- confirm_buyins_and_start marca como `withdrawn` quem ficou em `pending_buyin`.
+- finish_operational_tournament expira pedidos `requested` e autorizações ativas; `payment_reported`
+  bloqueia com PENDING_PAYMENT. `results` = `[{participant_id, final_placement?, payout_amount?}]`.

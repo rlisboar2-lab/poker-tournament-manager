@@ -1,7 +1,7 @@
 # Plano de implementação — portal público, PIX e compras do torneio
 
 **Data:** 17/09/2026  
-**Status:** S19 e S20 concluídas; `0011`/`0012` aplicadas em produção em 23/09/2026. S21 é a próxima.  
+**Status:** S19–S21 concluídas; `0011`/`0012` aplicadas em produção em 23/09/2026; `0013` (S21) só no banco local. S22 é a próxima.  
 **Projeto:** `poker-tournament-manager` — Vite, React 18, TypeScript e Supabase.
 
 ## Objetivo
@@ -221,6 +221,24 @@ Implementar identidade, portal filtrado, buy-in, resolução do jogador, confirm
 **Aceite:** todo fluxo financeiro funciona por RPC sem depender do estado React.
 
 **Validação:** transições inválidas, concorrência, repetição, token/preço adulterado, janela fechada e rollback integral.
+
+**Execução (23/09/2026, branch `s21/rpcs-fluxo-pagamentos`, criada da `main` que já contém S19/S20):**
+
+- `0013_payment_flow_rpcs.sql`: 8 RPCs públicas + 10 administrativas do contrato v1 e a leitura
+  administrativa aditiva `get_operational_tournament`. Todas `security definer`, `search_path = ''`,
+  execute revogado de public/anon/authenticated e concedido de novo explicitamente. Nenhuma tabela ou
+  policy mudou. Helpers em `private` (envelope com catálogo fechado, idempotência, sessão, elegibilidade, JSON).
+- Locks: torneio (`for no key update`) → sessão → participante → autorização → pedido. Erro de domínio
+  só sai antes de escrever ou de dentro de bloco `begin/exception` que desfaz o bloco.
+- Decisões registradas em `docs/contracts/rpc-v1.md` ("Registro de compatibilidade"): nenhum código novo.
+- Validação: reset `0001`→`0013` limpo; `rls-rpc-baseline.sql` 10/10, `s20-schema.sql` 13/13,
+  `s21-rpcs.sql` 16/16 (inclui os 4 cenários de `two-rebuys.json`, triplo, add-on, token
+  revogado/vencido/adulterado, acesso direto negado, janela fechada e rollback integral forçado por
+  trigger), `s21-concurrency.sh` 8/8 (os 8 casos de `concurrency-cases.json` com conexões `psql`
+  paralelas; a conexão B comprovadamente espera o commit de A). Rodado duas vezes.
+- Limites: não rodou contra o dump real de produção (a `0013` não mexe em dados nem tabelas); o app não
+  chama as RPCs ainda. O legado lista torneios do fluxo 2 no Histórico e soma no ranking transações de
+  torneio em andamento: filtrar por `flow_version`/status antes de usar o fluxo 2 em produção (S25).
 
 ### S22 — Serviços TypeScript e torneio persistente
 
