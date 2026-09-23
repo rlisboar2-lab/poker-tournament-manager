@@ -38,7 +38,7 @@ O site precisa de 2 valores do Supabase. Eles ficam em **dois lugares**:
 
 ## 4. Migrações do banco (Supabase → SQL Editor)
 
-Corte confirmado no banco em uso: `0001`, `0003`, `0005`–`0010` aplicadas (`0006`–`0008` em
+Corte confirmado no banco em uso: `0001`, `0003`, `0005`–`0012` aplicadas (`0011` e `0012` em 23/09/2026, S20) (`0006`–`0008` em
 10/09/2026; `0009` e `0010` confirmadas em 17/09/2026 por inventário read-only direto ao catálogo
 remoto — ver `docs/superpowers/specs/2026-09-17-s19-baseline-contracts-db-environment.md`). `0002`
 foi substituída por `0003` e `0004` é obsoleta. A presença do arquivo no Git não prova aplicação no
@@ -136,9 +136,12 @@ Passo a passo com o Claude na conta nova:
       Resultados completos em `docs/runbooks/s19-resultados-2026-09-23.md`.
 - [x] **Drift de schema:** `rls_auto_enable` + event trigger `ensure_rls` confirmados ativos em
       produção por Rod em 23/09/2026 (`evtenabled = 'O'`). Versionados na `0011`.
-- [ ] **S20 — aplicar `0011` e `0012` em produção** (SQL Editor, nessa ordem, com autorização).
-      As duas são aditivas; o app atual segue igual. Depois, cadastrar o admin conforme
-      `docs/runbooks/app-admins.md`. Até lá, as duas existem só no Git e no banco local.
+- [x] **S20 — `0011` e `0012` aplicadas em produção** por Rod em 23/09/2026 (SQL Editor). Conferido
+      no catálogo: `ensure_rls` ativo, 10 tabelas novas com RLS e sem policy, 5 funções em `private`,
+      zero grants para anon/authenticated, 252 transações (111 rebuys = 111 unidades, `kind` sem
+      divergência), nenhum torneio no fluxo 2.
+- [ ] **Cadastrar o admin** em `app_admins` (`docs/runbooks/app-admins.md`). Hoje está vazia.
+- [ ] **Smoke test do legado pós-0012:** salvar ou editar um torneio de teste em produção.
 
 ## 8. Prompt para colar no Claude da conta nova
 

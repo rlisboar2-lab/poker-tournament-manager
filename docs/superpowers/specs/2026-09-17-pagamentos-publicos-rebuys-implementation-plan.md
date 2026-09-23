@@ -1,7 +1,7 @@
 # Plano de implementação — portal público, PIX e compras do torneio
 
 **Data:** 17/09/2026  
-**Status:** S19 e S20 concluídas (local); S21 é a próxima. Produção ainda no corte `0010`.  
+**Status:** S19 e S20 concluídas; `0011`/`0012` aplicadas em produção em 23/09/2026. S21 é a próxima.  
 **Projeto:** `poker-tournament-manager` — Vite, React 18, TypeScript e Supabase.
 
 ## Objetivo
