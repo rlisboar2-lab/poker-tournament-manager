@@ -134,8 +134,11 @@ Passo a passo com o Claude na conta nova:
       fica fora do Git (contém `auth.users`, `auth.sessions` e `auth.refresh_tokens`). O dump
       anterior, de 17/09, tinha **0 bytes** — nunca houve backup válido antes desta data.
       Resultados completos em `docs/runbooks/s19-resultados-2026-09-23.md`.
-- [ ] **Drift de schema:** `rls_auto_enable` existe em produção sem migração versionada.
-      Confirmar no painel se o event trigger está ativo e, em caso positivo, versionar como `0011`.
+- [x] **Drift de schema:** `rls_auto_enable` + event trigger `ensure_rls` confirmados ativos em
+      produção por Rod em 23/09/2026 (`evtenabled = 'O'`). Versionados na `0011`.
+- [ ] **S20 — aplicar `0011` e `0012` em produção** (SQL Editor, nessa ordem, com autorização).
+      As duas são aditivas; o app atual segue igual. Depois, cadastrar o admin conforme
+      `docs/runbooks/app-admins.md`. Até lá, as duas existem só no Git e no banco local.
 
 ## 8. Prompt para colar no Claude da conta nova
 

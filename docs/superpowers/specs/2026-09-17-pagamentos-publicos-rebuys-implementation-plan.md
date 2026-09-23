@@ -1,7 +1,7 @@
 # Plano de implementação — portal público, PIX e compras do torneio
 
 **Data:** 17/09/2026  
-**Status:** pronto para execução; nenhuma etapa implementada por este documento.  
+**Status:** S19 e S20 concluídas (local); S21 é a próxima. Produção ainda no corte `0010`.  
 **Projeto:** `poker-tournament-manager` — Vite, React 18, TypeScript e Supabase.
 
 ## Objetivo
@@ -198,6 +198,19 @@ Funções privilegiadas usam objetos qualificados, `security definer`, `set sear
 Criar tabelas/índices; fazer backfill de transações; criar helpers privados de admin e token; manter o fluxo legado funcionando.
 
 **Aceite:** o app antigo continua lendo e salvando histórico; constraints rejeitam cruzamento de torneios, duplicatas e valores inválidos.
+
+**Execução (23/09/2026, branch `s20/schema-aditivo-admin`):**
+
+- `0011_rls_auto_enable.sql` versiona o drift da S19 (função + event trigger `ensure_rls`, ativo em produção). A migração do schema virou `0012_payment_flow_schema.sql`.
+- `0012` cria as 10 tabelas, o schema `private` (`is_admin`, `device_token_hash`, triggers) e as colunas novas de `base_tournaments`/`transactions`. Tabelas novas: RLS ligado, nenhuma policy, `revoke all` de anon/authenticated. O acesso fica para as RPCs da S21.
+- Integridade por FKs compostas (`tournament_id`, `player_id`, `kind`): pedido, autorização, oferta liberada e transação não cruzam torneio, jogador ou tipo.
+- Desvios do plano, deliberados:
+  - `transactions.kind` é **coluna gerada** de `is_rebuy`/`is_addon`. Legado e fluxo novo não divergem.
+  - `rebuy_units` é not null **sem default**. Um trigger preenche 1 por rebuy omitido: com default 0, o `save_tournament` legado gravaria rebuy com zero unidades.
+  - Tabela extra `rpc_idempotency`, para cumprir o contrato "mesma chave devolve o envelope gravado".
+  - Sessão de dispositivo é global, não por torneio. `claimed_in_tournament_id` só dá contexto à fila.
+- Validação: reset `0001`→`0012` sem erro; inventário de dois resets idêntico (631 linhas); `rls-rpc-baseline.sql` 10/10; `s20-schema.sql` 13/13. Dados reais do dump de 23/09 carregados no banco local: backfill de 252 transações (111 rebuys = 111 unidades), `player_leaderboard()` com hash idêntico antes e depois, as duas suítes passam também sobre esses dados. `npm run build`, `npm test` (75) e `npm run lint` (0 erros) passam.
+- Limite: o app não foi exercitado no navegador contra o banco local. A compatibilidade foi provada no nível SQL/RPC, que é o único caminho de escrita do cliente.
 
 ### S21 — Máquina de estados e RPCs
 
