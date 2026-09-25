@@ -225,6 +225,8 @@ export default function App() {
   const knownPlayers = useMemo(() => knownPlayerList.map((p) => p.display_name), [knownPlayerList]);
   const [inactivePlayers, setInactivePlayers] = useState<string[]>([]);
   useEffect(() => {
+    // 0015: anon não tem grant em sub_players; sem sessão a consulta só daria 401.
+    if (isSupabaseConfigured && !session) return;
     listKnownPlayers().then(setKnownPlayerList).catch(() => {});
     listInactivePlayerNames().then(setInactivePlayers).catch(() => {});
   }, [session]);

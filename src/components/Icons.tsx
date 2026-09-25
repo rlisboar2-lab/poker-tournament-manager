@@ -66,10 +66,6 @@ export const FullscreenIcon = (props: IconProps) => (
   <IconBase {...props}><path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5" /></IconBase>
 );
 
-export const QrIcon = (props: IconProps) => (
-  <IconBase {...props}><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM15 14h2M20 14v3M14 20h3M20 20h.01" /></IconBase>
-);
-
 export const ZoomOutIcon = (props: IconProps) => (
   <IconBase {...props}><circle cx="10.5" cy="10.5" r="5.5" /><path d="M7.5 10.5h6M15 15l5 5" /></IconBase>
 );

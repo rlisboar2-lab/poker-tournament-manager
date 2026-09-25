@@ -175,7 +175,10 @@ begin
                        'finish_operational_tournament', 'get_operational_tournament')
      and not (p.prosecdef
               and 'search_path=""' = any (p.proconfig)
-              and has_function_privilege('anon', p.oid, 'execute')
+              -- 0015: anon só executa as 8 públicas; as administrativas ficam só com authenticated.
+              and has_function_privilege('anon', p.oid, 'execute') = (p.proname in (
+                    'get_public_tournament', 'identify_player', 'get_player_portal', 'request_buyin',
+                    'request_purchase', 'report_payment', 'cancel_purchase_request', 'revoke_device_session'))
               and has_function_privilege('authenticated', p.oid, 'execute')
               and not exists (select 1 from aclexplode(p.proacl) a where a.grantee = 0));
   assert v_bad is null, format('RPC sem security definer/search_path vazio/grant explícito: %s', v_bad);
@@ -192,7 +195,9 @@ begin
   select string_agg(p.oid::regprocedure::text, ', ') into v_bad
     from pg_proc p join pg_namespace n on n.oid = p.pronamespace
    where n.nspname = 'private'
-     and (has_function_privilege('anon', p.oid, 'execute') or has_function_privilege('authenticated', p.oid, 'execute'));
+     and (has_function_privilege('anon', p.oid, 'execute')
+          -- 0015: is_admin() é o único helper que authenticated executa (usado nas policies).
+          or (has_function_privilege('authenticated', p.oid, 'execute') and p.proname <> 'is_admin'));
   assert v_bad is null, format('helper privado executável por anon/authenticated: %s', v_bad);
 
   set local role anon;
@@ -223,10 +228,11 @@ begin
     format('public.finish_operational_tournament(%L, 1, ''[]''::jsonb)', gen_random_uuid()),
     'public.get_operational_tournament()'
   ] loop
-    perform pg_temp.err(pg_temp.anon(v_call), 'AUTH_REQUIRED', 'anon em ' || v_call);
+    -- 0015: anon perdeu EXECUTE; o cliente traduz 42501 para AUTH_REQUIRED.
+    perform pg_temp.expect_error(format('select pg_temp.anon(%L)', v_call), '42501', 'anon em ' || v_call);
     perform pg_temp.err(pg_temp.as_user(pg_temp.uid('user'), v_call), 'ADMIN_REQUIRED', 'não admin em ' || v_call);
   end loop;
-  raise notice 'OK 2 - 11 RPCs administrativas: anon = AUTH_REQUIRED, autenticado comum = ADMIN_REQUIRED';
+  raise notice 'OK 2 - 11 RPCs administrativas: anon = permission denied, autenticado comum = ADMIN_REQUIRED';
 end $$;
 
 -- ── 3. create_operational_tournament ────────────────────────────────────

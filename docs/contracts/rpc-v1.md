@@ -221,3 +221,19 @@ Aditivo; nenhum código de erro novo. Implementação: `supabase/migrations/0014
   NOT_FOUND, VERSION_CONFLICT, TOURNAMENT_STATE_CONFLICT, PENDING_PAYMENT.
 - `player_leaderboard()` (legado, fora do envelope) passa a considerar só torneio legado
   (`flow_version = 1`) ou do fluxo 2 finalizado — o mesmo filtro do Histórico.
+
+## Registro de compatibilidade v1 — S26 (25/09/2026)
+
+Corte de permissões; nenhuma RPC, parâmetro ou código de erro novo. Implementação:
+`supabase/migrations/0015_security_cut.sql`.
+
+- As 13 RPCs administrativas (as 10 da S21, `get_operational_tournament`, `update_tournament_setup` e
+  `cancel_operational_tournament`) deixam de ser executáveis por `anon`. Sem JWT, o PostgREST responde
+  `42501` (HTTP 401) em vez do envelope AUTH_REQUIRED; `callRpc` traduz esse caso para AUTH_REQUIRED, de
+  modo que o admin vê a mesma mensagem. Autenticado fora de `app_admins` continua recebendo
+  ADMIN_REQUIRED no envelope.
+- As 8 RPCs públicas seguem executáveis por `anon` e `authenticated`; `42501` nelas continua sendo erro
+  de infraestrutura (não é traduzido).
+- Legado fora do envelope: `save_tournament`, `update_tournament_results` e `player_leaderboard` seguem
+  `security invoker` e agora passam pelo RLS restrito a `app_admins`: autenticado comum recebe `42501`
+  ao salvar e ranking vazio.

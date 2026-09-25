@@ -38,7 +38,7 @@ O site precisa de 2 valores do Supabase. Eles ficam em **dois lugares**:
 
 ## 4. Migrações do banco (Supabase → SQL Editor)
 
-Corte confirmado no banco em uso: `0001`, `0003`, `0005`–`0012` aplicadas (`0011` e `0012` em 23/09/2026, S20) (`0006`–`0008` em
+Corte confirmado no banco em uso: `0001`, `0003`, `0005`–`0012` aplicadas; `0013`–`0015` só no banco local (`0011` e `0012` em 23/09/2026, S20) (`0006`–`0008` em
 10/09/2026; `0009` e `0010` confirmadas em 17/09/2026 por inventário read-only direto ao catálogo
 remoto — ver `docs/superpowers/specs/2026-09-17-s19-baseline-contracts-db-environment.md`). `0002`
 foi substituída por `0003` e `0004` é obsoleta. A presença do arquivo no Git não prova aplicação no
@@ -124,7 +124,8 @@ Passo a passo com o Claude na conta nova:
       dados por dono — qualquer conta logada lê, edita e apaga tudo.
 - [ ] Manter as **variáveis de ambiente** no Netlify (e recriar o `.env.local` no PC novo).
 - [ ] Criar/gerenciar **usuários de login** no Supabase (Authentication → Users → Add user).
-- [ ] Trocar a imagem do **QR do PIX**: substituir `public/pix-qr.png` (mesmo nome), commitar e dar push.
+- [x] ~~Trocar a imagem do QR do PIX~~ — **S26 (25/09/2026):** o app não usa mais QR. `public/pix-qr.png`
+      e `PixQr.tsx` saíram; a chave PIX de cada torneio do fluxo 2 é configurada no painel do portal.
 - [ ] No **celular**, para tela cheia sem barra: abrir o site no Safari/Chrome → "Adicionar à Tela de
       Início" → abrir pelo ícone (PWA).
 - [ ] **Backup** (recomendado): de tempos em tempos, exportar as tabelas do Supabase em CSV
@@ -144,6 +145,10 @@ Passo a passo com o Claude na conta nova:
       A `0014` (S25) fecha o requisito do legado: ranking e Histórico só contam torneio legado ou do
       fluxo 2 finalizado. Aplicar sempre na ordem `0013` → `0014`.
 - [ ] **Cadastrar o admin** em `app_admins` (`docs/runbooks/app-admins.md`). Hoje está vazia.
+      **Obrigatório antes da `0015`:** depois dela, conta fora de `app_admins` não vê nem grava nada.
+- [ ] **S26 — `0015` (corte de segurança) só no banco local.** Ordem `0013` → `0014` → `0015`, no mesmo
+      release do cliente S26. Aplicar, conferir e reverter: `docs/runbooks/security-cut-0015.md`. A
+      migração aborta sozinha se houver usuário e nenhum admin cadastrado.
 - [ ] **Smoke test do legado pós-0012:** salvar ou editar um torneio de teste em produção.
 
 ## 8. Prompt para colar no Claude da conta nova
@@ -158,10 +163,9 @@ poker-tournament-manager/
 ├─ netlify.toml                    # build + redirect SPA (faz /watch/:id funcionar)
 ├─ .env.example                    # modelo das chaves
 ├─ public/
-│  ├─ pix-qr.png                   # QR do PIX (trocável)
 │  ├─ manifest.webmanifest         # PWA (tela cheia no celular)
 │  └─ icon.svg
-├─ supabase/migrations/            # 0001..0008 (SQL do banco)
+├─ supabase/migrations/            # 0001..0015 (SQL do banco)
 └─ src/
    ├─ main.tsx                     # decide App x WatchView (rota /watch/:id)
    ├─ App.tsx                      # estado central + fluxo de estágios + transmissão ao vivo
@@ -178,9 +182,9 @@ poker-tournament-manager/
    │  └─ format.ts
    └─ components/
       ├─ SetupPanel, PlayersPanel, PayoutsPanel, ResultsPanel, StatsPanel
-      ├─ Clock.tsx                 # relógio + tela cheia + alarmes + QR
+      ├─ Clock.tsx                 # relógio + tela cheia + alarmes
       ├─ WatchView.tsx             # página pública /watch/:id (telespectador)
-      ├─ PixQr.tsx, Login.tsx
+      ├─ Login.tsx
 ```
 
 ## 10. Funcionalidades já prontas
@@ -188,7 +192,7 @@ poker-tournament-manager/
 Fluxo passo-a-passo (Torneio → Jogadores → Premiação → Ao vivo → Resultado → Estatísticas).
 Curva de blinds geométrica com **color-up** (elimina fichas menores com o tempo). Ante (BB dobrado).
 Intervalos (pré-config e ao vivo). Late check-in. Relógio: pausar/±1min/avançar/voltar nível, tela
-cheia maximizada com **QR sempre visível**, alarmes + vibração, wake lock. Editar níveis ao vivo.
+cheia maximizada, alarmes + vibração, wake lock. Editar níveis ao vivo.
 Mesas automáticas (>9 jogadores) com assentos aleatórios. Eliminação preenche colocação+prêmio
 automaticamente; prêmios recalculam quando o pote muda. Premiação editável em % ou R$. Máx. de rebuys
 e liga/desliga add-on. Ranking por **pontos** (1º = nº de participantes). Editar/renomear/excluir

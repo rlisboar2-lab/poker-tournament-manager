@@ -121,7 +121,7 @@ h1 { font-size: clamp(24px, 2.4vw, 28px); line-height: 1.2; margin: 0 0 var(--sp
 
 /* Página de telespectador (/watch) — visor em tela cheia */
 .watch { width: 100%; max-width: none; height: 100vh; height: 100dvh; padding: 0; overflow: hidden; }
-.watch .clock-panel { --corner-qr-size: clamp(72px, 15vmin, 180px); position: relative; display: grid;
+.watch .clock-panel { position: relative; display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto; width: 100%; height: 100vh; height: 100dvh;
   margin: 0; padding: calc(1.5vmin + env(safe-area-inset-top, 0px)) calc(1.5vmin + env(safe-area-inset-right, 0px))
     calc(1.5vmin + env(safe-area-inset-bottom, 0px)) calc(1.5vmin + env(safe-area-inset-left, 0px));
@@ -138,7 +138,7 @@ h1 { font-size: clamp(24px, 2.4vw, 28px); line-height: 1.2; margin: 0 0 var(--sp
 .watch-title { max-width: 100%; overflow-wrap: anywhere; }
 .watch-stage { min-height: 0; align-self: stretch; grid-template-rows: minmax(0, 1fr); }
 .watch .clock-readout { align-content: center; min-height: 0; max-height: 100%; padding: var(--space-2) 0; overflow: auto; }
-.watch-footer { display: grid; grid-template-columns: minmax(0, 1fr) var(--corner-qr-size); align-items: end;
+.watch-footer { display: grid; grid-template-columns: minmax(0, 1fr); align-items: end;
   gap: clamp(var(--space-2), 2vmin, var(--space-5)); min-width: 0; }
 .watch-kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: clamp(4px, 1vmin, var(--space-3)); min-width: 0; }
 .watch-kpis .kpi-box { padding: clamp(6px, 1.2vmin, var(--space-3)); }
@@ -278,10 +278,6 @@ button.ghost.on { border-color: var(--positive-text); color: var(--positive-text
 .sheet-item .pill { margin-top: var(--space-1); }
 .payment-card { text-align: center; }
 .payment-value { margin: 0 0 var(--space-4); color: var(--gold); font-size: clamp(32px, 7vw, 48px); font-variant-numeric: tabular-nums; }
-.payment-qr { display: grid; min-height: 220px; place-items: center; padding: var(--space-3); background: var(--panel-2);
-  border: 1px solid var(--border); border-radius: 12px; }
-.payment-qr img { display: block; width: min(100%, 360px); }
-.payment-qr .warn { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: var(--space-2); margin: 0; }
 .payment-actions .primary { margin-top: 0; }
 
 /* Painel de personalização visual (usa o mesmo overlay do QR) */
@@ -320,8 +316,8 @@ input[type="range"] { min-height: 44px; padding: 0; accent-color: var(--accent);
 .ranking li { margin: 4px 0; }
 
 /* Tela cheia do relógio — overlay CSS (funciona no celular sem API nativa). */
-.clock-panel.fs { --corner-qr-size: clamp(72px, 15vmin, 180px); position: fixed; inset: 0; z-index: 1500;
-  display: grid; grid-template-columns: var(--corner-qr-size) minmax(0, 1fr);
+.clock-panel.fs { position: fixed; inset: 0; z-index: 1500;
+  display: grid; grid-template-columns: minmax(0, 1fr);
   grid-template-rows: minmax(0, 1fr) auto; gap: clamp(var(--space-2), 1.5vmin, var(--space-4));
   width: 100vw; height: 100vh; height: 100dvh; margin: 0;
   padding: calc(1.5vmin + env(safe-area-inset-top, 0px)) calc(1.5vmin + env(safe-area-inset-right, 0px))
@@ -331,7 +327,7 @@ input[type="range"] { min-height: 44px; padding: 0; accent-color: var(--accent);
   min-height: 0; align-self: stretch; }
 .clock-panel.fs .clock-readout { align-content: center; min-height: 0; max-height: 100%; padding: var(--space-2) 0; overflow: auto; }
 .clock-panel.fs .clock-top { align-self: start; margin: 0; }
-.clock-panel.fs .clock-command-deck { grid-column: 2; grid-row: 2; width: 100%; min-width: 0; margin: 0;
+.clock-panel.fs .clock-command-deck { grid-column: 1; grid-row: 2; width: 100%; min-width: 0; margin: 0;
   align-self: end; justify-items: stretch; }
 .clock-panel.fs .clock-controls--primary { position: static; width: 100%; margin: 0; padding: clamp(6px, 1vmin, var(--space-3)); }
 .clock-panel.fs .alarm-stop { position: fixed; top: max(var(--space-3), env(safe-area-inset-top, 0px)); right: max(var(--space-3), env(safe-area-inset-right, 0px));
@@ -343,13 +339,6 @@ input[type="range"] { min-height: 44px; padding: 0; accent-color: var(--accent);
 .clock-panel.fs .sub, .watch .sub { max-width: min(100%, 52ch); font-size: clamp(14px, min(4vw, 4dvh), 32px); overflow-wrap: anywhere; }
 body:has(.clock-panel.fs) { overflow: hidden; }
 
-/* QR do PIX sempre visível num canto (tela cheia e /watch) */
-.corner-qr { position: static; z-index: 5; display: flex; width: var(--corner-qr-size, clamp(72px, 15vmin, 180px));
-  flex-direction: column; align-items: center; align-self: end; justify-self: start; gap: 2px; }
-.corner-qr img { display: block; width: 100%; height: auto; aspect-ratio: 1; object-fit: contain; background: #fff; border-radius: 6px; padding: 4px; }
-.corner-qr span { color: var(--muted); font-size: clamp(11px, 2vmin, 14px); line-height: 1.2; }
-.pix-qr-card img { display: block; width: min(78vw, 460px, calc(100dvh - 180px)); aspect-ratio: 1;
-  object-fit: contain; margin-inline: auto; }
 
 /* Entrada, cabeçalho e Home — DESIGN_UX S3 */
 .login-shell { min-height: 100vh; min-height: 100dvh; display: grid; place-items: center; }
@@ -476,16 +465,9 @@ body:has(.clock-panel.fs) { overflow: hidden; }
   align-items: center; justify-content: center; gap: var(--space-1); }
 .stepper output { min-width: 24px; text-align: center; font-weight: 700; font-variant-numeric: tabular-nums; }
 
-.buyin-panel { width: min(100%, 1000px); margin-inline: auto; }
+.buyin-panel { width: min(100%, 720px); margin-inline: auto; }
 .buyin-heading { margin-bottom: var(--space-6); }
 .buyin-heading .notice { margin: var(--space-2) 0 0; }
-.buyin-layout { display: grid; grid-template-columns: minmax(280px, .82fr) minmax(360px, 1.18fr);
-  align-items: start; gap: var(--space-8); }
-.buyin-qr { display: grid; min-height: 300px; place-items: center; padding: var(--space-4);
-  background: var(--panel-2); border: 1px solid var(--border); border-radius: 12px; }
-.buyin-qr img { display: block; width: min(100%, 380px); height: auto; padding: 10px;
-  background: #fff; border-radius: 12px; }
-.buyin-qr .warn { margin: 0; text-align: center; }
 .buyin-summary { min-width: 0; }
 .buyin-participants-heading { display: flex; align-items: center; justify-content: space-between;
   gap: var(--space-3); margin-bottom: var(--space-3); }
@@ -640,8 +622,6 @@ body:has(.clock-panel.fs) { overflow: hidden; }
   .payout-sum { width: 100%; margin: var(--space-1) 0 0; }
   .player-add-row { display: grid; grid-template-columns: 1fr; }
   .player-add-button, .player-rebalance { width: 100%; }
-  .buyin-layout { grid-template-columns: 1fr; gap: var(--space-5); }
-  .buyin-qr { min-height: 0; padding: var(--space-3); }
   .buyin-total { justify-items: start; text-align: left; }
   .responsive-card-table, .responsive-card-table tbody, .responsive-card-table tr, .responsive-card-table td { display: block; width: 100%; }
   /* Em cartões a tabela não precisa do piso de 480px do `.table-wrap table`;
@@ -692,7 +672,6 @@ body:has(.clock-panel.fs) { overflow: hidden; }
   .live-share-link button { grid-column: 1 / -1; }
   .live-share-row > .danger { width: 100%; }
   .live-sheet-actions, .payment-actions { grid-template-columns: 1fr; }
-  .payment-qr { min-height: 0; }
   .players-panel--live { padding: var(--space-4); }
   .players-table--live { min-width: 900px !important; }
   .tabs button { padding: 0 10px; font-size: 13px; }
@@ -739,7 +718,6 @@ body:has(.clock-panel.fs) { overflow: hidden; }
 
 @media (min-width: 768px) and (max-width: 1023px) {
   .setup-grid, .setup-grid--two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .buyin-layout { grid-template-columns: minmax(250px, .8fr) minmax(330px, 1.2fr); gap: var(--space-5); }
 }
 
 @media (max-width: 359px) {
@@ -784,13 +762,12 @@ body:has(.clock-panel.fs) { overflow: hidden; }
   .clock-big { font-size: calc(clamp(48px, 26vh, 150px) * var(--clock-zoom, 1)); }
   .blinds { font-size: calc(clamp(26px, 12vh, 70px) * var(--clock-zoom, 1)); }
   .kpis { margin: 8px 0; }
-  .clock-panel.fs, .watch .clock-panel { --corner-qr-size: 72px; gap: var(--space-2);
+  .clock-panel.fs, .watch .clock-panel { gap: var(--space-2);
     padding: calc(1vmin + env(safe-area-inset-top, 0px)) calc(1vmin + env(safe-area-inset-right, 0px))
       calc(1vmin + env(safe-area-inset-bottom, 0px)) calc(1vmin + env(safe-area-inset-left, 0px)); }
   .clock-panel.fs .clock-controls--primary { padding: 4px; gap: 4px; }
   .watch-header { gap: 4px; }
   .watch-kpis .kpi-box { padding: 4px 6px; }
-  .corner-qr span { display: none; }
 }
 
 /* Portal do jogador (/jogar) — S23. Celular primeiro. */

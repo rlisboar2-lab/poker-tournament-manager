@@ -135,11 +135,6 @@ export default function WatchView({ id }: { id: string }) {
             <div className="kpi-box"><span className="kpi-label">Stack médio</span><div className="kpi">{chips(v.average_stack)}</div></div>
             <div className="kpi-box"><span className="kpi-label">Pressão</span><div className="kpi">{v.pressure_bb.toFixed(1)} BB</div></div>
           </div>
-
-          <div className="corner-qr">
-            <img src="/pix-qr.png" alt="QR PIX para pagamentos" onError={(e) => { (e.currentTarget.parentElement as HTMLElement).style.display = 'none'; }} />
-            <span>PIX</span>
-          </div>
         </footer>
       </section>
     </main>

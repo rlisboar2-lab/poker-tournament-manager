@@ -1,4 +1,6 @@
--- S19 — testes de RLS/RPC do corte atual (migrações 0001–0010).
+-- S19 — testes de RLS/RPC do corte legado (migrações 0001–0010), ajustados na S26 à 0015:
+-- policies admin_all/live_admin_* e o JWT de um admin de teste para os blocos autenticados.
+-- A matriz anon / autenticado comum / admin da 0015 fica em s26-security.sql.
 --
 -- Rodar SOMENTE em ambiente isolado (stack local do Supabase CLI), nunca no banco em uso.
 -- Todo dado criado aqui vive dentro de uma transação revertida no fim (rollback), e cada
@@ -12,6 +14,16 @@
 \set ON_ERROR_STOP on
 
 begin;
+
+-- 0015: o RLS legado só aceita quem está em app_admins. Os blocos que usam
+-- "set local role authenticated" rodam com o JWT deste admin de teste.
+do $$
+declare v_uid uuid := gen_random_uuid();
+begin
+  insert into auth.users (id, aud, role, email) values (v_uid, 'authenticated', 'authenticated', 's19-baseline@example.invalid');
+  insert into public.app_admins (user_id) values (v_uid);
+  perform set_config('request.jwt.claims', json_build_object('sub', v_uid, 'role', 'authenticated')::text, true);
+end $$;
 
 -- ── 1. RLS ligado nas cinco tabelas ─────────────────────────────────────
 do $$
@@ -29,7 +41,7 @@ begin
   raise notice 'OK 1 - RLS ligado nas cinco tabelas';
 end $$;
 
--- ── 2. Inventário de policies bate com o esperado pós-0010 ──────────────
+-- ── 2. Inventário de policies bate com o esperado pós-0015 ──────────────
 do $$
 declare v_found text;
 begin
@@ -37,9 +49,10 @@ begin
     into v_found
     from pg_policies
    where schemaname = 'public';
-  assert v_found = 'base_tournaments:authenticated_all, live_state:live_auth_write, '
-                || 'live_state:live_public_read, snapshot_blindstructures:authenticated_all, '
-                || 'sub_players:authenticated_all, transactions:authenticated_all',
+  assert v_found = 'base_tournaments:admin_all, live_state:live_admin_delete, '
+                || 'live_state:live_admin_insert, live_state:live_admin_update, '
+                || 'live_state:live_public_read, snapshot_blindstructures:admin_all, '
+                || 'sub_players:admin_all, transactions:admin_all',
     format('policies divergentes do inventario logico: %s', v_found);
   raise notice 'OK 2 - policies conferem com o inventario logico';
 end $$;
@@ -96,7 +109,7 @@ begin
   raise notice 'OK 4 - anon sem leitura e sem escrita nas tabelas privadas';
 end $$;
 
--- ── 5. live_state: leitura pública, escrita só autenticada ──────────────
+-- ── 5. live_state: leitura pública, escrita só do admin ─────────────────
 do $$
 declare v_id uuid;
 begin
@@ -117,10 +130,10 @@ begin
   set local role authenticated;
   update public.live_state set status = 'running' where id = v_id;
   assert (select status from public.live_state where id = v_id) = 'running',
-    'authenticated nao conseguiu escrever em live_state';
+    'admin nao conseguiu escrever em live_state';
 
   reset role;
-  raise notice 'OK 5 - live_state com leitura publica e escrita autenticada';
+  raise notice 'OK 5 - live_state com leitura publica e escrita do admin';
 end $$;
 
 -- ── 6. authenticated salva torneio pela RPC e o ledger fecha ────────────

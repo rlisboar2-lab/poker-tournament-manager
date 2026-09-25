@@ -1,9 +1,10 @@
 # Cadastrar o admin em `app_admins`
 
 A migração `0012` cria `public.app_admins`, mas não cadastra ninguém: UUID de usuário não entra em
-arquivo versionado. Até as RPCs administrativas da S21 existirem, a tabela vazia não muda nada no app
-(o fluxo legado ainda usa as policies `authenticated_all`). Antes de usar qualquer RPC administrativa,
-cadastrar o responsável.
+arquivo versionado. Até a `0015` (S26), a tabela vazia só afeta as RPCs administrativas do fluxo 2: o
+legado usa as policies `authenticated_all`. **Depois da `0015`, conta fora de `app_admins` não lê nem
+grava nada** (legado incluído) — cadastrar o responsável antes de aplicá-la. A própria `0015` aborta se
+houver usuário em `auth.users` e nenhum admin.
 
 ## Produção (SQL Editor do Supabase)
 

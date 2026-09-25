@@ -5,7 +5,6 @@ import { useWakeLock } from '../hooks/useWakeLock';
 import { chips, clock, brl, pct } from '../utils/format';
 import { adjustClockZoom } from '../theme';
 import { aplicarPayouts, colorUpPoints, sugerirBreaksParaColorUp, type BlindLevel, type BreakConfig } from '../utils/poker-math';
-import PixQr from './PixQr';
 import {
   BellIcon,
   FullscreenIcon,
@@ -14,7 +13,6 @@ import {
   PlayIcon,
   PlusIcon,
   PreviousIcon,
-  QrIcon,
   ResetIcon,
   ScreenIcon,
   TrashIcon,
@@ -117,7 +115,6 @@ export default function Clock({
   const wake = useWakeLock();
   const [alarms, setAlarms] = useState(true);
   const [audioReady, setAudioReady] = useState(false);
-  const [showQr, setShowQr] = useState(false);
   const [isFs, setIsFs] = useState(false);
   const [alarming, setAlarming] = useState(false);
   const fsRef = useRef<HTMLDivElement>(null);
@@ -342,20 +339,9 @@ export default function Clock({
               <ScreenIcon size={19} /> {wake.enabled ? 'Tela ligada' : 'Manter tela'}
             </button>
           )}
-          <button className="ghost qr-toggle" onClick={() => setShowQr(true)}><QrIcon size={19} /> Mostrar QR</button>
           </div>
         )}
       </div>
-
-      {showQr && <PixQr onClose={() => setShowQr(false)} />}
-
-      {/* Em tela cheia o QR fica sempre visível num canto reservado. */}
-      {isFs && (
-        <div className="corner-qr">
-          <img src="/pix-qr.png" alt="QR PIX para pagamentos" onError={(e) => { (e.currentTarget.parentElement as HTMLElement).style.display = 'none'; }} />
-          <span>PIX</span>
-        </div>
-      )}
 
       {!isFs && (
         <section className="clock-schedule" aria-labelledby="clock-schedule-title">

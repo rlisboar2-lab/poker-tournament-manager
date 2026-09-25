@@ -13,6 +13,16 @@
 
 begin;
 
+-- 0015: o RLS legado só aceita quem está em app_admins. Os blocos que usam
+-- "set local role authenticated" rodam com o JWT deste admin de teste (o bloco 12 limpa).
+do $$
+declare v_uid uuid := gen_random_uuid();
+begin
+  insert into auth.users (id, aud, role, email) values (v_uid, 'authenticated', 'authenticated', 's20-setup@example.invalid');
+  insert into public.app_admins (user_id) values (v_uid);
+  perform set_config('request.jwt.claims', json_build_object('sub', v_uid, 'role', 'authenticated')::text, true);
+end $$;
+
 -- Executa um comando que DEVE falhar com o SQLSTATE indicado.
 create function pg_temp.expect_error(p_sql text, p_state text, p_label text)
 returns void language plpgsql as $$
@@ -107,7 +117,10 @@ begin
       perform pg_temp.expect_error(format('select 1 from public.%I limit 1', v_tab), '42501',
                                    v_role || ' lendo ' || v_tab);
     end loop;
-    perform pg_temp.expect_error('select private.is_admin()', '42501', v_role || ' chamando private.is_admin');
+    -- 0015: authenticated executa is_admin() (as policies precisam); anon continua barrado.
+    if v_role = 'anon' then
+      perform pg_temp.expect_error('select private.is_admin()', '42501', v_role || ' chamando private.is_admin');
+    end if;
     perform pg_temp.expect_error($q$select private.device_token_hash('x')$q$, '42501',
                                  v_role || ' chamando private.device_token_hash');
     reset role;

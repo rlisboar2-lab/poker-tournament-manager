@@ -1,10 +1,10 @@
 // src/components/CobrancaPix.tsx
-// Cobrança PIX reutilizável para buy-in/rebuy/add-on (REDESIGN.md S12).
+// Cobrança reutilizável para buy-in/rebuy/add-on (REDESIGN.md S12). Sem QR desde a
+// S26: o pagamento é conferido pelo admin antes do clique.
 // A transação só é aplicada no clique de "✓ Pago" — o chamador decide o que
 // fazer (incrementar buyins/rebuys/addons, recalibrar blinds etc.) em onPago.
-import { useState } from 'react';
 import { brl } from '../utils/format';
-import { CheckIcon, QrIcon } from './Icons';
+import { CheckIcon } from './Icons';
 
 const TITULO: Record<Tipo, string> = {
   buyin: 'Buy-in',
@@ -23,7 +23,6 @@ interface Props {
 }
 
 export default function CobrancaPix({ tipo, jogador, valor, onPago, onCancelar }: Props) {
-  const [ok, setOk] = useState(true);
   const titleId = `payment-title-${tipo}`;
   return (
     <div className="qr-overlay" onClick={onCancelar}>
@@ -31,15 +30,6 @@ export default function CobrancaPix({ tipo, jogador, valor, onPago, onCancelar }
         <span className="setup-eyebrow">Confirmar pagamento</span>
         <h2 id={titleId}>{TITULO[tipo]} · {jogador}</h2>
         <p className="kpi payment-value">{brl(valor)}</p>
-        <div className="payment-qr">
-          {ok ? (
-            <img src="/pix-qr.png" alt="QR PIX para pagamento" onError={() => setOk(false)} />
-          ) : (
-            <p className="warn">
-              <QrIcon size={22} /> QR indisponível. Adicione a imagem em <code>public/pix-qr.png</code> e faça o push.
-            </p>
-          )}
-        </div>
         <div className="payment-actions">
           <button className="ghost" onClick={onCancelar}>Cancelar</button>
           <button className="primary" onClick={onPago}><CheckIcon size={19} /> Pago (PIX ou dinheiro)</button>

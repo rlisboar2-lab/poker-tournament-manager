@@ -17,3 +17,13 @@ Só no stack local do Supabase CLI. Ordem obrigatória, porque cada script exige
     bash supabase/tests/s24-live-rest.sh    # filas do admin; finaliza o próprio torneio
     bash supabase/tests/s25-finance-rest.sh # pacotes/ranking; cancela um torneio e finaliza outro
     bash supabase/tests/s23-portal-rest.sh  # deixa um torneio publicado (rodar por último)
+
+## Suítes SQL (transação revertida; banco local)
+
+    rls-rpc-baseline.sql  # legado 0001–0010, ajustado à 0015 (admin de teste)
+    s20-schema.sql        # schema do fluxo de pagamentos (0011/0012)
+    s21-rpcs.sql          # RPCs (0013/0014)
+    s26-security.sql      # corte da 0015: anon, autenticado comum e admin
+    bash supabase/tests/s21-concurrency.sh
+
+Rodar cada `.sql` com `docker exec -i supabase_db_poker-tournament-manager psql -v ON_ERROR_STOP=1 -U postgres -d postgres < arquivo`.

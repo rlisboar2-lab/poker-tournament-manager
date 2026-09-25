@@ -190,6 +190,24 @@ describe('wrappers S25 (0014)', () => {
     if (r.ok) expect(r.data.tournament.public_status).toBe('cancelled');
   });
 
+  it('permission denied (0015, anon sem JWT) em RPC admin vira AUTH_REQUIRED', async () => {
+    rpc.mockResolvedValue({ data: null, error: { code: '42501', message: 'permission denied for function cancel_operational_tournament' } });
+    const r = await cancelOperationalTournament('t1', 5);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error.code).toBe('AUTH_REQUIRED');
+  });
+
+  it('permission denied em RPC pública não é disfarçado de sessão expirada', async () => {
+    const { getPublicTournament } = await import('../publicPortal');
+    rpc.mockResolvedValue({ data: null, error: { code: '42501', message: 'permission denied for function get_public_tournament' } });
+    await expect(getPublicTournament(null)).rejects.toMatchObject({ code: '42501' });
+  });
+
+  it('outros erros de infraestrutura continuam lançando', async () => {
+    rpc.mockResolvedValue({ data: null, error: { code: 'PGRST301', message: 'JWT expired' } });
+    await expect(cancelOperationalTournament('t1', 5)).rejects.toMatchObject({ code: 'PGRST301' });
+  });
+
   it('mensagens dos motivos novos', () => {
     const base = { message: 'x', retryable: false };
     expect(describeError({ ...base, code: 'TOURNAMENT_STATE_CONFLICT', details: { reason: 'offers_locked' } })).toMatch(/Só o PIX/);

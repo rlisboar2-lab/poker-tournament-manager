@@ -525,9 +525,31 @@ export async function callRpc<T>(fn: string, args: Record<string, unknown>, pars
     throw new Error('Supabase não configurado (defina VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY).');
   }
   const { data, error } = await supabase.rpc(fn, args);
-  if (error) throw error; // infraestrutura: canal de erro do Supabase
+  if (error) {
+    // 0015: RPC administrativa não é executável por anon. Sem JWT (sessão expirada),
+    // o PostgREST responde 42501 em vez do envelope; o admin vê o mesmo AUTH_REQUIRED.
+    if (error.code === '42501' && !PUBLIC_RPCS.has(fn)) {
+      return {
+        ok: false,
+        error: { code: 'AUTH_REQUIRED', message: 'Entre com a conta de administrador.', retryable: true, details: {} },
+      };
+    }
+    throw error; // infraestrutura: canal de erro do Supabase
+  }
   return parseEnvelope(data, parseData);
 }
+
+/** RPCs que anon executa (0015). Permission denied nelas é falha real, não sessão expirada. */
+const PUBLIC_RPCS: ReadonlySet<string> = new Set([
+  'get_public_tournament',
+  'identify_player',
+  'get_player_portal',
+  'request_buyin',
+  'request_purchase',
+  'report_payment',
+  'cancel_purchase_request',
+  'revoke_device_session',
+]);
 
 export interface CreatedTournament {
   tournament: TournamentSummary;

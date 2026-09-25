@@ -419,6 +419,38 @@ Substituir policies amplas; revogar acesso direto; remover referências a `/pix-
 
 **Aceite:** público só usa RPCs próprias; não há QR exibido ou exigido; admin preserva as funções do torneio.
 
+**Execução (25/09/2026, branch `s21/rpcs-fluxo-pagamentos`; S25 em `75e0284`):**
+
+- Inventário antes da migração: `anon` tinha todos os privilégios de tabela nas 5 tabelas legadas (só o RLS
+  segurava), inclusive `TRUNCATE`, que ignora RLS — também concedido a `authenticated`, ou seja, qualquer
+  conta logada podia esvaziar `transactions`. As 13 RPCs administrativas eram executáveis por `anon`;
+  `rls_auto_enable` por PUBLIC.
+- `0015_security_cut.sql`: aborta se houver usuário e nenhum `app_admins`; `authenticated` ganha USAGE em
+  `private` e EXECUTE só em `is_admin()` (as policies precisam); `authenticated_all` → `admin_all`
+  (`(select private.is_admin())`) nas 4 legadas; `live_state` com leitura pública e escrita do admin em
+  policies por comando (evita `multiple_permissive_policies`); grants refeitos (anon só SELECT em
+  `live_state`; authenticated só CRUD nas legadas e `live_state`); RPCs administrativas só para
+  `authenticated`; `rls_auto_enable` fechada. Default privileges não foram alterados: o Postgres não revoga
+  por schema, e o default global quebrava funções temporárias; a `s26-security.sql` detecta helper novo
+  exposto.
+- Cliente: `callRpc` traduz `42501` de RPC administrativa em AUTH_REQUIRED (pública continua lançando);
+  lista de jogadores só com sessão. QR removido de `BuyIn`, `CobrancaPix`, `Clock` (botão e canto da tela
+  cheia) e `WatchView`; `PixQr.tsx`, `public/pix-qr.png`, `QrIcon` e o CSS correspondente apagados; tela
+  cheia e `/watch` sem coluna reservada.
+- Testes: `s26-security.sql` 6/6 (grants, policies, funções, anon, autenticado comum, admin);
+  `rls-rpc-baseline` 10/10, `s20-schema` 13/13 e `s21-rpcs` 16/16 ajustados ao corte; `s21-concurrency` 8/8;
+  integração s22 1/1 → s24 1/1 → s25 2/2 → s23 1/1; 153 testes unitários (3 novos), build ok, lint 0 erros.
+- Security Advisor local (lints do Studio): restam só `anon/authenticated_security_definer_function_executable`
+  (RPCs por desenho) e `rls_enabled_no_policy` INFO nas tabelas do fluxo 2. Esperado e reversão:
+  `docs/runbooks/security-cut-0015.md` (script de reversão executado em transação desfeita).
+- Navegador (porta 5181, banco local): anônimo — `/watch/:id` lê o relógio sem QR, `/jogar` abre o torneio
+  publicado, tela inicial sem 401. Admin logado pelo Rod — ranking, Histórico e jogadores carregam;
+  torneio legado: cobrança de buy-in sem QR (sem rolagem horizontal) → relógio sem "Mostrar QR" → cobrança
+  de rebuy sem QR → tela cheia com controles na largura toda → "Publicar ao vivo" grava `live_state` (201).
+  `confirm()` nativo substituído via console só para o teste. Screenshot em escala reduzida.
+- Limites: produção continua no corte `0012`; `0013`–`0015` só no banco local. Fluxo 2 completo pela UI não
+  foi refeito nesta sessão (coberto pela integração REST).
+
 ### S27 — Auditoria e liberação
 
 **Objetivo:** liberar com evidência e reversão.
