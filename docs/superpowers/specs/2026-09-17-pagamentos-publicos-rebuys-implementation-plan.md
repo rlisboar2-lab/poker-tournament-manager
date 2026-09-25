@@ -1,7 +1,7 @@
 # Plano de implementação — portal público, PIX e compras do torneio
 
 **Data:** 17/09/2026  
-**Status:** S19–S23 concluídas; `0011`/`0012` aplicadas em produção em 23/09/2026; `0013` (S21) só no banco local. S24 é a próxima.  
+**Status:** S19–S24 concluídas; `0011`/`0012` aplicadas em produção em 23/09/2026; `0013` (S21) só no banco local. S25 é a próxima.  
 **Projeto:** `poker-tournament-manager` — Vite, React 18, TypeScript e Supabase.
 
 ## Objetivo
@@ -323,6 +323,51 @@ Adicionar rotas manuais; token via Web Crypto/localStorage; estados de identific
 Listar/resolver claims; botão único de lote; iniciar motor pela âncora do servidor; autorizar ofertas; confirmar/rejeitar pedidos; atualizar entradas somente após resposta; impedir campeão enquanto houver reentrada declarada e não resolvida.
 
 **Aceite:** não existe caminho novo que conceda fichas antes do commit do banco; lote inicial detecta revisão desatualizada.
+
+**Execução (25/09/2026, branch `s21/rpcs-fluxo-pagamentos`; S23 já estava commitada em `641c8a7`):**
+
+- `src/services/operational.ts`: wrappers tipados de `resolve_player_claim`, `confirm_buyins_and_start`,
+  `authorize_purchase`, `confirm_purchase`, `reject_purchase` e `revoke_purchase_authorization` (nomes de parâmetro
+  exatos do contrato), parser de transação (dinheiro em texto) e `runtime` obrigatório no início. `describeError`
+  cobre IDENTITY_CONFLICT, REGISTRATION_CLOSED, REQUEST_STATE_CONFLICT, PURCHASE_PENDING, OFFER_NOT_ELIGIBLE,
+  AUTHORIZATION_CONSUMED, DUPLICATE_TRANSACTION e os reasons `no_buyins`/`participant_status`/`window_closed`.
+- `src/utils/operational-live.ts` (puro, testado): filas (buy-ins abertos = exatamente o conjunto que o servidor
+  compara; compras abertas com PIX informado primeiro; identificações pendentes; liberações ativas), ofertas
+  elegíveis segundo `eligible_offer_ids`, mesa inicial a partir dos participantes confirmados e
+  `reconcileEntries`: contagens locais = unidades/add-ons **confirmados** no servidor; rebuy novo de eliminado
+  vira reentrada (volta à mesa, colocações renumeradas). `pendingReentries` = eliminado com rebuy liberado ou
+  pedido de rebuy aberto.
+- Hook: ações `resolveClaim`, `startBatch`, `authorize`, `confirm`, `reject`, `revoke`, `dismiss`; cada comando
+  espera a resposta do banco e relê; erro de domínio também relê. Polling de 5 s com aba visível nos status
+  published/registration_closed/running; releitura antiga descartada por número de sequência.
+- `screens/BuyInRemote.tsx` (tela 3 quando o torneio persistente está publicado): fila de identificações
+  (jogador novo ou vínculo a cadastro, nome igual pré-selecionado), lote com rejeição por motivo, aviso de quem
+  sai por não ter pedido, botão único com confirmação. REQUEST_SET_CHANGED/VERSION_CONFLICT recarregam e
+  informam quantos pedidos entraram/saíram. Resposta perdida: com o servidor em `running`, a tela oferece abrir o
+  relógio com o estado do servidor.
+- Início: mesa montada só depois do commit, relógio restaurado pela `anchor_ms` do runtime (não `Date.now()`).
+- Ao vivo (`running`): aba **Pedidos** com contador (identificações de recuperação, confirmar/rejeitar
+  rebuy/add-on, revogar liberação). Rebuy/Add-on da barra só liberam a compra no servidor; "+ Jogador"
+  bloqueado (a inscrição fecha no início). Mesa com contagens travadas, sem adicionar/remover; "Reentrar" vira
+  "Desfazer eliminação". Limite de rebuy e presença do add-on vêm das ofertas do servidor. Campeão não é
+  declarado enquanto houver `pendingReentries` (banner explica).
+- Validação: 135 testes (22 novos: 11 de serviço, 11 do utilitário), build ok, lint 0 erros (9 avisos antigos).
+  Banco local após `db reset`: `s22-admin-rest.sh` 1/1, **`s24-live-rest.sh` 1/1** (claims, nome duplicado =
+  IDENTITY_CONFLICT, lote desatualizado = REQUEST_SET_CHANGED sem efeito, rejeição do atrasado, início com
+  âncora do servidor, R$ 10 × 2, withdrawn, liberação segura campeão, pedido informado não mexe em nada, versão
+  velha = VERSION_CONFLICT, duplo R$ 35/2 unidades/6.000 fichas, repetição idempotente, reentrada, add-on revogado
+  e rejeitado com motivo) e `s23-portal-rest.sh` 1/1. Ordem obrigatória: reset → s22 → s24 → s23.
+- Navegador (painel 629 px, admin logado pelo Rod, jogador em outra aba): validar 2 identificações → lote de 2 →
+  relógio iniciou pela âncora (nível 1 com o tempo já decorrido no servidor) → liberar rebuy da Bia → eliminar
+  Bia com 2 na mesa segurou o campeão → portal trocou para Bia (recuperação com inscrição fechada) → admin
+  validou na aba Pedidos (vínculo pré-selecionado) → Bia pediu duplo e informou PIX → mesa inalterada até
+  "Confirmar pagamento" → 2 rebuys, Bia de volta à mesa, trava liberada → add-on liberado, pedido e rejeitado
+  com motivo (botão bloqueado sem motivo), add-ons continuam 0. Sem erros no console. O caso REQUEST_SET_CHANGED
+  pela UI não foi exercitado (só na integração).
+- Limites conhecidos: pote/ROI locais ainda usam quantidade × preço da config (duplo aparece como 2 × rebuy_value
+  = R$ 30, não R$ 35) — é a S25. O servidor não sabe de eliminações (portal mostra "No torneio" para eliminado);
+  pausa/retomada do relógio não sincroniza com `update_tournament_runtime`. Sem entrada tardia no fluxo 2 nem
+  buy-in lançado pelo admin para jogador sem celular. Autorização sem validade (`expires_at` null).
 
 ### S25 — Pacotes, finanças, histórico e ranking
 

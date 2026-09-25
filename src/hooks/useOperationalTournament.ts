@@ -6,6 +6,9 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  authorizePurchase,
+  confirmBuyinsAndStart,
+  confirmPurchase,
   createOperationalTournament,
   describeError,
   finishOperationalTournament,
@@ -13,6 +16,10 @@ import {
   isMissingRpc,
   needsReload,
   publishTournament,
+  rejectPurchase,
+  resolvePlayerClaim,
+  revokePurchaseAuthorization,
+  type ClaimTarget,
   type CreateTournamentInput,
   type OperationalSnapshot,
   type RpcError,
@@ -21,7 +28,11 @@ import {
 } from '../services/operational';
 import { buildFinishResults } from '../utils/operational-config';
 import type { LocalEntry } from '../services/tournaments';
-import type { PublicStatus } from '../types/database';
+import type { PublicStatus, PurchaseKind } from '../types/database';
+
+/** Status em que o servidor recebe identificações e pedidos: vale acompanhar. */
+const LIVE_STATUSES: readonly PublicStatus[] = ['published', 'registration_closed', 'running'];
+const POLL_MS = 5000;
 
 export interface OperationalRef {
   tournamentId: string;
@@ -79,10 +90,15 @@ export function useOperationalTournament(enabled: boolean, initial: OperationalR
     return null;
   }, []);
 
-  const load = useCallback(
-    async (id: string | null) => apply(id, await getOperationalTournament(id)),
-    [apply],
-  );
+  // Só a leitura mais recente vale: uma releitura em voo que chega depois de
+  // um comando não pode sobrescrever o estado posterior a ele.
+  const seqRef = useRef(0);
+  const load = useCallback(async (id: string | null) => {
+    const n = ++seqRef.current;
+    const r = await getOperationalTournament(id);
+    if (n !== seqRef.current) return null;
+    return apply(id, r);
+  }, [apply]);
 
   // Uma ação por vez: toque duplo não dispara dois comandos.
   const run = useCallback(async <T,>(fn: () => Promise<T>): Promise<T | undefined> => {
@@ -137,7 +153,7 @@ export function useOperationalTournament(enabled: boolean, initial: OperationalR
     if (!r.ok) { await onDomainError(r.error); return; }
     setRef(toRef(r.data.tournament));
     await load(r.data.tournament.id);
-    setNotice('Torneio publicado. O link /jogar já mostra este torneio (portal ainda fechado até a S23).');
+    setNotice('Torneio publicado. Os jogadores já podem se identificar e pedir buy-in pelo link /jogar.');
   }), [run, load, ref, onDomainError]);
 
   /**
@@ -161,6 +177,76 @@ export function useOperationalTournament(enabled: boolean, initial: OperationalR
     return out ?? { ok: false, message: 'Outra ação em andamento, ou falha de conexão.' };
   }, [run, load, ref, snapshot, onDomainError]);
 
+  // Acompanha identificações e pedidos que chegam pelo portal. Só com a aba
+  // visível e sem comando em andamento (o comando relê ao terminar).
+  const liveStatus = ref?.publicStatus ?? null;
+  useEffect(() => {
+    if (!enabled || !refId || !liveStatus || !LIVE_STATUSES.includes(liveStatus)) return;
+    const tick = () => {
+      if (busyRef.current || document.visibilityState !== 'visible') return;
+      load(refId).catch((e) => { if (isMissingRpc(e)) setAvailable(false); });
+    };
+    const id = window.setInterval(tick, POLL_MS);
+    document.addEventListener('visibilitychange', tick);
+    return () => { clearInterval(id); document.removeEventListener('visibilitychange', tick); };
+  }, [enabled, refId, liveStatus, load]);
+
+  /**
+   * Comando administrativo da fila: RPC, e só depois da resposta do banco a
+   * releitura. Erro de domínio também relê — o estado visto estava velho.
+   */
+  const command = useCallback(<T,>(call: () => Promise<RpcResult<T>>, okNotice?: string) => run(async () => {
+    if (!refId) return undefined;
+    const r = await call();
+    if (!r.ok) {
+      setError(describeError(r.error));
+      await load(refId);
+      return undefined;
+    }
+    await load(refId);
+    if (okNotice) setNotice(okNotice);
+    return r.data;
+  }), [run, load, refId]);
+
+  const resolveClaim = useCallback((sessionId: string, target: ClaimTarget) =>
+    command(() => resolvePlayerClaim(sessionId, target), 'Identificação validada.'), [command]);
+
+  /**
+   * Botão único do lote inicial: confirma exatamente os pedidos revisados e
+   * inicia o relógio no servidor. Devolve o estado relido (com a âncora do
+   * runtime) só depois do commit; lote mudado recarrega e devolve a revisão.
+   */
+  const startBatch = useCallback((reviewedIds: string[]) => run(async (): Promise<OperationalSnapshot | null> => {
+    if (!ref) return null;
+    const r = await confirmBuyinsAndStart(ref.tournamentId, ref.stateVersion, reviewedIds);
+    if (!r.ok) {
+      const d = r.error.details;
+      const added = Array.isArray(d.added) ? d.added.length : 0;
+      const removed = Array.isArray(d.removed) ? d.removed.length : 0;
+      setError(r.error.code === 'REQUEST_SET_CHANGED'
+        ? `O lote mudou desde a revisão (${added} pedido(s) novo(s), ${removed} saíram). Revise a lista e confirme de novo.`
+        : describeError(r.error));
+      await load(ref.tournamentId);
+      return null;
+    }
+    return load(r.data.tournament.id);
+  }), [run, load, ref]);
+
+  const authorize = useCallback((participantId: string, kind: Exclude<PurchaseKind, 'buyin'>, offerIds: string[]) =>
+    command(() => authorizePurchase(participantId, kind, offerIds, null),
+      `${kind === 'rebuy' ? 'Rebuy' : 'Add-on'} liberado. O jogador pede e paga pelo link.`), [command]);
+
+  const confirm = useCallback((requestId: string, version: number) =>
+    command(() => confirmPurchase(requestId, version), 'Compra confirmada: fichas lançadas.'), [command]);
+
+  const reject = useCallback((requestId: string, reason: string) =>
+    command(() => rejectPurchase(requestId, reason), 'Pedido rejeitado.'), [command]);
+
+  const revoke = useCallback((authorizationId: string, reason: string) =>
+    command(() => revokePurchaseAuthorization(authorizationId, reason), 'Liberação revogada.'), [command]);
+
+  const dismiss = useCallback(() => { setError(null); setNotice(null); }, []);
+
   /** Solta o vínculo local (novo torneio). O registro no servidor continua. */
   const clear = useCallback(() => {
     setRef(null);
@@ -170,7 +256,10 @@ export function useOperationalTournament(enabled: boolean, initial: OperationalR
     if (enabled) load(null).catch(onThrown);
   }, [enabled, load, onThrown]);
 
-  return { ref, snapshot, candidate, available, busy, error, notice, create, publish, adopt, refresh, finish, clear };
+  return {
+    ref, snapshot, candidate, available, busy, error, notice, create, publish, adopt, refresh, finish, clear,
+    resolveClaim, startBatch, authorize, confirm, reject, revoke, dismiss,
+  };
 }
 
 export type OperationalState = ReturnType<typeof useOperationalTournament>;

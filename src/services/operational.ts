@@ -571,6 +571,139 @@ export const finishOperationalTournament = (tournamentId: string, expectedVersio
     };
   });
 
+// ── Fila ao vivo (S24): identidades, lote inicial e compras ──────────────
+// Fichas e dinheiro só existem depois do envelope ok destas RPCs: o cliente
+// não aplica nada antes da resposta do banco.
+
+/** Linha de transactions devolvida pelas confirmações (dinheiro em texto → number). */
+export interface ConfirmedTransaction {
+  id: string;
+  request_id: string;
+  kind: PurchaseKind;
+  player_id: string;
+  amount: number;
+  rebuy_units: number;
+  chips_granted: number | null;
+  confirmed_at: string | null;
+}
+
+export function parseTransaction(v: unknown): ConfirmedTransaction {
+  const o = rec(v, 'transaction');
+  return {
+    id: str(o, 'id'),
+    request_id: str(o, 'request_id'),
+    kind: oneOf(o, 'kind', PURCHASE_KINDS),
+    player_id: str(o, 'player_id'),
+    amount: parseMoney(o.amount, 'transaction.amount'),
+    rebuy_units: int(o, 'rebuy_units'),
+    chips_granted: intOrNull(o, 'chips_granted'),
+    confirmed_at: strOrNull(o, 'confirmed_at'),
+  };
+}
+
+/** Validar identidade: vincular a jogador existente XOR criar nome novo. */
+export type ClaimTarget = { playerId: string } | { newDisplayName: string };
+
+export interface ResolvedClaim {
+  session: PendingSession;
+  participant: Participant | null; // null quando não há torneio aberto
+}
+
+export const parseResolvedClaim = (d: unknown): ResolvedClaim => {
+  const o = rec(d, 'data');
+  return {
+    session: parsePendingSession(o.session),
+    participant: o.participant == null ? null : parseParticipant(o.participant),
+  };
+};
+
+export const resolvePlayerClaim = (sessionId: string, target: ClaimTarget) =>
+  callRpc('resolve_player_claim', {
+    session_id: sessionId,
+    player_id: 'playerId' in target ? target.playerId : null,
+    new_display_name: 'newDisplayName' in target ? target.newDisplayName.trim() : null,
+  }, parseResolvedClaim);
+
+export interface StartedTournament {
+  tournament: TournamentSummary;
+  runtime: Runtime; // âncora do servidor: o motor local começa daqui, não de Date.now()
+  confirmed_requests: AdminPurchaseRequest[];
+  transactions: ConfirmedTransaction[];
+}
+
+export const parseStarted = (d: unknown): StartedTournament => {
+  const o = rec(d, 'data');
+  const runtime = parseRuntime(o.runtime);
+  if (!runtime) throw new ContractError('runtime ausente após iniciar');
+  return {
+    tournament: parseTournamentSummary(o.tournament),
+    runtime,
+    confirmed_requests: arr(o.confirmed_requests ?? [], 'confirmed_requests', parseAdminRequest),
+    transactions: arr(o.transactions ?? [], 'transactions', parseTransaction),
+  };
+};
+
+/** Confirma exatamente o lote revisado e inicia o relógio no servidor (tudo ou nada). */
+export const confirmBuyinsAndStart = (tournamentId: string, expectedVersion: number, reviewedRequestIds: string[]) =>
+  callRpc('confirm_buyins_and_start', {
+    tournament_id: tournamentId,
+    expected_version: expectedVersion,
+    reviewed_request_ids: reviewedRequestIds,
+  }, parseStarted);
+
+export interface AuthorizedPurchase {
+  authorization: Authorization;
+  offers: Offer[];
+}
+
+export const parseAuthorized = (d: unknown): AuthorizedPurchase => {
+  const o = rec(d, 'data');
+  return {
+    authorization: parseAuthorization(o.authorization),
+    offers: arr(o.offers ?? [], 'offers', parseOffer),
+  };
+};
+
+/** Libera rebuy/add-on a um participante. `expiresAt` null = sem validade. */
+export const authorizePurchase = (
+  participantId: string, kind: Exclude<PurchaseKind, 'buyin'>, offerIds: string[], expiresAt: string | null,
+) =>
+  callRpc('authorize_purchase', {
+    participant_id: participantId,
+    kind,
+    offer_ids: offerIds,
+    expires_at: expiresAt,
+  }, parseAuthorized);
+
+export interface ConfirmedPurchase {
+  request: AdminPurchaseRequest;
+  transaction: ConfirmedTransaction;
+  participant: Participant;
+  tournament: TournamentSummary;
+}
+
+export const parseConfirmedPurchase = (d: unknown): ConfirmedPurchase => {
+  const o = rec(d, 'data');
+  return {
+    request: parseAdminRequest(o.request),
+    transaction: parseTransaction(o.transaction),
+    participant: parseParticipant(o.participant),
+    tournament: parseTournamentSummary(o.tournament),
+  };
+};
+
+/** Única porta de fichas/dinheiro de rebuy e add-on. Versão = a do pedido, não a do torneio. */
+export const confirmPurchase = (requestId: string, expectedVersion: number) =>
+  callRpc('confirm_purchase', { request_id: requestId, expected_version: expectedVersion }, parseConfirmedPurchase);
+
+export const rejectPurchase = (requestId: string, reason: string) =>
+  callRpc('reject_purchase', { request_id: requestId, reason: reason.trim() },
+    (d) => ({ request: parseAdminRequest(rec(d, 'data').request) }));
+
+export const revokePurchaseAuthorization = (authorizationId: string, reason: string) =>
+  callRpc('revoke_purchase_authorization', { authorization_id: authorizationId, reason: reason.trim() },
+    (d) => ({ authorization: parseAuthorization(rec(d, 'data').authorization) }));
+
 // ── Mensagens ─────────────────────────────────────────────────────────────
 
 /** Texto pt-BR para o admin. Depende só do code (o contrato proíbe depender da message). */
@@ -579,7 +712,7 @@ export function describeError(e: RpcError): string {
   switch (e.code) {
     case 'AUTH_REQUIRED': return 'Sessão expirada. Entre de novo.';
     case 'ADMIN_REQUIRED': return 'Este usuário não é administrador do app.';
-    case 'NOT_FOUND': return 'Torneio não encontrado no servidor.';
+    case 'NOT_FOUND': return 'Registro não encontrado no servidor. Recarregue.';
     case 'VERSION_CONFLICT':
     case 'REQUEST_SET_CHANGED':
       return 'O torneio mudou no servidor. O estado foi recarregado: revise e tente de novo.';
@@ -592,8 +725,25 @@ export function describeError(e: RpcError): string {
       if (reason === 'another_public_tournament') return 'Já existe outro torneio público. Finalize-o antes de publicar este.';
       if (reason === 'payment_missing') return 'Configure o PIX antes de publicar.';
       if (reason === 'buyin_offer_missing') return 'O torneio precisa de uma oferta de buy-in.';
+      if (reason === 'no_buyins') return 'Nenhum buy-in pedido ainda. Espere os jogadores pedirem pelo link.';
+      if (reason === 'participant_status') return 'O jogador não está em condição de receber esta liberação.';
       return 'Ação incompatível com o estado atual do torneio.';
     case 'PENDING_PAYMENT': return 'Há pagamentos informados ainda sem confirmação ou rejeição.';
+    case 'IDENTITY_CONFLICT':
+      if (reason === 'display_name_taken') return 'Já existe um jogador com esse nome. Vincule ao cadastro existente.';
+      if (reason === 'player_inactive') return 'Jogador inativo: não pode entrar em torneios.';
+      if (reason === 'session_already_active') return 'Esta identificação já foi validada para outro jogador.';
+      return 'A identificação mudou (o aparelho trocou ou saiu). Recarregue.';
+    case 'REGISTRATION_CLOSED': return 'A inscrição já fechou para novos jogadores.';
+    case 'REQUEST_STATE_CONFLICT':
+      if (reason === 'buyin_confirmed_in_batch') return 'Buy-in inicial só é confirmado no lote de início.';
+      return 'O pedido já foi resolvido ou mudou de estado. Recarregue.';
+    case 'PURCHASE_PENDING': return 'O jogador já tem uma compra em aberto. Resolva-a antes.';
+    case 'OFFER_NOT_ELIGIBLE':
+      if (reason === 'window_closed') return 'A janela desta compra já fechou.';
+      return 'Oferta não disponível para a contagem atual do jogador.';
+    case 'AUTHORIZATION_CONSUMED': return 'A liberação já virou pedido: resolva o pedido.';
+    case 'DUPLICATE_TRANSACTION': return 'Esta compra já foi lançada. Recarregue.';
     default: return `Erro ${e.code}.`;
   }
 }

@@ -15,9 +15,12 @@ interface Props {
   onAddLive?: (name: string) => boolean; // adiciona + acomoda na mesa (live); false = duplicata
   onRebalance?: () => void;              // recalcula posições nas mesas
   onEliminate?: (index: number, eliminate: boolean) => void; // colocação automática
+  // Torneio persistente (S24): buy-ins/rebuys/add-ons só vêm do servidor. Sem
+  // adicionar, remover nem steppers — só mesa e eliminações.
+  locked?: boolean;
 }
 
-export default function PlayersPanel({ entries, onChange, mode = 'setup', knownPlayers = [], inactivePlayers = [], maxRebuys = 0, addonEnabled = true, onAddLive, onRebalance, onEliminate }: Props) {
+export default function PlayersPanel({ entries, onChange, mode = 'setup', knownPlayers = [], inactivePlayers = [], maxRebuys = 0, addonEnabled = true, onAddLive, onRebalance, onEliminate, locked = false }: Props) {
   const [name, setName] = useState('');
   const [erro, setErro] = useState('');
   const live = mode === 'live';
@@ -75,16 +78,19 @@ export default function PlayersPanel({ entries, onChange, mode = 'setup', knownP
       <datalist id="known-players">
         {knownPlayers.map((n) => <option key={n} value={n} />)}
       </datalist>
+      {locked && (
+        <p className="notice">Entradas, rebuys e add-ons vêm do servidor: libere e confirme pela barra de ações e pela aba Pedidos.</p>
+      )}
       <div className="player-add-row">
-        <div className="player-name-field">
+        {!locked && <div className="player-name-field">
           <label htmlFor="player-name">{live ? 'Entrada tardia (nome)' : 'Nome do jogador'}</label>
           <input id="player-name" list="known-players" placeholder="Digite um nome" value={name}
             onChange={(e) => { setName(e.target.value); setErro(''); }}
             onKeyDown={(e) => e.key === 'Enter' && add()} />
-        </div>
-        <button type="button" className="primary player-add-button" onClick={add}>
+        </div>}
+        {!locked && <button type="button" className="primary player-add-button" onClick={add}>
           <PlusIcon size={18} /> {live ? 'Entrar agora' : 'Adicionar'}
-        </button>
+        </button>}
         {live && onRebalance && (
           <button type="button" className="ghost player-rebalance" onClick={onRebalance}>
             <TableIcon size={18} /> Calcular posições na mesa
@@ -96,7 +102,7 @@ export default function PlayersPanel({ entries, onChange, mode = 'setup', knownP
         <p className="notice player-error" role="alert">{erro}</p>
       )}
 
-      {disponiveis.length > 0 && (
+      {!locked && disponiveis.length > 0 && (
         <div className="known-players">
           <p className="known-players-label">Adicionar cadastrados (1 clique)</p>
           <div className="quick-add">
@@ -130,21 +136,23 @@ export default function PlayersPanel({ entries, onChange, mode = 'setup', knownP
                   <td data-label="Jogador"><strong>{e.name}</strong></td>
                   {live && <td data-label="Mesa">{e.table ? `Mesa ${e.table}` : '—'}</td>}
                   {live && <td data-label="Assento">{e.seat ?? '—'}</td>}
-                  <td data-label="Buy-ins"><Stepper value={e.buyins} label={`Buy-ins de ${e.name}`} onMinus={() => step(i, 'buyins', -1)} onPlus={() => step(i, 'buyins', 1)} /></td>
-                  {live && <td data-label="Rebuys"><Stepper value={e.rebuys} label={`Rebuys de ${e.name}`} onMinus={() => step(i, 'rebuys', -1)} onPlus={() => step(i, 'rebuys', 1)} /></td>}
-                  {live && addonEnabled && <td data-label="Add-ons"><Stepper value={e.addons} label={`Add-ons de ${e.name}`} onMinus={() => step(i, 'addons', -1)} onPlus={() => step(i, 'addons', 1)} /></td>}
+                  <td data-label="Buy-ins">{locked ? e.buyins : <Stepper value={e.buyins} label={`Buy-ins de ${e.name}`} onMinus={() => step(i, 'buyins', -1)} onPlus={() => step(i, 'buyins', 1)} />}</td>
+                  {live && <td data-label="Rebuys">{locked ? e.rebuys : <Stepper value={e.rebuys} label={`Rebuys de ${e.name}`} onMinus={() => step(i, 'rebuys', -1)} onPlus={() => step(i, 'rebuys', 1)} />}</td>}
+                  {live && addonEnabled && <td data-label="Add-ons">{locked ? e.addons : <Stepper value={e.addons} label={`Add-ons de ${e.name}`} onMinus={() => step(i, 'addons', -1)} onPlus={() => step(i, 'addons', 1)} />}</td>}
                   {live && (
                     <td data-label="Status">
                       <button className={e.eliminated ? 'ghost' : 'danger'}
                         onClick={() => onEliminate
                           ? onEliminate(i, !e.eliminated)
                           : patch(i, { eliminated: !e.eliminated, table: undefined, seat: undefined })}>
-                        {e.eliminated ? <><ResetIcon size={18} /> {e.final_placement ?? ''}º · Reentrar</> : <><UserMinusIcon size={18} /> Eliminar</>}
+                        {e.eliminated
+                          ? <><ResetIcon size={18} /> {e.final_placement ?? ''}º · {locked ? 'Desfazer eliminação' : 'Reentrar'}</>
+                          : <><UserMinusIcon size={18} /> Eliminar</>}
                       </button>
                     </td>
                   )}
-                  <td data-label="Ação"><button type="button" className="danger icon-button" aria-label={`Remover ${e.name}`}
-                    title="Remover jogador" onClick={() => remove(i)}><TrashIcon size={18} /></button></td>
+                  <td data-label="Ação">{!locked && <button type="button" className="danger icon-button" aria-label={`Remover ${e.name}`}
+                    title="Remover jogador" onClick={() => remove(i)}><TrashIcon size={18} /></button>}</td>
                 </tr>
               ))}
             </tbody>

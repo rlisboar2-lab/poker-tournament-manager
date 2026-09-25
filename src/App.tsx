@@ -8,6 +8,7 @@ import Ranking from './screens/Ranking';
 import Historico from './screens/Historico';
 import Home, { type ResumeInfo } from './screens/Home';
 import BuyIn from './screens/BuyIn';
+import BuyInRemote from './screens/BuyInRemote';
 import Finish from './screens/Finish';
 import {
   useTournamentEngine,
@@ -28,10 +29,15 @@ import { addAndSeat, rebalanceSeating, seatEntry, hasPlayerNamed } from './utils
 import { applyElimination } from './utils/placements';
 import { uuidV4 } from './utils/uuid';
 import { quadraPreset } from './presets';
-import { saveTournament, listInactivePlayerNames, listKnownPlayers, type LocalEntry } from './services/tournaments';
+import { saveTournament, listInactivePlayerNames, listKnownPlayers, type KnownPlayer, type LocalEntry } from './services/tournaments';
 import { useOperationalTournament, type OperationalRef } from './hooks/useOperationalTournament';
 import { buildOffers, emptyPix, type PixConfig } from './utils/operational-config';
 import PortalPanel from './components/PortalPanel';
+import { LiveQueue, OperationalMessages } from './components/OperationalQueue';
+import type { OperationalSnapshot } from './services/operational';
+import {
+  entriesFromParticipants, openPurchases, pendingClaims, pendingReentries, reconcileEntries,
+} from './utils/operational-live';
 import { supabase, isSupabaseConfigured } from './lib/supabase';
 import Login from './components/Login';
 import ThemePanel from './components/ThemePanel';
@@ -185,7 +191,7 @@ export default function App() {
   });
   // Aba 'config' abre o Setup sem sair do torneio: dá para mudar valores,
   // duração, late check-in, intervalos e premiação com o relógio andando.
-  const [liveTab, setLiveTab] = useState<'clock' | 'mesa' | 'config'>('clock');
+  const [liveTab, setLiveTab] = useState<'clock' | 'mesa' | 'pedidos' | 'config'>('clock');
   // Estrutura editada manualmente ao vivo (null = usar a curva calculada).
   const [manualLevels, setManualLevels] = useState<BlindLevel[] | null>(saved?.manualLevels ?? null);
   // Passado congelado e piso publicado — devolvidos ao motor a cada recalibração.
@@ -214,10 +220,11 @@ export default function App() {
   const championTimerRef = useRef<number | undefined>(undefined);
   const championFiredRef = useRef(false);
   // Jogadores já cadastrados (para reaproveitar nomes ao adicionar buy-in).
-  const [knownPlayers, setKnownPlayers] = useState<string[]>([]);
+  const [knownPlayerList, setKnownPlayerList] = useState<KnownPlayer[]>([]);
+  const knownPlayers = useMemo(() => knownPlayerList.map((p) => p.display_name), [knownPlayerList]);
   const [inactivePlayers, setInactivePlayers] = useState<string[]>([]);
   useEffect(() => {
-    listKnownPlayers().then((ps) => setKnownPlayers(ps.map((p) => p.display_name))).catch(() => {});
+    listKnownPlayers().then(setKnownPlayerList).catch(() => {});
     listInactivePlayerNames().then(setInactivePlayers).catch(() => {});
   }, [session]);
 
@@ -416,6 +423,50 @@ export default function App() {
     }
   }, [screen]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const prizePool =
+    totals.buyins * config.buy_in_value +
+    totals.rebuys * config.rebuy_value +
+    totals.addons * config.addon_value;
+
+  // ── Torneio persistente ao vivo (S24) ─────────────────────────────────
+  // Com o servidor em `running`, fichas e dinheiro só vêm de lá: as contagens
+  // locais ficam travadas e seguem as compras confirmadas no banco.
+  const remoteLive = op.ref?.publicStatus === 'running';
+  const remoteBuyIn = op.ref?.publicStatus === 'published' || op.ref?.publicStatus === 'registration_closed' || remoteLive;
+  const opSnap = op.snapshot && op.snapshot.tournament.id === op.ref?.tournamentId ? op.snapshot : null;
+  useEffect(() => {
+    if (!remoteLive || !opSnap) return;
+    // Sincroniza com um sistema externo (o banco); devolve a mesma lista quando nada muda.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setEntries((prev) => (prev.length ? reconcileEntries(prev, opSnap.participants, prizePool, payoutPct) : prev));
+  }, [opSnap, remoteLive]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Eliminado com rebuy liberado/pedido em aberto pode voltar: segura o campeão.
+  const reentryHold = remoteLive && opSnap ? pendingReentries(opSnap, entries) : [];
+  const reentryHoldKey = reentryHold.join('|');
+  const pedidosCount = opSnap ? openPurchases(opSnap).length + pendingClaims(opSnap).length : 0;
+  // Limite e add-on vêm das ofertas gravadas no servidor, não da config local.
+  const liveMaxRebuys = remoteLive ? 0 : config.max_rebuys;
+  const liveAddonEnabled = remoteLive ? !!opSnap?.offers.some((o) => o.kind === 'addon') : config.addon_enabled;
+
+  // Mesa e relógio a partir do servidor, depois do commit do lote inicial (ou
+  // na recuperação, se a resposta se perdeu): âncora do runtime, não Date.now().
+  const startFromServer = (s: OperationalSnapshot) => {
+    const rt = s.runtime;
+    if (!rt) return;
+    if (entries.some((e) => e.eliminated) && !confirm(
+      'Substituir a mesa local (com eliminações) pelo estado do servidor?'
+    )) return;
+    setEntries(entriesFromParticipants(s.participants));
+    engine.restore(rt.clock_status === 'paused'
+      ? { status: 'paused', anchorMs: rt.anchor_ms, pausedElapsedMs: rt.paused_elapsed_ms }
+      : { status: 'running', anchorMs: rt.anchor_ms, pausedElapsedMs: 0 });
+    window.clearTimeout(championTimerRef.current);
+    championFiredRef.current = false;
+    setChampionName(null);
+    setLiveTab('clock');
+    setScreen('live');
+  };
+
   // Gatilho do penúltimo (REDESIGN.md S13): sobrando 1 ativo, o relógio pausa
   // (nunca reseta) e abre a tela de fim com o campeão já declarado. A troca de
   // tela some do `screen === 'live'` da condição, então isto só dispara uma vez.
@@ -426,7 +477,7 @@ export default function App() {
   useEffect(() => {
     if (screen !== 'live') return;
     const ativos = entries.filter((e) => !e.eliminated);
-    if (entries.length > 1 && ativos.length === 1) {
+    if (entries.length > 1 && ativos.length === 1 && !reentryHoldKey) {
       if (championFiredRef.current) return;
       championFiredRef.current = true;
       if (engine.state.status === 'running') engine.pause();
@@ -437,14 +488,9 @@ export default function App() {
       window.clearTimeout(championTimerRef.current);
       setChampionName(null);
     }
-  }, [entries, screen]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [entries, screen, reentryHoldKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => () => window.clearTimeout(championTimerRef.current), []);
-
-  const prizePool =
-    totals.buyins * config.buy_in_value +
-    totals.rebuys * config.rebuy_value +
-    totals.addons * config.addon_value;
 
   // Prêmios sempre em dia: recalcula o valor de todos os colocados quando o
   // pote (rebuys/add-ons) ou os percentuais da premiação mudam.
@@ -829,9 +875,11 @@ export default function App() {
       {screen === 'players' && <PlayersPanel entries={entries} onChange={setEntries} mode="setup" knownPlayers={knownPlayers} inactivePlayers={inactivePlayers}
         maxRebuys={config.max_rebuys} addonEnabled={config.addon_enabled} />}
 
-      {screen === 'buyin' && (
+      {screen === 'buyin' && (remoteBuyIn ? (
+        <BuyInRemote op={op} knownPlayers={knownPlayerList} onStarted={startFromServer} />
+      ) : (
         <BuyIn entries={entries} buyInValue={config.buy_in_value} onConfirm={() => setScreen('live')} />
-      )}
+      ))}
 
       {screen === 'live' && (
         <section className="live-console" aria-label="Console ao vivo">
@@ -865,9 +913,23 @@ export default function App() {
               <strong>🏆 {championName} é o campeão — torneio encerrado</strong>
             </div>
           )}
+          {reentryHold.length > 0 && entries.filter((e) => !e.eliminated).length === 1 && (
+            <div className="panel" role="status" style={{ borderColor: 'var(--gold)' }}>
+              <p className="notice" style={{ margin: 0, color: 'var(--gold)' }}>
+                Reentrada em andamento ({reentryHold.join(', ')}): o campeão só é declarado depois que o rebuy for
+                confirmado, rejeitado ou revogado na aba Pedidos.
+              </p>
+            </div>
+          )}
+          {remoteLive && liveTab !== 'pedidos' && <OperationalMessages op={op} />}
           <div className="tabs live-tabs" aria-label="Áreas do console">
             <button aria-pressed={liveTab === 'clock'} className={liveTab === 'clock' ? 'active' : ''} onClick={() => setLiveTab('clock')}>Relógio</button>
             <button aria-pressed={liveTab === 'mesa'} className={liveTab === 'mesa' ? 'active' : ''} onClick={() => setLiveTab('mesa')}>Mesa</button>
+            {remoteLive && (
+              <button aria-pressed={liveTab === 'pedidos'} className={liveTab === 'pedidos' ? 'active' : ''} onClick={() => setLiveTab('pedidos')}>
+                Pedidos{pedidosCount > 0 && <span className="pill late" style={{ marginLeft: 6 }}>{pedidosCount}</span>}
+              </button>
+            )}
             <button aria-pressed={liveTab === 'config'} className={liveTab === 'config' ? 'active' : ''} onClick={() => setLiveTab('config')}>
               <SettingsIcon size={18} /> Configurações
             </button>
@@ -884,11 +946,14 @@ export default function App() {
           )}
           {liveTab === 'mesa' && (
             <PlayersPanel entries={entries} onChange={setEntries} mode="live" knownPlayers={knownPlayers} inactivePlayers={inactivePlayers}
-              maxRebuys={config.max_rebuys} addonEnabled={config.addon_enabled}
+              maxRebuys={liveMaxRebuys} addonEnabled={liveAddonEnabled}
               onAddLive={addPlayerLive}
               onRebalance={() => setEntries((prev) => rebalanceSeating(prev))}
-              onEliminate={toggleEliminated} />
+              onEliminate={toggleEliminated} locked={remoteLive} />
           )}
+          {liveTab === 'pedidos' && remoteLive && (opSnap
+            ? <LiveQueue snapshot={opSnap} op={op} knownPlayers={knownPlayerList} />
+            : <p className="notice">Carregando pedidos do servidor…</p>)}
           {/* Setup ao vivo: sem "Restaurar padrão" nem presets — os dois
               trocam a estrutura inteira e zerariam o torneio em andamento. */}
           {liveTab === 'config' && (
@@ -949,10 +1014,11 @@ export default function App() {
           {liveTab !== 'config' && (
             <LiveActions entries={entries} knownPlayers={knownPlayers} inactivePlayers={inactivePlayers}
               buyInValue={config.buy_in_value} rebuyValue={config.rebuy_value} addonValue={config.addon_value}
-              maxRebuys={config.max_rebuys} addonEnabled={config.addon_enabled}
+              maxRebuys={liveMaxRebuys} addonEnabled={liveAddonEnabled}
               lateCheckinOpen={engine.state.level_number <= resolvedLateCheckinLevel}
               onAddPlayer={addPlayerLive} onRebuy={rebuyLive} onAddon={addonLive}
-              onEliminate={(i) => toggleEliminated(i, true)} />
+              onEliminate={(i) => toggleEliminated(i, true)}
+              remote={remoteLive ? { snapshot: opSnap, busy: op.busy, onAuthorize: op.authorize } : undefined} />
           )}
         </div>
       )}

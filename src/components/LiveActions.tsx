@@ -3,9 +3,16 @@
 // de polegar no celular. Eliminar é imediato — sem confirm(); o desfazer é o
 // toast do App. Adicionar/Rebuy/Add-on passam por CobrancaPix e só aplicam a
 // transação no "Pago".
+// Torneio persistente (`remote`, S24): Rebuy/Add-on só liberam a compra no
+// servidor; o jogador pede e paga pelo link e as fichas entram quando o admin
+// confirma o pagamento na aba Pedidos. Entrada tardia não existe: a inscrição
+// fecha no início.
 import { useState } from 'react';
 import type { LocalEntry } from '../services/tournaments';
+import type { OperationalSnapshot } from '../services/operational';
+import type { PurchaseKind } from '../types/database';
 import { hasPlayerNamed } from '../utils/seating';
+import { activeAuthorizations, eligibleOffers, isOpenRequest, participantByName } from '../utils/operational-live';
 import CobrancaPix from './CobrancaPix';
 import { PlusIcon, ResetIcon, UserMinusIcon, UserPlusIcon } from './Icons';
 
@@ -23,6 +30,30 @@ interface Props {
   onRebuy: (index: number) => void;
   onAddon: (index: number) => void;
   onEliminate: (index: number) => void;
+  remote?: {
+    snapshot: OperationalSnapshot | null; // null = ainda não lido: tudo bloqueado
+    busy: boolean;
+    onAuthorize: (participantId: string, kind: Exclude<PurchaseKind, 'buyin'>, offerIds: string[]) => void;
+  };
+}
+
+type RemoteState = { participantId: string; offerIds: string[] } | { blocked: string };
+
+/** O que o servidor permite liberar para esta entrada agora. */
+function remoteState(remote: NonNullable<Props['remote']>, e: LocalEntry, kind: Exclude<PurchaseKind, 'buyin'>): RemoteState {
+  const s = remote.snapshot;
+  if (!s) return { blocked: 'Carregando do servidor…' };
+  const p = participantByName(s.participants, e.name);
+  if (!p) return { blocked: 'Sem inscrição no servidor' };
+  if (s.requests.some((r) => r.participant_id === p.id && r.kind !== 'buyin' && isOpenRequest(r))) {
+    return { blocked: 'Pedido em aberto — veja Pedidos' };
+  }
+  if (activeAuthorizations(s).some((a) => a.participant_id === p.id && a.kind === kind)) {
+    return { blocked: 'Já liberado, esperando o jogador pedir' };
+  }
+  const offers = eligibleOffers(s, p, kind);
+  if (offers.length === 0) return { blocked: kind === 'rebuy' ? 'Sem rebuy disponível (limite ou janela)' : 'Sem add-on disponível' };
+  return { participantId: p.id, offerIds: offers.map((o) => o.id) };
 }
 
 type Sheet = 'add' | 'eliminate' | 'rebuy' | 'addon' | null;
@@ -30,7 +61,7 @@ type Pending = { tipo: 'buyin' | 'rebuy' | 'addon'; index?: number; nome: string
 
 export default function LiveActions({
   entries, buyInValue, rebuyValue, addonValue, maxRebuys, addonEnabled, lateCheckinOpen,
-  knownPlayers = [], inactivePlayers = [], onAddPlayer, onRebuy, onAddon, onEliminate,
+  knownPlayers = [], inactivePlayers = [], onAddPlayer, onRebuy, onAddon, onEliminate, remote,
 }: Props) {
   const [sheet, setSheet] = useState<Sheet>(null);
   const [name, setName] = useState('');
@@ -74,11 +105,36 @@ export default function LiveActions({
 
   const confirmAdd = () => cobrarBuyIn(name);
 
+  // Remoto: escolher o jogador libera a compra no servidor (nada de fichas aqui).
+  const pick = (kind: Exclude<PurchaseKind, 'buyin'>, e: LocalEntry, i: number) => {
+    if (!remote) {
+      setPending({ tipo: kind, index: i, nome: e.name });
+      setSheet(null);
+      return;
+    }
+    const st = remoteState(remote, e, kind);
+    if ('blocked' in st) return;
+    remote.onAuthorize(st.participantId, kind, st.offerIds);
+    setSheet(null);
+  };
+  const remoteNote = (kind: Exclude<PurchaseKind, 'buyin'>, e: LocalEntry) => {
+    if (!remote) return null;
+    const st = remoteState(remote, e, kind);
+    return 'blocked' in st ? <span className="pill">{st.blocked}</span> : null;
+  };
+  const remoteBlocked = (kind: Exclude<PurchaseKind, 'buyin'>, e: LocalEntry) =>
+    !!remote && (remote.busy || 'blocked' in remoteState(remote, e, kind));
+  const remoteHelp = remote && (
+    <p className="notice live-sheet-help">
+      Libera a compra no link do jogador. Ele pede e paga; as fichas só entram quando você confirmar o pagamento em Pedidos.
+    </p>
+  );
+
   return (
     <>
       <div className="live-actions-bar" role="toolbar" aria-label="Ações rápidas do torneio">
-        <button className="ghost" disabled={!lateCheckinOpen}
-          title={!lateCheckinOpen ? 'Late check-in fechado' : undefined}
+        <button className="ghost" disabled={!lateCheckinOpen || !!remote}
+          title={remote ? 'Torneio persistente: a inscrição fechou no início' : !lateCheckinOpen ? 'Late check-in fechado' : undefined}
           onClick={() => setSheet('add')}><UserPlusIcon size={19} /> Jogador</button>
         <button className="danger" disabled={active.length === 0}
           onClick={() => setSheet('eliminate')}><UserMinusIcon size={19} /> Eliminar</button>
@@ -150,16 +206,18 @@ export default function LiveActions({
       {sheet === 'rebuy' && (
         <div className="qr-overlay live-sheet-overlay" onClick={close}>
           <div className="qr-card live-sheet" role="dialog" aria-modal="true" aria-labelledby="live-rebuy-title" onClick={(e) => e.stopPropagation()}>
-            <span className="setup-eyebrow">Cobrança</span>
+            <span className="setup-eyebrow">{remote ? 'Liberação' : 'Cobrança'}</span>
             <h2 id="live-rebuy-title">Rebuy</h2>
+            {remoteHelp}
             {rebuyable.length === 0 ? <p className="notice">Ninguém elegível (limite de rebuys atingido).</p> : (
               <div className="sheet-list">
                 {rebuyable.map(({ e, i }) => (
-                  <button key={i} className="ghost sheet-item"
-                    onClick={() => { setPending({ tipo: 'rebuy', index: i, nome: e.name }); setSheet(null); }}>
+                  <button key={i} className="ghost sheet-item" disabled={remoteBlocked('rebuy', e)}
+                    onClick={() => pick('rebuy', e, i)}>
                     <strong>{e.name}</strong>
                     <span>{maxRebuys > 0 ? `${e.rebuys} de ${maxRebuys} rebuys` : `${e.rebuys} rebuys`}</span>
                     {e.eliminated && <span className="pill late">Eliminado · volta após o pagamento</span>}
+                    {remoteNote('rebuy', e)}
                   </button>
                 ))}
               </div>
@@ -174,15 +232,17 @@ export default function LiveActions({
       {sheet === 'addon' && (
         <div className="qr-overlay live-sheet-overlay" onClick={close}>
           <div className="qr-card live-sheet" role="dialog" aria-modal="true" aria-labelledby="live-addon-title" onClick={(e) => e.stopPropagation()}>
-            <span className="setup-eyebrow">Cobrança</span>
+            <span className="setup-eyebrow">{remote ? 'Liberação' : 'Cobrança'}</span>
             <h2 id="live-addon-title">Add-on</h2>
+            {remoteHelp}
             {active.length === 0 ? <p className="notice">Ninguém na mesa.</p> : (
               <div className="sheet-list">
                 {active.map(({ e, i }) => (
-                  <button key={i} className="ghost sheet-item"
-                    onClick={() => { setPending({ tipo: 'addon', index: i, nome: e.name }); setSheet(null); }}>
+                  <button key={i} className="ghost sheet-item" disabled={remoteBlocked('addon', e)}
+                    onClick={() => pick('addon', e, i)}>
                     <strong>{e.name}</strong>
                     <span>{e.addons} add-on{e.addons === 1 ? '' : 's'}</span>
+                    {remoteNote('addon', e)}
                   </button>
                 ))}
               </div>
@@ -194,7 +254,7 @@ export default function LiveActions({
         </div>
       )}
 
-      {pending && (
+      {pending && !remote && (
         <CobrancaPix
           tipo={pending.tipo}
           jogador={pending.nome}

@@ -497,6 +497,25 @@ body:has(.clock-panel.fs) { overflow: hidden; }
 .buyin-total .kpi { color: var(--gold); font-variant-numeric: tabular-nums; }
 .buyin-confirm { width: 100%; min-height: 52px; margin-top: var(--space-5); }
 
+/* Filas do torneio persistente (S24): identificações, lote e pedidos. */
+.op-panel-head { display: flex; justify-content: space-between; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+.op-panel-head h2 { margin: 0; }
+.op-section { margin-top: var(--space-5); }
+.op-section h3 { display: flex; align-items: center; gap: var(--space-2); margin: 0 0 var(--space-2); font-size: 16px; }
+.op-list { display: grid; gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
+.op-item { display: grid; gap: var(--space-2); min-width: 0; padding: var(--space-3); background: var(--panel-2);
+  border: 1px solid var(--control-border); border-radius: 10px; }
+.op-item--row { grid-template-columns: 1fr auto; align-items: center; }
+.op-item-head { display: flex; justify-content: space-between; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+.op-item-head strong { overflow-wrap: anywhere; }
+.op-item .notice { margin: 0; }
+.op-item-controls, .op-reject { display: flex; gap: var(--space-2); flex-wrap: wrap; align-items: center; }
+.op-item-controls select, .op-item-controls input, .op-reject input { flex: 1 1 180px; width: auto; min-width: 0; }
+.op-item-controls button, .op-reject button { min-height: 44px; }
+.op-messages { display: flex; gap: var(--space-2); align-items: center; flex-wrap: wrap; margin: var(--space-2) 0; }
+.op-messages .notice { flex: 1 1 220px; margin: 0; }
+.op-error { color: var(--danger); }
+
 /* A barra ocupa uma linha real do grid da tela ao vivo; não cobre o conteúdo. */
 .live-footer { position: relative; z-index: 100; min-width: 0; background: var(--panel);
   border-top: 1px solid var(--border); box-shadow: 0 -8px 24px color-mix(in srgb, var(--bg), transparent 35%); }
