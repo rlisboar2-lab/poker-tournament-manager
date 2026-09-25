@@ -8,6 +8,7 @@ import type { Authorization, Offer, PaymentSettings } from '../services/operatio
 import type { PlayerPortal, PublicPurchaseRequest } from '../services/publicPortal';
 import type { ParticipantStatus, PixKeyType, PublicStatus, PurchaseRequestStatus } from '../types/database';
 import { brl, chips } from '../utils/format';
+import { portalNotice } from '../utils/portalNotice';
 
 const TOURNAMENT_STATUS: Partial<Record<PublicStatus, string>> = {
   published: 'Inscrições abertas',
@@ -203,13 +204,21 @@ function PortalBody({ portal, busy, actions }: {
   const buyinOffers = offers.filter((o) => o.kind === 'buyin');
   const lastBuyin = [...requests].reverse().find((r) => r.kind === 'buyin');
   const history = requests.filter((r) => !isOpen(r)).reverse();
+  const finished = portal.tournament.public_status === 'finished';
+  const notice = portalNotice({
+    publicStatus: portal.tournament.public_status,
+    nextAction: next_action,
+    participantStatus: participant?.status,
+    lastBuyinConfirmed: lastBuyin?.status === 'confirmed',
+    hasOpenExtra: !!openExtra,
+  });
   const card = (r: PublicPurchaseRequest) => (
     <RequestCard request={r} fallbackPayment={payment} busy={busy} onReport={actions.report} onCancel={actions.cancel} />
   );
 
   return (
     <>
-      {participant && (
+      {participant && !finished && (
         <p className="notice portal-tight">
           Situação: <strong>{PARTICIPANT_STATUS[participant.status]}</strong>
           {participant.confirmed_rebuy_units > 0 && ` · ${participant.confirmed_rebuy_units} rebuy(s)`}
@@ -240,14 +249,9 @@ function PortalBody({ portal, busy, actions }: {
       {openBuyin && card(openBuyin)}
       {openExtra && card(openExtra)}
 
-      {next_action === 'open_portal' && !openExtra && participant?.status === 'active' && lastBuyin?.status === 'confirmed' && (
-        <p className="notice">Buy-in confirmado. Você está no torneio. Boa sorte!</p>
-      )}
-      {next_action === 'open_portal' && !participant && portal.tournament.public_status !== 'finished' && (
-        <p className="notice">As inscrições deste torneio fecharam.</p>
-      )}
+      {notice && <p className="notice">{notice}</p>}
 
-      {!openExtra && portal.authorizations.length > 0 && (
+      {!finished && !openExtra && portal.authorizations.length > 0 && (
         <AuthorizedOffers authorizations={portal.authorizations} offers={offers} busy={busy} onPick={actions.purchase} />
       )}
 

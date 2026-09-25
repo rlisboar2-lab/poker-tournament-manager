@@ -26,7 +26,8 @@ import {
   type BlindLevel,
 } from './utils/poker-math';
 import { addAndSeat, rebalanceSeating, seatEntry, hasPlayerNamed } from './utils/seating';
-import { applyElimination } from './utils/placements';
+import { applyElimination, payoutFor } from './utils/placements';
+import { liveClockFields } from './utils/liveState';
 import { uuidV4 } from './utils/uuid';
 import { quadraPreset } from './presets';
 import { saveTournament, listInactivePlayerNames, listKnownPlayers, type KnownPlayer, type LocalEntry } from './services/tournaments';
@@ -405,15 +406,14 @@ export default function App() {
   const liveSnap = engine.snapshot;
   const liveItems = engine.items;
   const liveChips = engine.curve.c_total;
+  const liveFinished = !!savedTournamentId || op.ref?.publicStatus === 'finished';
   useEffect(() => {
     if (!liveShareId || !supabase) return;
     supabase.from('live_state').upsert({
       id: liveShareId,
       name: config.name,
       schedule: liveItems,
-      status: liveSnap.status,
-      anchor_ms: Math.round(liveSnap.anchorMs),
-      paused_elapsed_ms: Math.round(liveSnap.pausedElapsedMs),
+      ...liveClockFields(liveSnap, liveFinished, Date.now()),
       players_remaining: playersRemaining,
       total_chips: Math.round(liveChips),
       updated_at: new Date().toISOString(),
@@ -421,7 +421,7 @@ export default function App() {
       setLiveError(error ? error.message : null);
       if (error) console.warn('live upsert:', error.message);
     });
-  }, [liveShareId, config.name, liveItems, liveSnap, playersRemaining, liveChips]);
+  }, [liveShareId, config.name, liveItems, liveSnap, playersRemaining, liveChips, liveFinished]);
 
   // Posições aleatórias ao iniciar a fase ao vivo (se ninguém sentado ainda).
   useEffect(() => {
@@ -508,7 +508,7 @@ export default function App() {
       let changed = false;
       const next = prev.map((e) => {
         if (!e.final_placement) return e;
-        const target = prizePool * (payoutPct[e.final_placement - 1] ?? 0);
+        const target = payoutFor(e.final_placement, prizePool, payoutPct, prev.length);
         if (Math.abs((e.payout_amount ?? 0) - target) > 1e-6) { changed = true; return { ...e, payout_amount: target }; }
         return e;
       });
@@ -904,7 +904,7 @@ export default function App() {
               ) : (
                 <div className="live-share-row">
                   <div className="live-share-link">
-                    <span className="pill live-share-status">No ar</span>
+                    <span className="pill live-share-status">{liveFinished ? 'Encerrado' : 'No ar'}</span>
                     <label className="sr-only" htmlFor="live-share-url">Link da transmissão</label>
                     <input id="live-share-url" readOnly value={liveUrl} onFocus={(e) => e.target.select()} />
                     <button className="ghost" onClick={copiarLink}>{copied ? '✓ copiado' : 'Copiar'}</button>

@@ -4,6 +4,7 @@
 // devolve ao relógio — toque errado no console não pode encerrar o torneio.
 import type { LocalEntry } from '../services/tournaments';
 import { brl } from '../utils/format';
+import { payoutFor } from '../utils/placements';
 
 interface Props {
   entries: LocalEntry[];
@@ -31,7 +32,7 @@ export default function Finish({
     onChange(entries.map((e, idx) => (idx !== i ? e : {
       ...e,
       final_placement: place,
-      payout_amount: place ? prizePool * (payoutPct[place - 1] ?? 0) : undefined,
+      payout_amount: place ? payoutFor(place, prizePool, payoutPct, entries.length) : undefined,
     })));
 
   const setPrize = (i: number, valor: number) =>

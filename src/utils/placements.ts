@@ -11,6 +11,27 @@ export interface PlacementEntry {
 }
 
 /**
+ * Percentuais efetivos para `playerCount` jogadores. Com menos jogadores que
+ * posições pagas, a fatia das posições que não existem é redistribuída entre as
+ * que existem, na proporção dos percentuais delas: 50/30/20 com 2 jogadores vira
+ * 62,5/37,5. O total configurado é preservado, então o pote fecha.
+ */
+export function effectivePayoutPct(payoutPct: number[], playerCount: number): number[] {
+  const n = Math.max(0, Math.floor(playerCount));
+  if (n >= payoutPct.length) return payoutPct;
+  const kept = payoutPct.slice(0, n);
+  const keptSum = kept.reduce((s, p) => s + p, 0);
+  if (keptSum <= 0) return kept;
+  const total = payoutPct.reduce((s, p) => s + p, 0);
+  return kept.map((p) => (p * total) / keptSum);
+}
+
+/** Prêmio da colocação `place` num torneio com `playerCount` jogadores. */
+export function payoutFor(place: number, prizePool: number, payoutPct: number[], playerCount: number): number {
+  return prizePool * (effectivePayoutPct(payoutPct, playerCount)[place - 1] ?? 0);
+}
+
+/**
  * Renumera colocações e prêmios de toda a lista.
  *
  * A própria colocação codifica a ordem de eliminação (menor = caiu depois).
@@ -24,6 +45,7 @@ export function renumberPlacements<T extends PlacementEntry>(
   payoutPct: number[]
 ): T[] {
   const out = list.map((e) => ({ ...e }));
+  const pct = effectivePayoutPct(payoutPct, out.length);
   const eliminados = out
     .filter((e) => e.eliminated)
     .sort((a, b) => (a.final_placement ?? 0) - (b.final_placement ?? 0));
@@ -32,7 +54,7 @@ export function renumberPlacements<T extends PlacementEntry>(
   let place = out.length - eliminados.length + 1;
   for (const e of eliminados) {
     e.final_placement = place;
-    e.payout_amount = prizePool * (payoutPct[place - 1] ?? 0);
+    e.payout_amount = prizePool * (pct[place - 1] ?? 0);
     place++;
   }
 
@@ -40,7 +62,7 @@ export function renumberPlacements<T extends PlacementEntry>(
   for (const e of ativos) {
     const campeao = ativos.length === 1;
     e.final_placement = campeao ? 1 : undefined;
-    e.payout_amount = campeao ? prizePool * (payoutPct[0] ?? 0) : undefined;
+    e.payout_amount = campeao ? prizePool * (pct[0] ?? 0) : undefined;
   }
   return out;
 }

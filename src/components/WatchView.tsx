@@ -90,6 +90,16 @@ export default function WatchView({ id }: { id: string }) {
   const inBreak = v.kind === 'break';
   const statusLabel = STATUS_LABELS[v.status] ?? v.status;
 
+  if (row.status === 'finished') return (
+    <main className="app watch watch--message">
+      <section className="panel watch-connection" role="status" aria-live="polite">
+        <span className="watch-connection-label">{row.name || 'Torneio'}</span>
+        <h1>Torneio encerrado</h1>
+        <p className="notice">A transmissão terminou. Obrigado por acompanhar!</p>
+      </section>
+    </main>
+  );
+
   return (
     <main className="app watch">
       <section className="panel clock-panel fs-watch" aria-label={`Transmissão ao vivo de ${row.name || 'Torneio'}`}>

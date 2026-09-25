@@ -1,6 +1,8 @@
 // src/utils/__tests__/placements.test.ts
 import { describe, it, expect } from 'vitest';
-import { applyElimination, renumberPlacements, type PlacementEntry } from '../placements';
+import {
+  applyElimination, effectivePayoutPct, payoutFor, renumberPlacements, type PlacementEntry,
+} from '../placements';
 
 interface P extends PlacementEntry { name: string }
 
@@ -101,5 +103,41 @@ describe('renumberPlacements', () => {
     const list = jogadores(3);
     applyElimination(list, 0, true, POOL, PCT);
     expect(list[0].eliminated).toBeUndefined();
+  });
+
+  it('com menos jogadores que posições pagas, o pote inteiro é distribuído', () => {
+    // Smoke S28: 2 jogadores, 50/30/20, pote R$ 20 pagava só R$ 16.
+    const out = applyElimination(jogadores(2), 1, true, 20, PCT);
+    expect(out.find((e) => e.name === 'A')?.payout_amount).toBeCloseTo(12.5);
+    expect(out.find((e) => e.name === 'B')?.payout_amount).toBeCloseTo(7.5);
+  });
+});
+
+describe('effectivePayoutPct', () => {
+  it('redistribui proporcionalmente a fatia das posições que não existem', () => {
+    const pct = effectivePayoutPct(PCT, 2);
+    expect(pct).toHaveLength(2);
+    expect(pct[0]).toBeCloseTo(0.625);
+    expect(pct[1]).toBeCloseTo(0.375);
+  });
+
+  it('jogador único leva todo o total configurado', () => {
+    expect(effectivePayoutPct(PCT, 1)[0]).toBeCloseTo(1);
+  });
+
+  it('não mexe quando há jogadores para todas as posições', () => {
+    expect(effectivePayoutPct(PCT, 3)).toEqual(PCT);
+    expect(effectivePayoutPct(PCT, 9)).toEqual(PCT);
+  });
+
+  it('preserva o total configurado mesmo quando ele não é 100%', () => {
+    const pct = effectivePayoutPct([0.45, 0.27, 0.18], 2); // 90%
+    expect(pct[0] + pct[1]).toBeCloseTo(0.9);
+  });
+
+  it('payoutFor usa os percentuais efetivos', () => {
+    expect(payoutFor(1, 20, PCT, 2)).toBeCloseTo(12.5);
+    expect(payoutFor(3, 20, PCT, 2)).toBe(0);
+    expect(payoutFor(3, 1000, PCT, 5)).toBeCloseTo(200);
   });
 });
