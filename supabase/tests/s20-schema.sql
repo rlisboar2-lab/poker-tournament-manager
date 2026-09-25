@@ -415,12 +415,17 @@ begin
   insert into public.tournament_payment_settings (tournament_id, pix_key_type, pix_key, receiver_name)
   values (i.t1, 'random', 'chave-teste', 'Recebedor Teste');
   insert into public.tournament_runtime (tournament_id) values (i.t1);
+  perform pg_temp.expect_error(format(
+    'delete from public.purchase_offers where id = %L', i.o_duplo),
+    '23503', 'oferta com pedido ainda nao pode ser apagada isoladamente');
   delete from public.base_tournaments where id = i.t1;
   assert not exists (select 1 from public.purchase_requests where tournament_id = i.t1), 'pedidos sobraram';
   assert not exists (select 1 from public.purchase_offers where tournament_id = i.t1), 'ofertas sobraram';
   assert not exists (select 1 from public.transactions where tournament_id = i.t1), 'transacoes sobraram';
   assert exists (select 1 from public.player_device_sessions where id = i.sess), 'sessao global foi apagada junto';
-  raise notice 'OK 13 - excluir torneio do fluxo 2 cascateia sem erro de FK e preserva a sessao';
+  assert exists (select 1 from public.base_tournaments where id = i.t2), 'outro torneio foi apagado';
+  assert exists (select 1 from public.purchase_offers where id = i.o_t2), 'oferta de outro torneio foi apagada';
+  raise notice 'OK 13 - excluir torneio do fluxo 2 limpa dependentes, preserva outro torneio e mantem FK imediata';
 end $$;
 
 rollback;

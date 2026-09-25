@@ -453,6 +453,9 @@ Substituir policies amplas; revogar acesso direto; remover referências a `/pix-
 
 ### S27 — Auditoria e liberação
 
+**Execução parcial (25/09/2026):** testes locais e UI de dois jogadores + admin registrados em docs/runbooks/s27-auditoria-2026-09-25.md. Rod informou aplicação de 0013–0015 após cadastro do admin; backup novo gerado e restaurado com 46/46 contagens. Correção da home e migração 0016 aprovadas, implementadas e validadas localmente; S20 13/13 no banco novo e na cópia restaurada. Rod ainda executará 0016 em produção. Catálogo e Security Advisor remoto, deploy e smoke test de produção seguem pendentes.
+
+
 **Objetivo:** liberar com evidência e reversão.
 
 Executar a matriz completa; testar dois navegadores de jogador e um admin; simular resposta perdida após commit; verificar regressão legada; documentar operação; fazer smoke test descartável; ativar o público somente depois do teste.
@@ -530,4 +533,3 @@ Executar a matriz completa; testar dois navegadores de jogador e um admin; simul
 6. “Informei pagamento” não comprova PIX; a linguagem da UI deve ser inequívoca.
 7. Reentrada pendente interfere em campeão e colocação.
 8. Qualquer cálculo restante baseado em quantidade × preço fixo produzirá valores errados.
-

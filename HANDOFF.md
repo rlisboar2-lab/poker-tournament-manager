@@ -19,7 +19,7 @@ gestão ao vivo, premiação, estatísticas e transmissão ao vivo por link.
 
 | Serviço | Para quê | Onde |
 |---|---|---|
-| **GitHub** | guarda o código | github.com/rlisboar2-lab/poker-tournament-manager (privado) |
+| **GitHub** | guarda o código | github.com/rlisboar2-lab/poker-tournament-manager (GitHub API em 25/09/2026: público; conferir se é intencional) |
 | **Netlify** | hospeda o site (build do GitHub) | app.netlify.com |
 | **Supabase** | banco de dados + login dos usuários | supabase.com — projeto `irkvvpuqvllksztxkqoc` |
 | **Namecheap** | domínio poker.prospectus.lat | namecheap.com (DNS: CNAME → *.netlify.app) |
@@ -38,14 +38,7 @@ O site precisa de 2 valores do Supabase. Eles ficam em **dois lugares**:
 
 ## 4. Migrações do banco (Supabase → SQL Editor)
 
-Corte confirmado no banco em uso: `0001`, `0003`, `0005`–`0012` aplicadas; `0013`–`0015` só no banco local (`0011` e `0012` em 23/09/2026, S20) (`0006`–`0008` em
-10/09/2026; `0009` e `0010` confirmadas em 17/09/2026 por inventário read-only direto ao catálogo
-remoto — ver `docs/superpowers/specs/2026-09-17-s19-baseline-contracts-db-environment.md`). `0002`
-foi substituída por `0003` e `0004` é obsoleta. A presença do arquivo no Git não prova aplicação no
-Supabase; `supabase migration list` também não serve de fonte aqui, porque as migrações foram
-aplicadas manualmente pelo SQL Editor e a tabela de controle do CLI nunca foi populada — a
-confirmação real é por consulta direta ao catálogo (`information_schema`/`pg_proc`/`pg_policies`).
-
+Corte remoto confirmado por consulta direta ao catálogo até 0012 em 23/09/2026. Em 25/09, Rod informou que executou 0013 e 0014 e, após cadastrar o responsável em app_admins, repetiu 0015; ainda falta conferir o catálogo para confirmar o estado final. A primeira tentativa da 0015 abortou pela guarda de admin ausente. 0002 foi substituída por 0003 e 0004 é obsoleta. A presença do arquivo no Git não prova aplicação no Supabase; a tabela de controle do CLI não é fonte confiável aqui, pois as migrações remotas foram aplicadas pelo SQL Editor. Ver docs/runbooks/s27-auditoria-2026-09-25.md.
 Para banco local novo, o Supabase CLI reaplica todos os arquivos versionados em ordem; `0002` e
 `0004` são históricos aditivos e não devem ser apagados ou renomeados sem uma migração/baseline
 deliberada.
@@ -141,14 +134,10 @@ Passo a passo com o Claude na conta nova:
       no catálogo: `ensure_rls` ativo, 10 tabelas novas com RLS e sem policy, 5 funções em `private`,
       zero grants para anon/authenticated, 252 transações (111 rebuys = 111 unidades, `kind` sem
       divergência), nenhum torneio no fluxo 2.
-- [ ] **S21/S25 — `0013` e `0014` só no banco local.** Não aplicar em produção sem autorização.
-      A `0014` (S25) fecha o requisito do legado: ranking e Histórico só contam torneio legado ou do
-      fluxo 2 finalizado. Aplicar sempre na ordem `0013` → `0014`.
-- [ ] **Cadastrar o admin** em `app_admins` (`docs/runbooks/app-admins.md`). Hoje está vazia.
-      **Obrigatório antes da `0015`:** depois dela, conta fora de `app_admins` não vê nem grava nada.
-- [ ] **S26 — `0015` (corte de segurança) só no banco local.** Ordem `0013` → `0014` → `0015`, no mesmo
-      release do cliente S26. Aplicar, conferir e reverter: `docs/runbooks/security-cut-0015.md`. A
-      migração aborta sozinha se houver usuário e nenhum admin cadastrado.
+- [x] **S21/S25 — 0013 e 0014:** aplicação em produção informada por Rod em 25/09/2026; confirmação independente do catálogo pendente.
+- [x] **Admin em app_admins e S26 — 0015:** primeira tentativa abortou por admin ausente; Rod informou em seguida que cadastrou o responsável e repetiu a migração. Conferir o admin e as policies no catálogo antes do release.
+- [x] **S27 — backup remoto de 25/09:** cinco arquivos (roles, schema do app, schema Auth, schema Storage e dados) em supabase/backups/, hashes em SHA256SUMS-2026-09-25.txt. O dump de dados é sensível e ignorado pelo Git. Restauração isolada: 46/46 contagens iguais. A falha de exclusão no clone foi corrigida pela 0016 e passou S20 13/13, S21 16/16 e S26 6/6. Ver relatório S27.
+- [ ] **S27 — liberação:** correções da home e da exclusão testadas localmente. Rod ainda precisa executar a 0016 em produção; faltam catálogo/Security Advisor remoto, publicação do cliente e smoke test antes de abrir torneio real.
 - [ ] **Smoke test do legado pós-0012:** salvar ou editar um torneio de teste em produção.
 
 ## 8. Prompt para colar no Claude da conta nova
@@ -165,7 +154,7 @@ poker-tournament-manager/
 ├─ public/
 │  ├─ manifest.webmanifest         # PWA (tela cheia no celular)
 │  └─ icon.svg
-├─ supabase/migrations/            # 0001..0015 (SQL do banco)
+├─ supabase/migrations/            # 0001..0016 (SQL do banco)
 └─ src/
    ├─ main.tsx                     # decide App x WatchView (rota /watch/:id)
    ├─ App.tsx                      # estado central + fluxo de estágios + transmissão ao vivo

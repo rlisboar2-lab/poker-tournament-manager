@@ -684,9 +684,13 @@ export default function App() {
     resetTorneio('home');
   };
 
-  // "● Criar torneio" da home: só confirma/apaga se houver torneio ao vivo em
-  // andamento (relógio rodando ou pausado). Sem torneio ativo, só navega.
+  // Resultado já salvo/finalizado pode sair da home sem aviso de perda.
+  // Enquanto não foi salvo, o relógio ativo ainda exige confirmação.
   const criarTorneio = () => {
+    if (savedTournamentId || op.ref?.publicStatus === 'finished') {
+      resetTorneio('setup');
+      return;
+    }
     const emAndamento = engine.state.status === 'running' || engine.state.status === 'paused';
     if (emAndamento) {
       if (!confirm('Um torneio está em andamento. Começar um novo agora apaga o progresso atual. Continuar?')) return;
@@ -801,6 +805,7 @@ export default function App() {
   const go = (d: number) => setScreen(FLOW[Math.min(Math.max(0, flowIdx + d), FLOW.length - 1)]);
   const showNavRow = flowIdx !== -1 && screen !== 'finish';
   const resumeInfo: ResumeInfo | null =
+    !savedTournamentId && op.ref?.publicStatus !== 'finished' &&
     (engine.state.status === 'running' || engine.state.status === 'paused')
       ? { name: config.name, levelNumber: engine.state.level_number, totalLevels: engine.state.total_levels, playersRemaining }
       : null;

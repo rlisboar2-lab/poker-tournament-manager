@@ -1,6 +1,6 @@
 # S27 — correções da retomada e da exclusão de torneio
 
-Data: 25/09/2026. Estado: desenho aprovado por Rod na conversa; aguardando revisão deste documento antes da implementação.
+Data: 25/09/2026. Estado: desenho e especificação escrita aprovados por Rod na conversa em 25/09/2026; correções implementadas localmente.
 
 ## Problemas observados
 
