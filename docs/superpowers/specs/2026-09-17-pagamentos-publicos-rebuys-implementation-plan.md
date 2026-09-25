@@ -453,7 +453,7 @@ Substituir policies amplas; revogar acesso direto; remover referências a `/pix-
 
 ### S27 — Auditoria e liberação
 
-**Execução parcial (25/09/2026):** testes locais e UI de dois jogadores + admin registrados em docs/runbooks/s27-auditoria-2026-09-25.md. Rod informou aplicação de 0013–0015 após cadastro do admin; backup novo gerado e restaurado com 46/46 contagens. Correção da home e migração 0016 aprovadas, implementadas e validadas localmente; S20 13/13 no banco novo e na cópia restaurada. Rod informou a execução da 0016, confirmada por dump remoto de leitura. Consulta direta ao catálogo e Security Advisor remoto, deploy e smoke test de produção seguem pendentes.
+**Execução parcial (25/09/2026):** testes locais e UI de dois jogadores + admin registrados em docs/runbooks/s27-auditoria-2026-09-25.md. Rod informou aplicação de 0013–0015 após cadastro do admin; backup novo gerado e restaurado com 46/46 contagens. Correção da home e migração 0016 aprovadas, implementadas e validadas localmente; S20 13/13 no banco novo e na cópia restaurada. Rod informou a execução da 0016, confirmada por dump remoto de leitura. O dump remoto confirmou schema e o Security Advisor foi revisado: zero erros, 29 avisos das RPCs previstas e um de proteção de senha vazada desativada. Deploy e smoke test de produção seguem pendentes.
 
 
 **Objetivo:** liberar com evidência e reversão.
