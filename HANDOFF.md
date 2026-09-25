@@ -137,7 +137,7 @@ Passo a passo com o Claude na conta nova:
 - [x] **S21/S25 — 0013 e 0014:** aplicação em produção informada por Rod em 25/09/2026; confirmação independente do catálogo pendente.
 - [x] **Admin em app_admins e S26 — 0015:** primeira tentativa abortou por admin ausente; Rod informou em seguida que cadastrou o responsável e repetiu a migração. Conferir o admin e as policies no catálogo antes do release.
 - [x] **S27 — backup remoto de 25/09:** cinco arquivos (roles, schema do app, schema Auth, schema Storage e dados) em supabase/backups/, hashes em SHA256SUMS-2026-09-25.txt. O dump de dados é sensível e ignorado pelo Git. Restauração isolada: 46/46 contagens iguais. A falha de exclusão no clone foi corrigida pela 0016 e passou S20 13/13, S21 16/16 e S26 6/6. Ver relatório S27.
-- [ ] **S27 — liberação:** correções da home e da exclusão testadas localmente. Rod ainda precisa executar a 0016 em produção; faltam catálogo/Security Advisor remoto, publicação do cliente e smoke test antes de abrir torneio real.
+- [ ] **S27 — liberação:** correções da home e da exclusão testadas localmente. Rod informou a execução da 0016, confirmada por dump remoto de leitura; faltam consulta direta ao catálogo/Security Advisor, publicação do cliente e smoke test antes de abrir torneio real.
 - [ ] **Smoke test do legado pós-0012:** salvar ou editar um torneio de teste em produção.
 
 ## 8. Prompt para colar no Claude da conta nova
