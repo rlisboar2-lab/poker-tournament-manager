@@ -1,7 +1,7 @@
 # Plano de implementação — portal público, PIX e compras do torneio
 
 **Data:** 17/09/2026  
-**Status:** S19–S21 concluídas; `0011`/`0012` aplicadas em produção em 23/09/2026; `0013` (S21) só no banco local. S22 é a próxima.  
+**Status:** S19–S22 concluídas; `0011`/`0012` aplicadas em produção em 23/09/2026; `0013` (S21) só no banco local. S23 é a próxima.  
 **Projeto:** `poker-tournament-manager` — Vite, React 18, TypeScript e Supabase.
 
 ## Objetivo
@@ -249,6 +249,31 @@ Implementar identidade, portal filtrado, buy-in, resolução do jogador, confirm
 Tipar contratos; criar serviço isolado; persistir ao publicar; configurar PIX/ofertas; guardar IDs/versão; tratar conflitos; atualizar o torneio existente ao finalizar.
 
 **Aceite:** admin cria, configura, publica e retoma um torneio persistente sem duplicação.
+
+**Execução (23/09/2026, mesma branch `s21/rpcs-fluxo-pagamentos`, sem commit):**
+
+- `src/services/operational.ts`: envelopes com catálogo fechado (código fora dele = `ContractError`), parsers
+  dos formatos do contrato (dinheiro em texto → number), `needsReload` (VERSION_CONFLICT/REQUEST_SET_CHANGED),
+  `describeError` por code/reason e wrappers de create/publish/get/update_runtime/finish.
+- `src/utils/operational-config.ts`: ofertas a partir da config (buy-in; 1 rebuy simples por contagem até
+  `max_rebuys`; "sem limite" = oferta única com teto de 20 contagens, limite do `purchase_offers_eligible_chk`;
+  duplo opcional `double_rebuy_value`, 2 unidades, fichas em dobro, só com zero usadas; add-on), validação
+  do PIX e casamento local→`participant_id` por nome no fim.
+- `src/hooks/useOperationalTournament.ts` + `PortalPanel.tsx` (tela de Setup): PIX fora da `AppConfig`
+  (preset não apaga), criar rascunho, publicar, retomar torneio aberto do servidor, recarregar. IDs e
+  `state_version` no autosave. Uma ação por vez. Antes de criar, procura torneio aberto e recusa duplicar.
+  Conflito recarrega do servidor e devolve a decisão ao admin. Banco sem 0013 (PGRST202) esconde o painel.
+- Fim: com `public_status = running`, "Salvar" chama `finish_operational_tournament` no mesmo registro;
+  persistente não iniciado pede confirmação antes do save legado. Histórico filtra
+  `flow_version = 1 or public_status = finished`.
+- Validação: PostgREST local recuperado (imagens `postgrest:v14.5`/`postgres-meta:v0.99.0` rebaixadas;
+  edge runtime excluído do start). Reset `0001`→`0013`; SQL 10/10, 13/13, 16/16, concorrência 8/8;
+  `bash supabase/tests/s22-admin-rest.sh` 1/1 (supabase-js real: criar, versão velha, publicar, retomar,
+  identificar/resolver/buy-in/confirmar lote, runtime com versão velha e nova, finalizar, Histórico);
+  96 testes, build e lint sem warning novo.
+- Limites: clique ponta a ponta na UI não foi feito pelo agente (login exige senha). Não existe RPC para
+  alterar ofertas/PIX após criar nem para cancelar um rascunho: o painel avisa divergência; fica para `0014`.
+  Ranking (`player_leaderboard`) ainda soma transações de torneio do fluxo 2 em andamento: pré-requisito da S25.
 
 ### S23 — Portal público e identidade
 

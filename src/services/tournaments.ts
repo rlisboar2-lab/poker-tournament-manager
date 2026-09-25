@@ -51,11 +51,14 @@ export async function saveTournament(input: SaveTournamentInput): Promise<string
   return data as string;
 }
 
+// Histórico só mostra torneio encerrado: o fluxo 2 nasce no servidor como
+// rascunho e só entra aqui depois de `finish_operational_tournament`.
 export async function listTournaments(): Promise<BaseTournament[]> {
   if (!isSupabaseConfigured || !supabase) return [];
   const { data, error } = await supabase
     .from('base_tournaments')
     .select('*')
+    .or('flow_version.eq.1,public_status.eq.finished')
     .order('start_time', { ascending: false });
   if (error) throw error;
   return (data ?? []) as BaseTournament[];

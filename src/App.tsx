@@ -29,6 +29,9 @@ import { applyElimination } from './utils/placements';
 import { uuidV4 } from './utils/uuid';
 import { quadraPreset } from './presets';
 import { saveTournament, listInactivePlayerNames, listKnownPlayers, type LocalEntry } from './services/tournaments';
+import { useOperationalTournament, type OperationalRef } from './hooks/useOperationalTournament';
+import { buildOffers, emptyPix, type PixConfig } from './utils/operational-config';
+import PortalPanel from './components/PortalPanel';
 import { supabase, isSupabaseConfigured } from './lib/supabase';
 import Login from './components/Login';
 import ThemePanel from './components/ThemePanel';
@@ -47,6 +50,8 @@ export interface AppConfig {
   chips_per_rebuy: number;
   chips_per_addon: number;
   max_rebuys: number;      // por jogador; 0 = sem limite
+  // Pacote de 2 rebuys de uma vez (torneio persistente); 0/ausente = não oferece.
+  double_rebuy_value?: number;
   addon_enabled: boolean;  // se o torneio oferece add-on
   late_checkin_level: number | 'auto'; // 'auto' = nivelAuto(níveis, 0.5)
   ante_enabled: boolean;
@@ -76,6 +81,10 @@ interface SavedState {
   publishedFloor?: number[] | null;
   // Id do torneio já salvo — trava o "Salvar" contra toque duplo (REDESIGN.md S13).
   savedTournamentId?: string | null;
+  // PIX fica fora da config: presets e "Restaurar padrão" não podem apagá-lo.
+  pix?: PixConfig;
+  // Vínculo com o torneio persistente (fluxo 2): IDs e última state_version vista.
+  operational?: OperationalRef | null;
 }
 
 const SAVE_KEY = 'ptm_state_v2';
@@ -195,6 +204,8 @@ export default function App() {
   // Id do torneio já salvo (REDESIGN.md S13): trava "Salvar" contra toque duplo.
   const [savedTournamentId, setSavedTournamentId] = useState<string | null>(saved?.savedTournamentId ?? null);
   const [saving, setSaving] = useState(false);
+  const [pix, setPix] = useState<PixConfig>(saved?.pix ?? emptyPix());
+  const op = useOperationalTournament(isSupabaseConfigured && !!session, saved?.operational ?? null);
   // Toast de "desfazer" após eliminar (some sozinho em 5s ou no undo).
   const [eliminationToast, setEliminationToast] = useState<{ text: string; undo: () => void } | null>(null);
   const toastTimerRef = useRef<number | undefined>(undefined);
@@ -351,7 +362,7 @@ export default function App() {
   useEffect(() => {
     saveRef.current = {
       config, entries, payoutPct, screen, manualLevels, liveShareId, publishedFloor,
-      savedTournamentId,
+      savedTournamentId, pix, operational: op.ref,
       clock: engine.snapshot,
     };
   });
@@ -592,6 +603,7 @@ export default function App() {
     setPublishedFloor(null);
     setLiveShareId(null);
     setSavedTournamentId(null);
+    op.clear(); // solta só o vínculo local; o registro no servidor continua
     window.clearTimeout(championTimerRef.current);
     championFiredRef.current = false;
     setChampionName(null);
@@ -629,11 +641,42 @@ export default function App() {
     setScreen('setup');
   };
 
+  // Ofertas do torneio persistente, derivadas da config (preço/fichas/unidades
+  // viajam só na criação; depois o banco é a referência).
+  const offers = useMemo(() => buildOffers(config, valorInicial), [config, valorInicial]);
+  const criarPersistente = () => {
+    op.create({
+      name: config.name,
+      start_time: new Date(config.start_time).toISOString(),
+      initial_stack: valorInicial,
+      curve_params: {
+        ...config.setup,
+        target_time_minutos: config.target_time_minutos,
+        duracao_bloco_nivel: config.duracao_bloco_nivel,
+      },
+      payout_structure: payoutPct.map((p, i) => ({ posicao: i + 1, percentual: p })),
+      offers,
+      payment: pix,
+    });
+  };
+
   // Idempotente (REDESIGN.md S13): toque duplo em "Salvar" não grava dois
   // torneios — uma vez com `savedTournamentId`, um novo save só é possível
   // depois de `resetTorneio` (novo torneio / descartar).
   const onSave = async () => {
     if (savedTournamentId) return;
+    // Torneio persistente iniciado pelo servidor: fecha o registro existente,
+    // sem criar outro (compras, fichas e dinheiro já estão lá).
+    if (op.ref?.publicStatus === 'running') {
+      const r = await op.finish(entries);
+      if (!r.ok) throw new Error(r.message);
+      setSavedTournamentId(op.ref.tournamentId);
+      return;
+    }
+    if (op.ref && op.ref.publicStatus !== 'finished' && !confirm(
+      'Este torneio tem um registro persistente que não foi iniciado pelo servidor. ' +
+      'Salvar agora grava os resultados como torneio avulso, e o registro persistente continua aberto. Continuar?'
+    )) return;
     const start = new Date(config.start_time);
     const end = new Date(start.getTime() + config.target_time_minutos * 60_000);
     const id = await saveTournament({
@@ -778,6 +821,9 @@ export default function App() {
           }}
           prizePool={prizePool} playerCount={entries.length} lateLevel={resolvedLateCheckinLevel}
           payoutPct={payoutPct} onPayoutChange={setPayoutPct} />
+      )}
+      {screen === 'setup' && isSupabaseConfigured && session && (
+        <PortalPanel op={op} pix={pix} onPixChange={setPix} offers={offers} onCreate={criarPersistente} />
       )}
 
       {screen === 'players' && <PlayersPanel entries={entries} onChange={setEntries} mode="setup" knownPlayers={knownPlayers} inactivePlayers={inactivePlayers}

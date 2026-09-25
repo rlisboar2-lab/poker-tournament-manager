@@ -154,6 +154,11 @@ export default function SetupPanel({
             <input id="setup-max-rebuys" type="number" min={0} value={config.max_rebuys} onChange={(e) => onChange({ max_rebuys: Math.max(0, num(e.target.value)) })} />
           </div>
           <div className="setup-field">
+            <label htmlFor="setup-double-rebuy">Rebuy duplo (R$, 0 = não oferece)</label>
+            <input id="setup-double-rebuy" type="number" min={0} value={config.double_rebuy_value ?? 0}
+              onChange={(e) => onChange({ double_rebuy_value: Math.max(0, num(e.target.value)) })} />
+          </div>
+          <div className="setup-field">
             <label htmlFor="setup-addon-enabled">Add-on disponível?</label>
             <select id="setup-addon-enabled" value={config.addon_enabled ? '1' : '0'} onChange={(e) => onChange({ addon_enabled: e.target.value === '1' })}>
               <option value="1">Sim</option>
