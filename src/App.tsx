@@ -38,6 +38,7 @@ import type { OperationalSnapshot } from './services/operational';
 import {
   entriesFromParticipants, openPurchases, pendingClaims, pendingReentries, reconcileEntries,
 } from './utils/operational-live';
+import { buildLedger, chipCurveInputs, describePurchases, legacyInvested, playerLedger } from './utils/ledger';
 import { supabase, isSupabaseConfigured } from './lib/supabase';
 import Login from './components/Login';
 import ThemePanel from './components/ThemePanel';
@@ -234,6 +235,20 @@ export default function App() {
     addons: entries.reduce((s, e) => s + e.addons, 0),
   }), [entries]);
 
+  // Torneio persistente iniciado pelo servidor (S25): pote, investimento e
+  // fichas vêm dos lançamentos confirmados, não de contagem × preço da config.
+  const opSnap = op.snapshot && op.snapshot.tournament.id === op.ref?.tournamentId ? op.snapshot : null;
+  const serverMoney = op.ref?.publicStatus === 'running' || op.ref?.publicStatus === 'finished';
+  const ledger = useMemo(() => (serverMoney && opSnap ? buildLedger(opSnap) : null), [serverMoney, opSnap]);
+  const chipInputs = useMemo(() => (ledger ? chipCurveInputs(ledger) : {
+    qnt_entradas_primarias: Math.max(1, totals.buyins),
+    valor_fichas_inicial: initialStack(config.setup),
+    qnt_acumulada_rebuys: totals.rebuys,
+    fichas_por_rebuy: config.chips_per_rebuy,
+    qnt_acumulada_addons: totals.addons,
+    fichas_por_addon: config.chips_per_addon,
+  }), [ledger, totals, config.setup, config.chips_per_rebuy, config.chips_per_addon]);
+
   const valorInicial = initialStack(config.setup);
   const playersRemaining = Math.max(1, entries.filter((e) => !e.eliminated).length);
   const sumBreakMin = config.breaks.reduce((s, b) => s + (b.minutes || 0), 0);
@@ -248,18 +263,13 @@ export default function App() {
   const projectedLevelCount = useMemo(() => {
     if (manualLevels && manualLevels.length) return manualLevels.length;
     return calcularCurvaBlinds({
-      qnt_entradas_primarias: Math.max(1, totals.buyins),
-      valor_fichas_inicial: valorInicial,
-      qnt_acumulada_rebuys: totals.rebuys,
-      fichas_por_rebuy: config.chips_per_rebuy,
-      qnt_acumulada_addons: totals.addons,
-      fichas_por_addon: config.chips_per_addon,
+      ...chipInputs,
       target_time_minutos: effectiveTarget,
       duracao_bloco_nivel: config.duracao_bloco_nivel,
       initial_bb: config.setup.initial_bb,
       smallest_chip: config.setup.smallest_chip,
     }).qnt_niveis_projetados;
-  }, [totals, valorInicial, config, effectiveTarget, manualLevels]);
+  }, [chipInputs, config, effectiveTarget, manualLevels]);
 
   const resolvedLateCheckinLevel = config.late_checkin_level === 'auto'
     ? nivelAuto(projectedLevelCount, 0.5)
@@ -278,12 +288,7 @@ export default function App() {
     : config.ante_start_level;
 
   const derivedParams: EngineParams = useMemo(() => ({
-    qnt_entradas_primarias: Math.max(1, totals.buyins),
-    valor_fichas_inicial: valorInicial,
-    qnt_acumulada_rebuys: totals.rebuys,
-    fichas_por_rebuy: config.chips_per_rebuy,
-    qnt_acumulada_addons: totals.addons,
-    fichas_por_addon: config.chips_per_addon,
+    ...chipInputs,
     target_time_minutos: effectiveTarget,
     duracao_bloco_nivel: config.duracao_bloco_nivel,
     initial_bb: config.setup.initial_bb,
@@ -297,7 +302,7 @@ export default function App() {
     frozen_levels: frozenLevels,
     published_floor: publishedFloor,
   }), [
-    totals, valorInicial, config, playersRemaining, effectiveTarget, manualLevels,
+    chipInputs, config, playersRemaining, effectiveTarget, manualLevels,
     resolvedLateCheckinLevel, resolvedAnteStartLevel, resolvedBreaks, frozenLevels, publishedFloor,
   ]);
 
@@ -423,17 +428,19 @@ export default function App() {
     }
   }, [screen]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const prizePool =
-    totals.buyins * config.buy_in_value +
-    totals.rebuys * config.rebuy_value +
-    totals.addons * config.addon_value;
+  const prizePool = ledger
+    ? ledger.pool
+    : totals.buyins * config.buy_in_value +
+      totals.rebuys * config.rebuy_value +
+      totals.addons * config.addon_value;
+  const investedOf = (e: LocalEntry) => (ledger ? playerLedger(ledger, e.name)?.invested ?? 0 : legacyInvested(e, config));
+  const purchasesOf = ledger ? (e: LocalEntry) => describePurchases(playerLedger(ledger, e.name)?.purchases ?? []) : undefined;
 
   // ── Torneio persistente ao vivo (S24) ─────────────────────────────────
   // Com o servidor em `running`, fichas e dinheiro só vêm de lá: as contagens
   // locais ficam travadas e seguem as compras confirmadas no banco.
   const remoteLive = op.ref?.publicStatus === 'running';
   const remoteBuyIn = op.ref?.publicStatus === 'published' || op.ref?.publicStatus === 'registration_closed' || remoteLive;
-  const opSnap = op.snapshot && op.snapshot.tournament.id === op.ref?.tournamentId ? op.snapshot : null;
   useEffect(() => {
     if (!remoteLive || !opSnap) return;
     // Sincroniza com um sistema externo (o banco); devolve a mesma lista quando nada muda.
@@ -967,7 +974,7 @@ export default function App() {
       {screen === 'finish' && (
         <Finish entries={entries} onChange={setEntries}
           payoutPct={payoutPct} prizePool={prizePool}
-          buyInValue={config.buy_in_value} rebuyValue={config.rebuy_value} addonValue={config.addon_value}
+          investedOf={investedOf} purchasesOf={purchasesOf}
           onUndoFinish={onUndoFinish} onSave={handleFinishSave} saved={!!savedTournamentId} saving={saving}
           onDiscard={discardResults} onNewTournament={newTournamentFromFinish} />
       )}

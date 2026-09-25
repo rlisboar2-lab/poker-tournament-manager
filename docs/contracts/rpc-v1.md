@@ -198,3 +198,26 @@ Semântica fixada na implementação:
 - confirm_buyins_and_start marca como `withdrawn` quem ficou em `pending_buyin`.
 - finish_operational_tournament expira pedidos `requested` e autorizações ativas; `payment_reported`
   bloqueia com PENDING_PAYMENT. `results` = `[{participant_id, final_placement?, payout_amount?}]`.
+
+## Registro de compatibilidade v1 — S25 (25/09/2026)
+
+Aditivo; nenhum código de erro novo. Implementação: `supabase/migrations/0014_finance_setup_ranking.sql`.
+
+- `get_operational_tournament` ganha `transactions`: lançamentos confirmados do torneio no formato de
+  `confirm_purchase.transaction` (`id, request_id, kind, player_id, amount, rebuy_units, chips_granted,
+  confirmed_at`; dinheiro em texto). O admin deriva pote, investimento e fichas somente daí.
+- `update_tournament_setup(tournament_id uuid, expected_version bigint, payload jsonb)` → tournament,
+  offers, payment. `payload = {offers?, payment?}` (pelo menos um), no mesmo formato da criação.
+  Ofertas: só em `draft`, ou `published` sem pedido `requested`/`payment_reported`/`confirmed`; senão
+  TOURNAMENT_STATE_CONFLICT (`offers_locked`). As antigas ficam inativas; `buy_in_value` do torneio
+  segue o novo buy-in. PIX: qualquer estado antes de `finished`/`cancelled`; `payment.version` + 1.
+  Pedido já feito mantém o snapshot (invariante 4). Incrementa `state_version`. Erros: INVALID_ARGUMENT
+  (inclusive `reason = buyin_required`), NOT_FOUND, VERSION_CONFLICT, TOURNAMENT_STATE_CONFLICT.
+- `cancel_operational_tournament(tournament_id uuid, expected_version bigint)` → tournament. Só em
+  `draft`, `published` ou `registration_closed`, sem lançamentos (`reason = has_transactions` por
+  defesa). `payment_reported` bloqueia com PENDING_PAYMENT (`request_ids`): o admin rejeita com motivo
+  antes. Efeito: `requested` → `expired`, autorizações ativas → `expired`, `pending_buyin` →
+  `withdrawn`, `public_status = status = cancelled`, sai do link `/jogar`. Erros: INVALID_ARGUMENT,
+  NOT_FOUND, VERSION_CONFLICT, TOURNAMENT_STATE_CONFLICT, PENDING_PAYMENT.
+- `player_leaderboard()` (legado, fora do envelope) passa a considerar só torneio legado
+  (`flow_version = 1`) ou do fluxo 2 finalizado — o mesmo filtro do Histórico.

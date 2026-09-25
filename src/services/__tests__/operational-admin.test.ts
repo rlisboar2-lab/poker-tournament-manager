@@ -9,6 +9,7 @@ vi.mock('../../lib/supabase', () => ({ supabase: { rpc: (...a: unknown[]) => rpc
 import {
   ContractError,
   authorizePurchase,
+  cancelOperationalTournament,
   confirmBuyinsAndStart,
   confirmPurchase,
   describeError,
@@ -20,6 +21,7 @@ import {
   rejectPurchase,
   resolvePlayerClaim,
   revokePurchaseAuthorization,
+  updateTournamentSetup,
 } from '../operational';
 
 const TOURNAMENT = {
@@ -158,5 +160,39 @@ describe('mensagens S24', () => {
     expect(describeError({ ...base, code: 'TOURNAMENT_STATE_CONFLICT', details: { reason: 'no_buyins' } })).toMatch(/Nenhum buy-in/);
     expect(describeError({ ...base, code: 'PURCHASE_PENDING' })).toMatch(/compra em aberto/);
     expect(describeError({ ...base, code: 'OFFER_NOT_ELIGIBLE', details: { reason: 'window_closed' } })).toMatch(/janela/);
+  });
+});
+
+describe('wrappers S25 (0014)', () => {
+  beforeEach(() => rpc.mockReset());
+  const PAYMENT = { pix_key_type: 'email', pix_key: 'novo@pix.test', receiver_name: 'Rod', instructions: null, version: 2 };
+
+  it('update_tournament_setup envia só o que mudou, no formato da criação', async () => {
+    rpc.mockResolvedValue(ok({ tournament: TOURNAMENT, offers: [OFFER], payment: PAYMENT }));
+    const r = await updateTournamentSetup('t1', 3, { payment: { pix_key_type: 'email', pix_key: ' novo@pix.test ', receiver_name: 'Rod ' } });
+    expect(rpc).toHaveBeenLastCalledWith('update_tournament_setup', {
+      tournament_id: 't1', expected_version: 3,
+      payload: { payment: { pix_key_type: 'email', pix_key: 'novo@pix.test', receiver_name: 'Rod' } },
+    });
+    if (r.ok) expect(r.data.payment?.version).toBe(2);
+
+    await updateTournamentSetup('t1', 4, { offers: [{ kind: 'buyin', name: ' Buy-in ', price: 12.5, chips_granted: 3000 }] });
+    expect(rpc).toHaveBeenLastCalledWith('update_tournament_setup', {
+      tournament_id: 't1', expected_version: 4,
+      payload: { offers: [{ kind: 'buyin', name: 'Buy-in', price: '12.50', chips_granted: 3000, sort_order: 1 }] },
+    });
+  });
+
+  it('cancel_operational_tournament envia a versão vista', async () => {
+    rpc.mockResolvedValue(ok({ tournament: { ...TOURNAMENT, public_status: 'cancelled', is_public_current: false } }));
+    const r = await cancelOperationalTournament('t1', 5);
+    expect(rpc).toHaveBeenLastCalledWith('cancel_operational_tournament', { tournament_id: 't1', expected_version: 5 });
+    if (r.ok) expect(r.data.tournament.public_status).toBe('cancelled');
+  });
+
+  it('mensagens dos motivos novos', () => {
+    const base = { message: 'x', retryable: false };
+    expect(describeError({ ...base, code: 'TOURNAMENT_STATE_CONFLICT', details: { reason: 'offers_locked' } })).toMatch(/Só o PIX/);
+    expect(describeError({ ...base, code: 'TOURNAMENT_STATE_CONFLICT', details: { reason: 'has_transactions' } })).toMatch(/lançamentos/);
   });
 });

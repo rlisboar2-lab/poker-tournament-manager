@@ -140,10 +140,9 @@ Passo a passo com o Claude na conta nova:
       no catálogo: `ensure_rls` ativo, 10 tabelas novas com RLS e sem policy, 5 funções em `private`,
       zero grants para anon/authenticated, 252 transações (111 rebuys = 111 unidades, `kind` sem
       divergência), nenhum torneio no fluxo 2.
-- [ ] **S21 — `0013` (RPCs do fluxo de pagamentos) só no banco local.** Não aplicar em produção sem
-      autorização. Antes de criar torneio do fluxo 2 em produção, o legado precisa filtrar
-      `flow_version` (S25): hoje o Histórico lista todo `base_tournaments` e o ranking soma
-      transações de torneio ainda em andamento.
+- [ ] **S21/S25 — `0013` e `0014` só no banco local.** Não aplicar em produção sem autorização.
+      A `0014` (S25) fecha o requisito do legado: ranking e Histórico só contam torneio legado ou do
+      fluxo 2 finalizado. Aplicar sempre na ordem `0013` → `0014`.
 - [ ] **Cadastrar o admin** em `app_admins` (`docs/runbooks/app-admins.md`). Hoje está vazia.
 - [ ] **Smoke test do legado pós-0012:** salvar ou editar um torneio de teste em produção.
 

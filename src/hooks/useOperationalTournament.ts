@@ -7,6 +7,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   authorizePurchase,
+  cancelOperationalTournament,
   confirmBuyinsAndStart,
   confirmPurchase,
   createOperationalTournament,
@@ -19,11 +20,13 @@ import {
   rejectPurchase,
   resolvePlayerClaim,
   revokePurchaseAuthorization,
+  updateTournamentSetup,
   type ClaimTarget,
   type CreateTournamentInput,
   type OperationalSnapshot,
   type RpcError,
   type RpcResult,
+  type SetupPatch,
   type TournamentSummary,
 } from '../services/operational';
 import { buildFinishResults } from '../utils/operational-config';
@@ -156,6 +159,33 @@ export function useOperationalTournament(enabled: boolean, initial: OperationalR
     setNotice('Torneio publicado. Os jogadores já podem se identificar e pedir buy-in pelo link /jogar.');
   }), [run, load, ref, onDomainError]);
 
+  /** Troca ofertas e/ou PIX no servidor (0014). Versão velha recarrega e devolve a revisão. */
+  const updateSetup = useCallback((patch: SetupPatch) => run(async () => {
+    if (!ref) return;
+    const r = await updateTournamentSetup(ref.tournamentId, ref.stateVersion, patch);
+    if (!r.ok) { await onDomainError(r.error); return; }
+    setRef(toRef(r.data.tournament));
+    await load(r.data.tournament.id);
+    setNotice('Servidor atualizado. Pedidos já feitos mantêm o preço e o PIX da hora do pedido.');
+  }), [run, load, ref, onDomainError]);
+
+  /** Cancela antes do início (0014) e solta o vínculo: o torneio segue só neste aparelho. */
+  const cancel = useCallback(() => run(async () => {
+    if (!ref) return;
+    const r = await cancelOperationalTournament(ref.tournamentId, ref.stateVersion);
+    if (!r.ok) {
+      await onDomainError(r.error);
+      if (r.error.code === 'PENDING_PAYMENT') {
+        setError('Há PIX informado por jogador. Rejeite esses pedidos com motivo na tela de buy-ins antes de cancelar.');
+      }
+      return;
+    }
+    setRef(null);
+    setSnapshot(null);
+    await load(null);
+    setNotice('Torneio persistente cancelado. O link dos jogadores deixou de valer; este torneio segue só neste aparelho.');
+  }), [run, load, ref, onDomainError]);
+
   /**
    * Fecha o torneio existente (nada de criar outro registro). Usa a última
    * state_version vista; se o servidor mudou, recarrega e pede revisão.
@@ -258,6 +288,7 @@ export function useOperationalTournament(enabled: boolean, initial: OperationalR
 
   return {
     ref, snapshot, candidate, available, busy, error, notice, create, publish, adopt, refresh, finish, clear,
+    updateSetup, cancel,
     resolveClaim, startBatch, authorize, confirm, reject, revoke, dismiss,
   };
 }

@@ -379,6 +379,36 @@ Somar valores por `amount`, rebuys por `rebuy_units` e fichas por `chips_granted
 
 **Aceite:** duplo custa R$ 35, consome duas unidades, concede fichas configuradas e aparece como uma compra; ROI/pote usam R$ 35.
 
+**Execução (25/09/2026, branch `s21/rpcs-fluxo-pagamentos`; S24 commitada em `7067a3c`):**
+
+- Decisão do Rod: as pendências da `0014` sem dono (alterar ofertas/PIX, cancelar antes do início) entraram
+  nesta sessão, na mesma migração do ranking.
+- `0014_finance_setup_ranking.sql`: `player_leaderboard` com o filtro do Histórico (legado ou fluxo 2
+  `finished`), mantendo o corte de inativo da `0010`; `get_operational_tournament` devolve `transactions`;
+  `update_tournament_setup` (ofertas em rascunho/publicado sem pedido vivo, senão `offers_locked`; PIX até o
+  fim, `version` + 1; ofertas antigas inativadas) e `cancel_operational_tournament` (rascunho, publicado ou
+  inscrição fechada; PIX informado = PENDING_PAYMENT; `requested` expira, `pending_buyin` vira `withdrawn`).
+  Registro no contrato (`rpc-v1.md`, S25), sem código novo.
+- `src/utils/ledger.ts` (puro): pote, investido por jogador, compras (nome da oferta via pedido) e fichas por
+  tipo a partir dos lançamentos; soma em centavos. `App.tsx`: com o servidor em `running`/`finished`, pote,
+  investimento e entradas de fichas da curva vêm do livro-caixa (motor recebe 1 × total por tipo); legado
+  intocado (`legacyInvested`). `Finish` recebe `investedOf`/`purchasesOf` e mostra as compras reais.
+  Histórico: `aggregateResults` soma `rebuy_units` e `amount` e lista os pacotes ("Rebuy ×2 R$ 35,00").
+- Painel do portal: PIX editável até o fim, botão "Enviar alterações ao servidor" (só o que divergiu e é
+  permitido), aviso de ofertas travadas, "Cancelar torneio persistente" antes do início.
+- Validação: 150 testes (15 novos), build ok, lint 0 erros (9 avisos antigos). Banco local após reset:
+  `rls-rpc-baseline` 10/10, `s20-schema` 13/13, `s21-rpcs` 16/16, `s21-concurrency` 8/8; integração
+  reset → s22 1/1 → s24 1/1 → **s25 2/2** → s23 1/1.
+- Navegador (painel 629 px, admin logado pelo Rod): torneio publicado com PIX informado → ofertas travadas
+  → PIX trocado (versão 2 no banco) → cancelar barrado com aviso acionável → rejeição com motivo → cancelado
+  (`withdrawn`/`rejected`, fora do Histórico). Torneio semeado por script com duplo confirmado → relógio
+  pelo servidor: pote R$ 55,00 → eliminação → fim com Ana R$ 45,00 "Buy-in R$ 10,00 · Rebuy duplo R$ 35,00"
+  → salvo → Histórico R$ 55,00 e "Rebuy ×2 R$ 35,00" → Ranking Ana investido R$ 45,00, ROI −38,9%. Sem erro
+  no console. Screenshot indisponível (janela atrás); verificação por texto da página. Fim de torneio legado
+  não foi reexercitado na UI (coberto por teste unitário).
+- Limites: prêmios da tela de fim seguem a divisão local (sobra do 3º lugar sem jogador continua como antes);
+  alterar ofertas em torneio publicado não avisa quem já abriu o portal.
+
 ### S26 — Corte de segurança e remoção do QR
 
 **Objetivo:** ativar permissões finais e retirar a dependência de QR.

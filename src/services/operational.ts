@@ -420,6 +420,8 @@ export interface OperationalSnapshot {
   pending_sessions: PendingSession[];
   requests: AdminPurchaseRequest[];
   authorizations: Authorization[];
+  /** Lançamentos confirmados (0014): única fonte de pote, investimento e fichas. */
+  transactions: ConfirmedTransaction[];
 }
 
 export function parseSnapshot(v: unknown): OperationalSnapshot {
@@ -433,6 +435,7 @@ export function parseSnapshot(v: unknown): OperationalSnapshot {
     pending_sessions: arr(o.pending_sessions, 'pending_sessions', parsePendingSession),
     requests: arr(o.requests, 'requests', parseAdminRequest),
     authorizations: arr(o.authorizations, 'authorizations', parseAuthorization),
+    transactions: arr(o.transactions, 'transactions', parseTransaction),
   };
 }
 
@@ -467,6 +470,24 @@ export interface CreateTournamentInput {
   payment: PaymentInput;
 }
 
+const offerPayload = (o: OfferInput, i: number) => ({
+  kind: o.kind,
+  name: o.name.trim(),
+  price: toMoneyText(o.price),
+  chips_granted: o.chips_granted,
+  ...(o.rebuy_units != null ? { rebuy_units: o.rebuy_units } : {}),
+  ...(o.eligible_after_units ? { eligible_after_units: o.eligible_after_units } : {}),
+  ...(o.max_uses != null ? { max_uses: o.max_uses } : {}),
+  sort_order: o.sort_order ?? i + 1,
+});
+
+const paymentPayload = (p: PaymentInput) => ({
+  pix_key_type: p.pix_key_type,
+  pix_key: p.pix_key.trim(),
+  receiver_name: p.receiver_name.trim(),
+  ...(p.instructions?.trim() ? { instructions: p.instructions.trim() } : {}),
+});
+
 /** Payload no formato do cabeçalho de create_operational_tournament (0013). */
 export function toCreatePayload(input: CreateTournamentInput): Record<string, unknown> {
   return {
@@ -476,22 +497,8 @@ export function toCreatePayload(input: CreateTournamentInput): Record<string, un
     curve_params: input.curve_params,
     payout_structure: input.payout_structure,
     ...(input.schedule ? { schedule: input.schedule } : {}),
-    offers: input.offers.map((o, i) => ({
-      kind: o.kind,
-      name: o.name.trim(),
-      price: toMoneyText(o.price),
-      chips_granted: o.chips_granted,
-      ...(o.rebuy_units != null ? { rebuy_units: o.rebuy_units } : {}),
-      ...(o.eligible_after_units ? { eligible_after_units: o.eligible_after_units } : {}),
-      ...(o.max_uses != null ? { max_uses: o.max_uses } : {}),
-      sort_order: o.sort_order ?? i + 1,
-    })),
-    payment: {
-      pix_key_type: input.payment.pix_key_type,
-      pix_key: input.payment.pix_key.trim(),
-      receiver_name: input.payment.receiver_name.trim(),
-      ...(input.payment.instructions?.trim() ? { instructions: input.payment.instructions.trim() } : {}),
-    },
+    offers: input.offers.map(offerPayload),
+    payment: paymentPayload(input.payment),
   };
 }
 
@@ -570,6 +577,40 @@ export const finishOperationalTournament = (tournamentId: string, expectedVersio
       participants: arr(o.participants, 'participants', parseParticipant),
     };
   });
+
+/** Troca ofertas e/ou PIX (0014). Ofertas só antes do primeiro pedido; PIX até o fim. */
+export interface SetupPatch {
+  offers?: OfferInput[];
+  payment?: PaymentInput;
+}
+
+export interface UpdatedSetup {
+  tournament: TournamentSummary;
+  offers: Offer[];
+  payment: PaymentSettings | null;
+}
+
+export const updateTournamentSetup = (tournamentId: string, expectedVersion: number, patch: SetupPatch) =>
+  callRpc('update_tournament_setup', {
+    tournament_id: tournamentId,
+    expected_version: expectedVersion,
+    payload: {
+      ...(patch.offers ? { offers: patch.offers.map(offerPayload) } : {}),
+      ...(patch.payment ? { payment: paymentPayload(patch.payment) } : {}),
+    },
+  }, (d): UpdatedSetup => {
+    const o = rec(d, 'data');
+    return {
+      tournament: parseTournamentSummary(o.tournament),
+      offers: arr(o.offers, 'offers', parseOffer),
+      payment: parsePayment(o.payment),
+    };
+  });
+
+/** Cancela antes do início (0014): sem lançamentos; PIX informado bloqueia. */
+export const cancelOperationalTournament = (tournamentId: string, expectedVersion: number) =>
+  callRpc('cancel_operational_tournament', { tournament_id: tournamentId, expected_version: expectedVersion },
+    (d) => ({ tournament: parseTournamentSummary(rec(d, 'data').tournament) }));
 
 // ── Fila ao vivo (S24): identidades, lote inicial e compras ──────────────
 // Fichas e dinheiro só existem depois do envelope ok destas RPCs: o cliente
@@ -727,6 +768,8 @@ export function describeError(e: RpcError): string {
       if (reason === 'buyin_offer_missing') return 'O torneio precisa de uma oferta de buy-in.';
       if (reason === 'no_buyins') return 'Nenhum buy-in pedido ainda. Espere os jogadores pedirem pelo link.';
       if (reason === 'participant_status') return 'O jogador não está em condição de receber esta liberação.';
+      if (reason === 'offers_locked') return 'As ofertas não mudam depois do primeiro pedido de buy-in. Só o PIX pode ser alterado.';
+      if (reason === 'has_transactions') return 'O torneio já tem lançamentos confirmados e não pode ser cancelado.';
       return 'Ação incompatível com o estado atual do torneio.';
     case 'PENDING_PAYMENT': return 'Há pagamentos informados ainda sem confirmação ou rejeição.';
     case 'IDENTITY_CONFLICT':

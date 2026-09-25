@@ -10,9 +10,10 @@ interface Props {
   onChange: (entries: LocalEntry[]) => void;
   payoutPct: number[];
   prizePool: number;
-  buyInValue: number;
-  rebuyValue: number;
-  addonValue: number;
+  // Investido por jogador: lançamentos confirmados no fluxo 2, contagem × preço no legado.
+  investedOf: (e: LocalEntry) => number;
+  // Compras reais (pacote e valor) quando vêm do servidor; ausente no legado.
+  purchasesOf?: (e: LocalEntry) => string;
   onUndoFinish: () => void;
   onSave: () => void;
   saved: boolean;
@@ -22,11 +23,9 @@ interface Props {
 }
 
 export default function Finish({
-  entries, onChange, payoutPct, prizePool, buyInValue, rebuyValue, addonValue,
+  entries, onChange, payoutPct, prizePool, investedOf: invested, purchasesOf,
   onUndoFinish, onSave, saved, saving, onDiscard, onNewTournament,
 }: Props) {
-  const invested = (e: LocalEntry) =>
-    e.buyins * buyInValue + e.rebuys * rebuyValue + e.addons * addonValue;
 
   const setPlacement = (i: number, place: number | undefined) =>
     onChange(entries.map((e, idx) => (idx !== i ? e : {
@@ -74,7 +73,10 @@ export default function Finish({
               const prize = e.payout_amount ?? 0;
               return (
                 <tr key={i}>
-                  <td data-label="Jogador"><strong>{e.name}</strong></td>
+                  <td data-label="Jogador">
+                    <strong>{e.name}</strong>
+                    {purchasesOf && <div className="notice finish-purchases">{purchasesOf(e)}</div>}
+                  </td>
                   <td data-label="Colocação" style={{ width: 100 }}>
                     <input type="number" min={1} max={entries.length}
                       value={e.final_placement ?? ''} placeholder="-"

@@ -17,6 +17,7 @@ import {
 } from '../services/tournaments';
 import type { BaseTournament } from '../types/database';
 import { brl } from '../utils/format';
+import { packageName } from '../utils/ledger';
 
 const MEDALS = ['🥇', '🥈', '🥉'];
 
@@ -167,7 +168,12 @@ export default function Historico() {
                 {editing.rows.map((r, i) => (
                   <tr key={r.player_id}>
                     <td data-label="Jogador"><strong>{r.display_name}</strong></td>
-                    <td data-label="Entradas" className="notice">{r.buyins}bi · {r.rebuys}re · {r.addons}ad</td>
+                    <td data-label="Entradas" className="notice">
+                      {r.buyins}bi · {r.rebuys}re · {r.addons}ad · {brl(r.invested)}
+                      <div className="historico-packages">
+                        {r.packages.map((p) => `${packageName(p.kind, p.rebuy_units)} ${brl(p.amount)}`).join(' · ')}
+                      </div>
+                    </td>
                     <td data-label="Colocação" style={{ width: 100 }}>
                       <input type="number" min={1} value={r.final_placement ?? ''}
                         onChange={(e) => setRow(i, { final_placement: e.target.value ? Number(e.target.value) : null })} />

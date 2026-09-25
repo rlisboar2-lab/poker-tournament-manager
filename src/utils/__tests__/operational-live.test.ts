@@ -35,6 +35,7 @@ const snap = (over: Partial<OperationalSnapshot> = {}): OperationalSnapshot => (
     started_at: null, registration_closed_at: null, is_public_current: true,
   },
   runtime: null, payment: null, offers: [], participants: [], pending_sessions: [], requests: [], authorizations: [],
+  transactions: [],
   ...over,
 });
 

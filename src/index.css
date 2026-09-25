@@ -544,6 +544,8 @@ body:has(.clock-panel.fs) { overflow: hidden; }
 .finish-section, .ranking-table-section { display: grid; gap: var(--space-3); padding-top: var(--space-5);
   border-top: 1px solid var(--border); }
 .finish-review-table td { vertical-align: middle; }
+.finish-purchases { margin-top: 2px; font-size: 12px; }
+.historico-packages { margin-top: 2px; font-size: 12px; }
 .finish-tournament-ranking .ranking { margin: 0; padding-left: 1.4rem; }
 .finish-tournament-ranking .ranking li { padding-block: var(--space-1); }
 .finish-actions { justify-content: space-between; gap: var(--space-3); padding-top: var(--space-5);

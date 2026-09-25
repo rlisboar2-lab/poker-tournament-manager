@@ -1,6 +1,7 @@
 // src/components/PortalPanel.tsx
-// Torneio persistente (fluxo 2) na preparação: PIX, criação, publicação e retomada.
-// Ofertas e PIX são gravados na criação; a 0013 não tem RPC para alterá-los depois.
+// Torneio persistente (fluxo 2) na preparação: PIX, criação, publicação, retomada,
+// alteração de ofertas/PIX e cancelamento antes do início (0014). Ofertas só
+// mudam antes do primeiro pedido de buy-in; o PIX, até o fim.
 
 import type { OperationalState } from '../hooks/useOperationalTournament';
 import type { OfferInput } from '../services/operational';
@@ -33,6 +34,10 @@ const STATUS_LABEL: Record<PublicStatus, string> = {
   cancelled: 'Cancelado',
 };
 
+const PIX_EDITABLE: readonly PublicStatus[] = ['draft', 'published', 'registration_closed', 'running'];
+const CANCELLABLE: readonly PublicStatus[] = ['draft', 'published', 'registration_closed'];
+const LIVE_REQUEST = new Set(['requested', 'payment_reported', 'confirmed']);
+
 const offerKey = (o: { kind: string; name: string; price: number; chips_granted: number; rebuy_units?: number }) =>
   `${o.kind}|${o.name.trim()}|${o.price.toFixed(2)}|${o.chips_granted}|${o.rebuy_units ?? 0}`;
 
@@ -52,8 +57,27 @@ export default function PortalPanel({ op, pix, onPixChange, offers, onCreate }: 
   const serverPix = serverOffers ? snapshot?.payment ?? null : null;
   const pixDiverges = serverPix != null && (
     serverPix.pix_key !== pix.pix_key.trim() || serverPix.receiver_name !== pix.receiver_name.trim() ||
-    serverPix.pix_key_type !== pix.pix_key_type
+    serverPix.pix_key_type !== pix.pix_key_type || (serverPix.instructions ?? '') !== pix.instructions.trim()
   );
+  const pixEditable = !ref || PIX_EDITABLE.includes(ref.publicStatus);
+  // Mesma regra do banco: rascunho, ou publicado sem nenhum pedido vivo.
+  const offersEditable = !!ref && serverOffers != null && (
+    ref.publicStatus === 'draft' ||
+    (ref.publicStatus === 'published' && !snapshot!.requests.some((r) => LIVE_REQUEST.has(r.status)))
+  );
+  const sendOffers = offersDiverge && offersEditable;
+  const sendPix = pixDiverges && pixEditable && pixProblems.length === 0;
+  const pushSetup = () => op.updateSetup({
+    ...(sendOffers ? { offers } : {}),
+    ...(sendPix ? { payment: pix } : {}),
+  });
+  const cancelTournament = () => {
+    if (!confirm(
+      'Cancelar o torneio persistente? O link dos jogadores deixa de valer e os pedidos de buy-in em aberto ' +
+      'expiram. Nada foi cobrado pelo app (buy-in só vira lançamento no início). Não dá pra desfazer.'
+    )) return;
+    op.cancel();
+  };
 
   return (
     <section className="panel setup-panel" aria-labelledby="portal-heading">
@@ -77,24 +101,24 @@ export default function PortalPanel({ op, pix, onPixChange, offers, onCreate }: 
         <div className="setup-grid">
           <div className="setup-field">
             <label htmlFor="pix-type">Tipo da chave</label>
-            <select id="pix-type" value={pix.pix_key_type} disabled={!!ref}
+            <select id="pix-type" value={pix.pix_key_type} disabled={!pixEditable}
               onChange={(e) => setPix({ pix_key_type: e.target.value as PixKeyType })}>
               {PIX_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
             </select>
           </div>
           <div className="setup-field">
             <label htmlFor="pix-key">Chave</label>
-            <input id="pix-key" value={pix.pix_key} maxLength={140} disabled={!!ref}
+            <input id="pix-key" value={pix.pix_key} maxLength={140} disabled={!pixEditable}
               onChange={(e) => setPix({ pix_key: e.target.value })} />
           </div>
           <div className="setup-field">
             <label htmlFor="pix-receiver">Nome de quem recebe</label>
-            <input id="pix-receiver" value={pix.receiver_name} maxLength={100} disabled={!!ref}
+            <input id="pix-receiver" value={pix.receiver_name} maxLength={100} disabled={!pixEditable}
               onChange={(e) => setPix({ receiver_name: e.target.value })} />
           </div>
           <div className="setup-field">
             <label htmlFor="pix-instructions">Instruções (opcional)</label>
-            <input id="pix-instructions" value={pix.instructions} maxLength={500} disabled={!!ref}
+            <input id="pix-instructions" value={pix.instructions} maxLength={500} disabled={!pixEditable}
               onChange={(e) => setPix({ instructions: e.target.value })} />
           </div>
         </div>
@@ -110,10 +134,16 @@ export default function PortalPanel({ op, pix, onPixChange, offers, onCreate }: 
             </li>
           ))}
         </ul>
-        {(offersDiverge || pixDiverges) && (
+        {(sendOffers || sendPix) && (
           <p className="notice" style={{ color: 'var(--gold)' }}>
-            ⚠ A configuração local mudou depois da criação. O servidor continua com as ofertas e o PIX
-            gravados acima; alterar isso exige uma função nova no banco (0014).
+            ⚠ A configuração local mudou depois da criação ({[sendOffers && 'ofertas', sendPix && 'PIX'].filter(Boolean).join(' e ')}).
+            O servidor continua com o que está gravado até você enviar as alterações.
+          </p>
+        )}
+        {offersDiverge && !offersEditable && (
+          <p className="notice" style={{ color: 'var(--gold)' }}>
+            ⚠ As ofertas locais mudaram, mas o servidor não aceita trocar ofertas depois do primeiro pedido de
+            buy-in. Valem as gravadas acima.
           </p>
         )}
       </div>
@@ -144,8 +174,18 @@ export default function PortalPanel({ op, pix, onPixChange, offers, onCreate }: 
             {busy ? 'Publicando…' : 'Publicar para os jogadores'}
           </button>
         )}
+        {(sendOffers || sendPix) && (
+          <button type="button" className="primary" disabled={busy} onClick={pushSetup}>
+            {busy ? 'Enviando…' : 'Enviar alterações ao servidor'}
+          </button>
+        )}
         {ref && (
           <button type="button" className="ghost" disabled={busy} onClick={op.refresh}>Recarregar do servidor</button>
+        )}
+        {ref && CANCELLABLE.includes(ref.publicStatus) && (
+          <button type="button" className="danger" disabled={busy} onClick={cancelTournament}>
+            Cancelar torneio persistente
+          </button>
         )}
       </div>
       {!ref && pixProblems.length > 0 && !candidate && (

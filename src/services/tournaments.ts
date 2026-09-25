@@ -4,6 +4,7 @@
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import type {
   BaseTournament,
+  PurchaseKind,
   StoredCurveParams,
 } from '../types/database';
 import type { BlindLevel, PayoutSlice } from '../utils/poker-math';
@@ -75,15 +76,60 @@ export interface PlayerStat {
 
 export interface KnownPlayer { id: string; display_name: string; }
 
+export interface ResultPackage {
+  kind: PurchaseKind;
+  rebuy_units: number;
+  amount: number;
+}
+
 export interface TournamentResultRow {
   player_id: string;
   display_name: string;
   buyins: number;
-  rebuys: number;
+  rebuys: number;   // unidades de rebuy (duplo = 2), não linhas
   addons: number;
   invested: number;
   final_placement: number | null;
   payout_amount: number;
+  packages: ResultPackage[]; // uma por lançamento, com o valor real gravado
+}
+
+export interface TransactionRow {
+  player_id: string;
+  amount: number | string;
+  is_rebuy: boolean;
+  is_addon: boolean;
+  rebuy_units: number | null;
+  final_placement: number | null;
+  payout_amount: number | string | null;
+}
+
+// Agrega os lançamentos por jogador. Rebuys somam `rebuy_units` (legado tem 1
+// por linha desde a 0012); investido é a soma de `amount`, nunca contagem × preço.
+export function aggregateResults(rows: TransactionRow[], nameById: Map<string, string>): TournamentResultRow[] {
+  const byPlayer = new Map<string, TournamentResultRow>();
+  const cents = new Map<string, number>(); // soma em centavos por jogador
+  for (const r of rows) {
+    let p = byPlayer.get(r.player_id);
+    if (!p) {
+      p = {
+        player_id: r.player_id, display_name: nameById.get(r.player_id) ?? '?',
+        buyins: 0, rebuys: 0, addons: 0, invested: 0, final_placement: null, payout_amount: 0, packages: [],
+      };
+      byPlayer.set(r.player_id, p);
+    }
+    const amount = Number(r.amount);
+    const kind: PurchaseKind = r.is_rebuy ? 'rebuy' : r.is_addon ? 'addon' : 'buyin';
+    const units = kind === 'rebuy' ? Number(r.rebuy_units ?? 1) : 0;
+    const c = (cents.get(r.player_id) ?? 0) + Math.round(amount * 100);
+    cents.set(r.player_id, c);
+    p.invested = c / 100;
+    if (kind === 'rebuy') p.rebuys += units; else if (kind === 'addon') p.addons += 1; else p.buyins += 1;
+    p.packages.push({ kind, rebuy_units: units, amount });
+    if (r.final_placement != null) p.final_placement = r.final_placement;
+    p.payout_amount += Number(r.payout_amount ?? 0);
+  }
+  return [...byPlayer.values()].sort((a, b) => (a.final_placement ?? 999) - (b.final_placement ?? 999));
 }
 
 // Carrega os participantes de um torneio salvo (agregado das transações).
@@ -91,27 +137,12 @@ export async function getTournamentResults(tournamentId: string): Promise<Tourna
   if (!isSupabaseConfigured || !supabase) return [];
   const { data: rows, error } = await supabase
     .from('transactions')
-    .select('player_id, amount, is_rebuy, is_addon, final_placement, payout_amount')
+    .select('player_id, amount, is_rebuy, is_addon, rebuy_units, final_placement, payout_amount')
     .eq('tournament_id', tournamentId);
   if (error) throw error;
   const { data: players } = await supabase.from('sub_players').select('id, display_name');
-  const nameById = new Map((players ?? []).map((p) => [p.id, p.display_name]));
-
-  const byPlayer = new Map<string, TournamentResultRow>();
-  for (const r of rows ?? []) {
-    if (!byPlayer.has(r.player_id)) {
-      byPlayer.set(r.player_id, {
-        player_id: r.player_id, display_name: nameById.get(r.player_id) ?? '?',
-        buyins: 0, rebuys: 0, addons: 0, invested: 0, final_placement: null, payout_amount: 0,
-      });
-    }
-    const p = byPlayer.get(r.player_id)!;
-    p.invested += Number(r.amount);
-    if (r.is_rebuy) p.rebuys += 1; else if (r.is_addon) p.addons += 1; else p.buyins += 1;
-    if (r.final_placement != null) p.final_placement = r.final_placement;
-    p.payout_amount += Number(r.payout_amount ?? 0);
-  }
-  return [...byPlayer.values()].sort((a, b) => (a.final_placement ?? 999) - (b.final_placement ?? 999));
+  const nameById = new Map((players ?? []).map((p) => [p.id as string, p.display_name as string]));
+  return aggregateResults((rows ?? []) as TransactionRow[], nameById);
 }
 
 export interface TournamentResultUpdate {

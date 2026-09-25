@@ -123,6 +123,10 @@ describe('parseSnapshot', () => {
     pending_sessions: [],
     requests: [],
     authorizations: [],
+    transactions: [{
+      id: 'x1', request_id: 'r1', kind: 'rebuy', player_id: 'pl1', amount: '35.00',
+      rebuy_units: 2, chips_granted: 6000, confirmed_at: '2026-09-25T22:31:00Z',
+    }],
   };
 
   it('lê o formato de get_operational_tournament', () => {
@@ -131,6 +135,13 @@ describe('parseSnapshot', () => {
     expect(s.offers[0]).toMatchObject({ price: 35, rebuy_units: 2, eligible_after_units: [0] });
     expect(s.participants[0].reserved_rebuy_units).toBe(2);
     expect(s.payment?.pix_key).toBe('a@b.c');
+    expect(s.transactions[0]).toMatchObject({ amount: 35, rebuy_units: 2, chips_granted: 6000 });
+  });
+
+  it('sem transactions (banco sem a 0014) é quebra de contrato', () => {
+    const old: Record<string, unknown> = { ...snapshot };
+    delete old.transactions;
+    expect(() => parseSnapshot(old)).toThrow(ContractError);
   });
 
   it('status fora do domínio é quebra de contrato', () => {
