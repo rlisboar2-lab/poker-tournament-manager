@@ -1,7 +1,7 @@
 # Plano de implementação — portal público, PIX e compras do torneio
 
 **Data:** 17/09/2026  
-**Status:** S19–S22 concluídas; `0011`/`0012` aplicadas em produção em 23/09/2026; `0013` (S21) só no banco local. S23 é a próxima.  
+**Status:** S19–S23 concluídas; `0011`/`0012` aplicadas em produção em 23/09/2026; `0013` (S21) só no banco local. S24 é a próxima.  
 **Projeto:** `poker-tournament-manager` — Vite, React 18, TypeScript e Supabase.
 
 ## Objetivo
@@ -284,6 +284,35 @@ Tipar contratos; criar serviço isolado; persistir ao publicar; configurar PIX/o
 Adicionar rotas manuais; token via Web Crypto/localStorage; estados de identificação e compra; cópia da chave PIX; troca confirmada; polling curto e atualização imediata após ações.
 
 **Aceite:** recarga preserva a identidade; outro navegador não a herda; troca revoga o token; pedido não altera fichas/pote.
+
+**Execução (25/09/2026, branch `s21/rpcs-fluxo-pagamentos`; S22 commitada em `835bbbb`; S23 sem commit):**
+
+- `src/services/publicPortal.ts`: 8 RPCs públicas tipadas (reusa envelope/parsers de `operational.ts`, agora
+  exportados junto com `callRpc` e `isMissingRpc`), `next_action`, pedido na visão do jogador (snapshot PIX
+  `{}` → null) e mensagens pt-BR por code/reason. Token: 32 bytes de `crypto.getRandomValues` em base64url
+  (43 caracteres), só no `localStorage` (`pokerapp.portal.device_token`); sem `getRandomValues` recusa (nunca
+  Math.random); armazenamento bloqueado → token só em memória, com aviso na tela.
+- `src/hooks/usePlayerPortal.ts`: lê torneio público + portal; SESSION_PENDING → espera; REVOKED/EXPIRED →
+  apaga token e volta à identificação; NOT_FOUND com torneio existente = token não registrado. Uma ação por
+  vez, releitura depois de cada ação, polling de 5 s só com a aba visível. Chave de idempotência mantida
+  enquanto o mesmo comando é repetido sem resposta. Trocar de jogador revoga no servidor e só então apaga o token.
+- `src/components/PlayerPortalView.tsx` + CSS `.portal-*` (celular primeiro) + rotas `/jogar` e
+  `/jogar/:publicId` em `main.tsx` (Netlify já redireciona tudo para `index.html`). Copiar chave com fallback
+  `execCommand` fora de contexto seguro. Botão "Já fiz o PIX, avisar o organizador" com texto dizendo que só
+  vale depois da confirmação. Rebuy/add-on liberados pelo admin já aparecem (autorizações → ofertas).
+- Build estava quebrado desde a S22 (`process`/`Buffer` no teste de integração sem tipos do Node): corrigido
+  sem dependência nova.
+- Validação: 113 testes (17 novos), build ok, lint 0 erros (9 avisos antigos). Banco local após `db reset`:
+  `s22-admin-rest.sh` 1/1 e `bash supabase/tests/s23-portal-rest.sh` 1/1 (identifica, pendente, outro token
+  não herda, nome diferente = IDENTITY_CONFLICT, validação, buy-in idempotente, PURCHASE_PENDING, pagamento
+  informado sem transação, revogação). Navegador (viewport 375 px, Vite no banco local): identificar → espera
+  → validado pelo admin → pedir buy-in → copiar chave → informar pagamento → recarga preserva → admin confirma
+  lote → "No torneio" → trocar de jogador (token antigo passa a SESSION_REVOKED, localStorage vazio);
+  `/jogar/<id inexistente>` mostra "Torneio não encontrado". Sem erros no console.
+- Descoberta: `resolve_player_claim` já cria o participante `pending_buyin` (portal validado nunca vem com
+  `participant = null` no torneio em que o nome foi validado).
+- Limites: screenshot não saiu (pane oculto não desenha); polling com pane oculto fica pausado por desenho.
+  Não testado em celular real via IP local (HTTP).
 
 ### S24 — Admin: lote e compras ao vivo
 

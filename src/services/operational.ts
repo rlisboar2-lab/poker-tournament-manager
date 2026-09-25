@@ -65,7 +65,7 @@ export class ContractError extends Error {
   }
 }
 
-const isRecord = (v: unknown): v is Record<string, unknown> =>
+export const isRecord = (v: unknown): v is Record<string, unknown> =>
   typeof v === 'object' && v !== null && !Array.isArray(v);
 
 const isErrorCode = (v: unknown): v is RpcErrorCode =>
@@ -96,7 +96,14 @@ export function parseEnvelope<T>(raw: unknown, parseData: (data: unknown) => T):
 export const needsReload = (code: RpcErrorCode): boolean =>
   code === 'VERSION_CONFLICT' || code === 'REQUEST_SET_CHANGED';
 
+/** Banco sem a 0013 (produção ainda no corte 0012): PostgREST não acha a função. */
+export function isMissingRpc(e: unknown): boolean {
+  const err = e as { code?: string; message?: string } | null;
+  return err?.code === 'PGRST202' || /could not find the function/i.test(err?.message ?? '');
+}
+
 // ── Conversões de formato ─────────────────────────────────────────────────
+// Exportadas também para o serviço público (publicPortal.ts).
 
 /** Dinheiro cruza a API como texto decimal com duas casas ("15.00"). */
 export function toMoneyText(value: number): string {
@@ -109,30 +116,30 @@ export function parseMoney(v: unknown, field: string): number {
   return Number(v);
 }
 
-function str(o: Record<string, unknown>, k: string): string {
+export function str(o: Record<string, unknown>, k: string): string {
   const v = o[k];
   if (typeof v !== 'string') throw new ContractError(`${k} deveria ser texto`);
   return v;
 }
 
-function strOrNull(o: Record<string, unknown>, k: string): string | null {
+export function strOrNull(o: Record<string, unknown>, k: string): string | null {
   const v = o[k];
   if (v == null) return null;
   if (typeof v !== 'string') throw new ContractError(`${k} deveria ser texto ou null`);
   return v;
 }
 
-function int(o: Record<string, unknown>, k: string): number {
+export function int(o: Record<string, unknown>, k: string): number {
   const v = o[k];
   if (typeof v !== 'number' || !Number.isInteger(v)) throw new ContractError(`${k} deveria ser inteiro`);
   return v;
 }
 
-function intOrNull(o: Record<string, unknown>, k: string): number | null {
+export function intOrNull(o: Record<string, unknown>, k: string): number | null {
   return o[k] == null ? null : int(o, k);
 }
 
-function oneOf<T extends string>(o: Record<string, unknown>, k: string, allowed: readonly T[]): T {
+export function oneOf<T extends string>(o: Record<string, unknown>, k: string, allowed: readonly T[]): T {
   const v = o[k];
   if (typeof v !== 'string' || !(allowed as readonly string[]).includes(v)) {
     throw new ContractError(`${k} fora de ${allowed.join('|')}`);
@@ -140,12 +147,12 @@ function oneOf<T extends string>(o: Record<string, unknown>, k: string, allowed:
   return v as T;
 }
 
-function rec(v: unknown, what: string): Record<string, unknown> {
+export function rec(v: unknown, what: string): Record<string, unknown> {
   if (!isRecord(v)) throw new ContractError(`${what} deveria ser objeto`);
   return v;
 }
 
-function arr<T>(v: unknown, what: string, item: (x: unknown) => T): T[] {
+export function arr<T>(v: unknown, what: string, item: (x: unknown) => T): T[] {
   if (!Array.isArray(v)) throw new ContractError(`${what} deveria ser lista`);
   return v.map(item);
 }
@@ -153,8 +160,8 @@ function arr<T>(v: unknown, what: string, item: (x: unknown) => T): T[] {
 // ── Formatos do contrato ──────────────────────────────────────────────────
 
 const PUBLIC_STATUSES: readonly PublicStatus[] = ['draft', 'published', 'registration_closed', 'running', 'finished', 'cancelled'];
-const PURCHASE_KINDS: readonly PurchaseKind[] = ['buyin', 'rebuy', 'addon'];
-const REQUEST_STATUSES: readonly PurchaseRequestStatus[] = ['requested', 'payment_reported', 'confirmed', 'rejected', 'cancelled', 'expired'];
+export const PURCHASE_KINDS: readonly PurchaseKind[] = ['buyin', 'rebuy', 'addon'];
+export const REQUEST_STATUSES: readonly PurchaseRequestStatus[] = ['requested', 'payment_reported', 'confirmed', 'rejected', 'cancelled', 'expired'];
 const PARTICIPANT_STATUSES: readonly ParticipantStatus[] = ['pending_buyin', 'active', 'eliminated', 'withdrawn'];
 const AUTH_STATUSES: readonly AuthorizationStatus[] = ['active', 'consumed', 'revoked', 'expired'];
 const SESSION_STATUSES: readonly DeviceSessionStatus[] = ['pending', 'active', 'revoked', 'expired'];
@@ -506,7 +513,7 @@ export interface FinishResult {
 
 // ── Chamadas ──────────────────────────────────────────────────────────────
 
-async function call<T>(fn: string, args: Record<string, unknown>, parseData: (d: unknown) => T): Promise<RpcResult<T>> {
+export async function callRpc<T>(fn: string, args: Record<string, unknown>, parseData: (d: unknown) => T): Promise<RpcResult<T>> {
   if (!isSupabaseConfigured || !supabase) {
     throw new Error('Supabase não configurado (defina VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY).');
   }
@@ -522,7 +529,7 @@ export interface CreatedTournament {
 }
 
 export const createOperationalTournament = (input: CreateTournamentInput) =>
-  call('create_operational_tournament', { payload: toCreatePayload(input) }, (d): CreatedTournament => {
+  callRpc('create_operational_tournament', { payload: toCreatePayload(input) }, (d): CreatedTournament => {
     const o = rec(d, 'data');
     return {
       tournament: parseTournamentSummary(o.tournament),
@@ -532,22 +539,22 @@ export const createOperationalTournament = (input: CreateTournamentInput) =>
   });
 
 export const publishTournament = (tournamentId: string, expectedVersion: number) =>
-  call('publish_tournament', { tournament_id: tournamentId, expected_version: expectedVersion },
+  callRpc('publish_tournament', { tournament_id: tournamentId, expected_version: expectedVersion },
     (d) => ({ tournament: parseTournamentSummary(rec(d, 'data').tournament) }));
 
 /** Sem id: o torneio do fluxo 2 mais recente ainda não finalizado/cancelado. */
 export const getOperationalTournament = (tournamentId: string | null = null) =>
-  call('get_operational_tournament', { tournament_id: tournamentId }, parseSnapshot);
+  callRpc('get_operational_tournament', { tournament_id: tournamentId }, parseSnapshot);
 
 export const updateTournamentRuntime = (tournamentId: string, expectedVersion: number, patch: RuntimePatch) =>
-  call('update_tournament_runtime', { tournament_id: tournamentId, expected_version: expectedVersion, payload: patch },
+  callRpc('update_tournament_runtime', { tournament_id: tournamentId, expected_version: expectedVersion, payload: patch },
     (d) => {
       const o = rec(d, 'data');
       return { runtime: parseRuntime(o.runtime), tournament: parseTournamentSummary(o.tournament) };
     });
 
 export const finishOperationalTournament = (tournamentId: string, expectedVersion: number, results: FinishResult[]) =>
-  call('finish_operational_tournament', {
+  callRpc('finish_operational_tournament', {
     tournament_id: tournamentId,
     expected_version: expectedVersion,
     results: results.map((r) => ({

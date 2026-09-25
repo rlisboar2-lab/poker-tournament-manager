@@ -15,7 +15,11 @@ import {
   type RpcResult,
 } from '../operational';
 import { listTournaments } from '../tournaments';
+import { generateDeviceToken } from '../publicPortal';
 import { buildFinishResults, buildOffers } from '../../utils/operational-config';
+
+// Roda no Node (vitest); o tsconfig do app não carrega os tipos do Node.
+declare const process: { env: Record<string, string | undefined> };
 
 const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
 const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
@@ -29,11 +33,7 @@ function must<T>(r: RpcResult<T>): T {
   return r.data;
 }
 
-const token = () => {
-  const b = new Uint8Array(32);
-  crypto.getRandomValues(b);
-  return Buffer.from(b).toString('base64url');
-};
+const token = generateDeviceToken;
 
 describe.skipIf(!enabled)('operacional contra o Supabase local', () => {
   const player = createClient(url ?? 'http://127.0.0.1:1', anonKey ?? 'x', { auth: { persistSession: false } });

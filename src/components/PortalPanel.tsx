@@ -153,7 +153,7 @@ export default function PortalPanel({ op, pix, onPixChange, offers, onCreate }: 
       )}
       {ref?.publicId && ref.publicStatus !== 'finished' && (
         <p className="notice setup-helper">
-          Link direto: <code>{`${window.location.origin}/jogar/${ref.publicId}`}</code> — o portal abre na S23.
+          Link para os jogadores: <code>{`${window.location.origin}/jogar/${ref.publicId}`}</code>
         </p>
       )}
     </section>

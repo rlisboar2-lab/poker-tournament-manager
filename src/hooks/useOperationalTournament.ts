@@ -10,6 +10,7 @@ import {
   describeError,
   finishOperationalTournament,
   getOperationalTournament,
+  isMissingRpc,
   needsReload,
   publishTournament,
   type CreateTournamentInput,
@@ -37,12 +38,6 @@ const toRef = (t: TournamentSummary): OperationalRef => ({
   stateVersion: t.state_version,
   name: t.name,
 });
-
-// Banco sem a 0013 (produção ainda no corte 0012): PostgREST não acha a função.
-function isMissingRpc(e: unknown): boolean {
-  const err = e as { code?: string; message?: string } | null;
-  return err?.code === 'PGRST202' || /could not find the function/i.test(err?.message ?? '');
-}
 
 export type FinishOutcome = { ok: true } | { ok: false; message: string };
 
