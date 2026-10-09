@@ -73,3 +73,66 @@ export function quadraPreset(): Preset {
     payoutPct: [0.5, 0.3, 0.2],
   };
 }
+
+// Aniversário do Rod (10/10/2026) — docs/torneios/2026-10-10-aniversario-rod.md.
+// 12h00 → 19h00 (420 min com intervalos), até 18 jogadores, stack 300 BB (3.000 a 5/10).
+// Níveis de 20 min. Late check-in fecha no fim do nível 10 = 210 min (metade do torneio):
+//   N1–5 (0–100) · intervalo 10 · N6–10 (110–210) · intervalo 15 (late) ·
+//   N11–15 (225–325) · intervalo 10 · N16–19 (335–415). N20+ só se o jogo passar do alvo.
+// Blinds pagáveis com as fichas físicas: 5 até o N7; 5 e 25 saem no intervalo do late;
+// 50 sai no intervalo após o N15. Ante (= BB) a partir do N11, depois do late.
+const ANIVERSARIO_LEVELS: BlindLevel[] = [
+  { nivel: 1, small_blind: 5, big_blind: 10 },
+  { nivel: 2, small_blind: 10, big_blind: 20 },
+  { nivel: 3, small_blind: 15, big_blind: 30 },
+  { nivel: 4, small_blind: 20, big_blind: 40 },
+  { nivel: 5, small_blind: 25, big_blind: 50 },
+  { nivel: 6, small_blind: 30, big_blind: 60 },
+  { nivel: 7, small_blind: 40, big_blind: 80 },
+  { nivel: 8, small_blind: 50, big_blind: 100 },
+  { nivel: 9, small_blind: 75, big_blind: 150 },
+  { nivel: 10, small_blind: 100, big_blind: 200 },
+  { nivel: 11, small_blind: 150, big_blind: 300 },
+  { nivel: 12, small_blind: 200, big_blind: 400 },
+  { nivel: 13, small_blind: 250, big_blind: 500 },
+  { nivel: 14, small_blind: 300, big_blind: 600 },
+  { nivel: 15, small_blind: 400, big_blind: 800 },
+  { nivel: 16, small_blind: 500, big_blind: 1000 },
+  { nivel: 17, small_blind: 600, big_blind: 1200 },
+  { nivel: 18, small_blind: 800, big_blind: 1600 },
+  { nivel: 19, small_blind: 1000, big_blind: 2000 },
+  { nivel: 20, small_blind: 1500, big_blind: 3000 },
+  { nivel: 21, small_blind: 2000, big_blind: 4000 },
+  { nivel: 22, small_blind: 3000, big_blind: 6000 },
+];
+
+export function aniversarioPreset(): Preset {
+  const setup = { smallest_chip: 5, initial_sb: 5, initial_bb: 10, stack_bb: 300 }; // stack 3.000
+  return {
+    config: {
+      name: 'Aniversário do Rod',
+      start_time: '2026-10-10T12:00',
+      setup,
+      target_time_minutos: 420,
+      duracao_bloco_nivel: 20,
+      buy_in_value: 20,
+      rebuy_value: 30,
+      double_rebuy_value: 50,
+      addon_value: 0,
+      chips_per_rebuy: 3000,    // rebuy = stack inicial
+      chips_per_addon: 0,
+      max_rebuys: 2,            // duplo conta como 2
+      addon_enabled: false,
+      late_checkin_level: 10,   // fecha às 15h30 (210 min)
+      ante_start_level: 'late', // nível seguinte ao late (N11); acompanha o late se for editado
+      ante_enabled: true,
+      breaks: [
+        { after_level: 5, minutes: 10 },
+        { after_level: 'late', minutes: 15 }, // rebuys finais + consolidar em 1 mesa
+        { after_level: 15, minutes: 10 },
+      ],
+    },
+    manualLevels: ANIVERSARIO_LEVELS.map((l) => ({ ...l })),
+    payoutPct: [0.5, 0.3, 0.2],
+  };
+}

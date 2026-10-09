@@ -29,7 +29,7 @@ import { addAndSeat, rebalanceSeating, seatEntry, hasPlayerNamed } from './utils
 import { applyElimination, payoutFor } from './utils/placements';
 import { liveClockFields } from './utils/liveState';
 import { uuidV4 } from './utils/uuid';
-import { quadraPreset } from './presets';
+import { aniversarioPreset, quadraPreset } from './presets';
 import { saveTournament, listInactivePlayerNames, listKnownPlayers, type KnownPlayer, type LocalEntry } from './services/tournaments';
 import { useOperationalTournament, type OperationalRef } from './hooks/useOperationalTournament';
 import { buildOffers, emptyPix, type PixConfig } from './utils/operational-config';
@@ -65,7 +65,8 @@ export interface AppConfig {
   ante_enabled: boolean;
   // Nível a partir do qual o ante entra — desacoplado do late check-in (REDESIGN.md S9).
   // 'auto' = nivelAuto(níveis, 0.75). Fiação no motor ao vivo é da S10.
-  ante_start_level: number | 'auto';
+  // 'late' = nível seguinte ao fechamento do late check-in (acompanha o late editado).
+  ante_start_level: number | 'auto' | 'late';
   // Sentinela 'late' = intervalo colado no fim do late check-in (REDESIGN.md S18).
   breaks: AppBreakConfig[];
 }
@@ -288,7 +289,9 @@ export default function App() {
   // Ante desacoplado do late check-in: default 'auto' = 75% dos níveis.
   const resolvedAnteStartLevel = config.ante_start_level === 'auto'
     ? nivelAuto(projectedLevelCount, 0.75)
-    : config.ante_start_level;
+    : config.ante_start_level === 'late'
+      ? resolvedLateCheckinLevel + 1
+      : config.ante_start_level;
 
   const derivedParams: EngineParams = useMemo(() => ({
     ...chipInputs,
@@ -878,8 +881,10 @@ export default function App() {
             engine.reset();
             if (p === 'custom') { setConfig({ ...defaultConfig(), start_time: config.start_time }); setManualLevels(null); }
             else if (p === 'quadra') { const q = quadraPreset(); setConfig({ ...q.config, start_time: config.start_time }); setManualLevels(q.manualLevels); if (q.payoutPct) setPayoutPct(q.payoutPct); }
+            // Evento com data marcada: o preset traz o próprio horário de início.
+            else if (p === 'aniversario') { const a = aniversarioPreset(); setConfig(a.config); setManualLevels(a.manualLevels); if (a.payoutPct) setPayoutPct(a.payoutPct); }
           }}
-          prizePool={prizePool} playerCount={entries.length} lateLevel={resolvedLateCheckinLevel}
+          prizePool={prizePool} playerCount={entries.length} lateLevel={resolvedLateCheckinLevel} anteLevel={resolvedAnteStartLevel}
           payoutPct={payoutPct} onPayoutChange={setPayoutPct} />
       )}
       {screen === 'setup' && isSupabaseConfigured && session && (
@@ -972,7 +977,7 @@ export default function App() {
               trocam a estrutura inteira e zerariam o torneio em andamento. */}
           {liveTab === 'config' && (
             <SetupPanel config={config} onChange={patchConfig} live
-              prizePool={prizePool} playerCount={entries.length} lateLevel={resolvedLateCheckinLevel}
+              prizePool={prizePool} playerCount={entries.length} lateLevel={resolvedLateCheckinLevel} anteLevel={resolvedAnteStartLevel}
               payoutPct={payoutPct} onPayoutChange={setPayoutPct} />
           )}
         </section>

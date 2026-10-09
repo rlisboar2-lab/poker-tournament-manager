@@ -9,13 +9,14 @@ interface Props {
   config: AppConfig;
   onChange: (patch: Partial<AppConfig>) => void;
   onRestoreDefaults?: () => void;
-  onPreset?: (name: 'custom' | 'quadra') => void;
+  onPreset?: (name: 'custom' | 'quadra' | 'aniversario') => void;
   // Premiação embutida como bloco recolhível (REDESIGN.md S12) — a etapa
   // `payouts` não existe mais como tela própria.
   prizePool?: number;
   playerCount?: number;
   // Nível em que o late check-in fecha — o intervalo 'late' mostra este número.
   lateLevel?: number;
+  anteLevel?: number; // nível em que o ante entra, já resolvido
   payoutPct?: number[];
   onPayoutChange?: (p: number[]) => void;
   // Modo ao vivo: mesmo painel aberto como aba do torneio em andamento.
@@ -25,7 +26,7 @@ interface Props {
 
 export default function SetupPanel({
   config, onChange, onRestoreDefaults, onPreset,
-  prizePool, playerCount, lateLevel, payoutPct, onPayoutChange, live,
+  prizePool, playerCount, lateLevel, anteLevel, payoutPct, onPayoutChange, live,
 }: Props) {
   const s = config.setup;
   const setSetup = (patch: Partial<AppConfig['setup']>) =>
@@ -67,6 +68,9 @@ export default function SetupPanel({
               </button>
               <button type="button" className="ghost" onClick={() => onPreset('quadra')}>
                 <StructureIcon size={18} /> Estrutura Quadra
+              </button>
+              <button type="button" className="ghost" onClick={() => onPreset('aniversario')}>
+                <StructureIcon size={18} /> Aniversário do Rod (7h · 18 jogadores)
               </button>
             </div>
           </div>
@@ -186,6 +190,12 @@ export default function SetupPanel({
             </select>
           </div>
         </div>
+        {config.ante_enabled && anteLevel != null && (
+          <p className="notice setup-helper">
+            Ante entra no nível {anteLevel}
+            {config.ante_start_level === 'late' ? ', logo depois do late check-in.' : '.'}
+          </p>
+        )}
       </section>
 
       <section className="setup-section" aria-labelledby="setup-breaks-heading">
