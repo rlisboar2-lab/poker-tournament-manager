@@ -60,6 +60,11 @@ export default function PlayersPanel({ entries, onChange, mode = 'setup', knownP
   const step = (i: number, key: 'rebuys' | 'addons' | 'buyins', d: number) => {
     let v = Math.max(0, entries[i][key] + d);
     if (key === 'rebuys' && maxRebuys > 0) v = Math.min(v, maxRebuys);
+    // Tirar rebuy à mão desfaz o pacote duplo que não cabe mais na contagem.
+    if (key === 'rebuys') {
+      patch(i, { rebuys: v, double_rebuys: Math.min(entries[i].double_rebuys ?? 0, Math.floor(v / 2)) });
+      return;
+    }
     patch(i, { [key]: v } as Partial<LocalEntry>);
   };
 

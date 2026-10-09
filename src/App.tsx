@@ -435,9 +435,7 @@ export default function App() {
 
   const prizePool = ledger
     ? ledger.pool
-    : totals.buyins * config.buy_in_value +
-      totals.rebuys * config.rebuy_value +
-      totals.addons * config.addon_value;
+    : entries.reduce((s, e) => s + legacyInvested(e, config), 0);
   const investedOf = (e: LocalEntry) => (ledger ? playerLedger(ledger, e.name)?.invested ?? 0 : legacyInvested(e, config));
   const purchasesOf = ledger ? (e: LocalEntry) => describePurchases(playerLedger(ledger, e.name)?.purchases ?? []) : undefined;
 
@@ -636,11 +634,15 @@ export default function App() {
   // Rebuy de eliminado é reentrada (REDESIGN.md S17): volta à mesa pagando
   // rebuy_value, e renumberPlacements corrige a colocação de todos que caíram
   // antes dele.
-  const rebuyLive = (index: number) =>
+  const rebuyLive = (index: number, units: 1 | 2 = 1) =>
     setEntries((prev) => {
       const alvo = prev[index];
       if (!alvo) return prev;
-      const bumped = prev.map((e, i) => (i === index ? { ...e, rebuys: e.rebuys + 1 } : e));
+      const bumped = prev.map((e, i) => (i === index ? {
+        ...e,
+        rebuys: e.rebuys + units,
+        ...(units === 2 ? { double_rebuys: (e.double_rebuys ?? 0) + 1 } : {}),
+      } : e));
       if (!alvo.eliminated) return bumped;
       return seatEntry(applyElimination(bumped, index, false, prizePool, payoutPct), index);
     });
@@ -748,6 +750,7 @@ export default function App() {
       total_prize_pool: prizePool,
       buy_in_value: config.buy_in_value,
       rebuy_value: config.rebuy_value,
+      double_rebuy_value: config.double_rebuy_value ?? 0,
       addon_value: config.addon_value,
       initial_stack: valorInicial,
       curve_params: {
@@ -1032,7 +1035,7 @@ export default function App() {
           )}
           {liveTab !== 'config' && (
             <LiveActions entries={entries} knownPlayers={knownPlayers} inactivePlayers={inactivePlayers}
-              buyInValue={config.buy_in_value} rebuyValue={config.rebuy_value} addonValue={config.addon_value}
+              buyInValue={config.buy_in_value} rebuyValue={config.rebuy_value} doubleRebuyValue={config.double_rebuy_value ?? 0} addonValue={config.addon_value}
               maxRebuys={liveMaxRebuys} addonEnabled={liveAddonEnabled}
               lateCheckinOpen={engine.state.level_number <= resolvedLateCheckinLevel}
               onAddPlayer={addPlayerLive} onRebuy={rebuyLive} onAddon={addonLive}

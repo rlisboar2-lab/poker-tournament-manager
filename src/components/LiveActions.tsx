@@ -14,12 +14,14 @@ import type { PurchaseKind } from '../types/database';
 import { hasPlayerNamed } from '../utils/seating';
 import { activeAuthorizations, eligibleOffers, isOpenRequest, participantByName } from '../utils/operational-live';
 import CobrancaPix from './CobrancaPix';
+import { brl } from '../utils/format';
 import { PlusIcon, ResetIcon, UserMinusIcon, UserPlusIcon } from './Icons';
 
 interface Props {
   entries: LocalEntry[];
   buyInValue: number;
   rebuyValue: number;
+  doubleRebuyValue?: number; // 0/ausente = não oferece rebuy duplo
   addonValue: number;
   maxRebuys: number;        // por jogador; 0 = sem limite
   knownPlayers?: string[];  // nomes já cadastrados (chips de 1 clique + datalist)
@@ -27,7 +29,7 @@ interface Props {
   addonEnabled: boolean;
   lateCheckinOpen: boolean; // false = late check-in fechado (bloqueia + Jogador / Rebuy)
   onAddPlayer: (name: string) => boolean; // false = nome já no torneio
-  onRebuy: (index: number) => void;
+  onRebuy: (index: number, units: 1 | 2) => void;
   onAddon: (index: number) => void;
   onEliminate: (index: number) => void;
   remote?: {
@@ -56,17 +58,19 @@ function remoteState(remote: NonNullable<Props['remote']>, e: LocalEntry, kind: 
   return { participantId: p.id, offerIds: offers.map((o) => o.id) };
 }
 
-type Sheet = 'add' | 'eliminate' | 'rebuy' | 'addon' | null;
-type Pending = { tipo: 'buyin' | 'rebuy' | 'addon'; index?: number; nome: string };
+type Sheet = 'add' | 'eliminate' | 'rebuy' | 'rebuy-tipo' | 'addon' | null;
+type Pending = { tipo: 'buyin' | 'rebuy' | 'addon'; index?: number; nome: string; units?: 1 | 2 };
 
 export default function LiveActions({
-  entries, buyInValue, rebuyValue, addonValue, maxRebuys, addonEnabled, lateCheckinOpen,
+  entries, buyInValue, rebuyValue, doubleRebuyValue = 0, addonValue, maxRebuys, addonEnabled, lateCheckinOpen,
   knownPlayers = [], inactivePlayers = [], onAddPlayer, onRebuy, onAddon, onEliminate, remote,
 }: Props) {
   const [sheet, setSheet] = useState<Sheet>(null);
   const [name, setName] = useState('');
   const [addError, setAddError] = useState('');
   const [pending, setPending] = useState<Pending | null>(null);
+  // Jogador escolhido no Rebuy, esperando Rebuy ou Rebuy duplo.
+  const [rebuyAlvo, setRebuyAlvo] = useState<{ e: LocalEntry; i: number } | null>(null);
 
   const active = entries
     .map((e, i) => ({ e, i }))
@@ -85,7 +89,16 @@ export default function LiveActions({
   // Cadastrados que ainda não estão neste torneio (mesma regra do PlayersPanel).
   const disponiveis = knownPlayers.filter((n) => !hasPlayerNamed(entries, n));
 
-  const close = () => { setSheet(null); setName(''); setAddError(''); };
+  const close = () => { setSheet(null); setName(''); setAddError(''); setRebuyAlvo(null); };
+
+  // Duplo só aparece com preço configurado e 2 rebuys ainda livres no limite.
+  const podeDuplo = (e: LocalEntry) => doubleRebuyValue > 0 && (maxRebuys <= 0 || maxRebuys - e.rebuys >= 2);
+  const cobrarRebuy = (units: 1 | 2) => {
+    if (!rebuyAlvo) return;
+    setPending({ tipo: 'rebuy', index: rebuyAlvo.i, nome: rebuyAlvo.e.name, units });
+    setRebuyAlvo(null);
+    setSheet(null);
+  };
 
   const cobrarBuyIn = (n: string) => {
     const nome = n.trim();
@@ -108,6 +121,11 @@ export default function LiveActions({
   // Remoto: escolher o jogador libera a compra no servidor (nada de fichas aqui).
   const pick = (kind: Exclude<PurchaseKind, 'buyin'>, e: LocalEntry, i: number) => {
     if (!remote) {
+      if (kind === 'rebuy') {
+        setRebuyAlvo({ e, i });
+        setSheet('rebuy-tipo');
+        return;
+      }
       setPending({ tipo: kind, index: i, nome: e.name });
       setSheet(null);
       return;
@@ -229,6 +247,30 @@ export default function LiveActions({
         </div>
       )}
 
+      {sheet === 'rebuy-tipo' && rebuyAlvo && (
+        <div className="qr-overlay live-sheet-overlay" onClick={close}>
+          <div className="qr-card live-sheet" role="dialog" aria-modal="true" aria-labelledby="live-rebuy-tipo-title" onClick={(e) => e.stopPropagation()}>
+            <span className="setup-eyebrow">Cobrança</span>
+            <h2 id="live-rebuy-tipo-title">Rebuy · {rebuyAlvo.e.name}</h2>
+            <div className="sheet-list">
+              <button className="ghost sheet-item" onClick={() => cobrarRebuy(1)}>
+                <strong>Rebuy</strong>
+                <span>{brl(rebuyValue)} · 1 rebuy</span>
+              </button>
+              {podeDuplo(rebuyAlvo.e) && (
+                <button className="ghost sheet-item" onClick={() => cobrarRebuy(2)}>
+                  <strong>Rebuy duplo</strong>
+                  <span>{brl(doubleRebuyValue)} · 2 rebuys de uma vez</span>
+                </button>
+              )}
+            </div>
+            <div className="live-sheet-actions live-sheet-actions--single">
+              <button className="ghost" onClick={() => { setRebuyAlvo(null); setSheet('rebuy'); }}>Voltar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {sheet === 'addon' && (
         <div className="qr-overlay live-sheet-overlay" onClick={close}>
           <div className="qr-card live-sheet" role="dialog" aria-modal="true" aria-labelledby="live-addon-title" onClick={(e) => e.stopPropagation()}>
@@ -257,8 +299,11 @@ export default function LiveActions({
       {pending && !remote && (
         <CobrancaPix
           tipo={pending.tipo}
+          titulo={pending.units === 2 ? 'Rebuy duplo' : undefined}
           jogador={pending.nome}
-          valor={pending.tipo === 'buyin' ? buyInValue : pending.tipo === 'rebuy' ? rebuyValue : addonValue}
+          valor={pending.tipo === 'buyin' ? buyInValue
+            : pending.tipo === 'rebuy' ? (pending.units === 2 ? doubleRebuyValue : rebuyValue)
+            : addonValue}
           onCancelar={() => setPending(null)}
           onPago={() => {
             if (pending.tipo === 'buyin') {
@@ -271,7 +316,7 @@ export default function LiveActions({
                 return;
               }
             }
-            else if (pending.tipo === 'rebuy') onRebuy(pending.index!);
+            else if (pending.tipo === 'rebuy') onRebuy(pending.index!, pending.units ?? 1);
             else onAddon(pending.index!);
             setPending(null);
             setName('');

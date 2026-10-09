@@ -16,19 +16,20 @@ export type Tipo = 'buyin' | 'rebuy' | 'addon';
 
 interface Props {
   tipo: Tipo;
+  titulo?: string; // sobrescreve o título do tipo (ex.: "Rebuy duplo")
   jogador: string;
   valor: number;
   onPago: () => void;
   onCancelar: () => void;
 }
 
-export default function CobrancaPix({ tipo, jogador, valor, onPago, onCancelar }: Props) {
+export default function CobrancaPix({ tipo, titulo, jogador, valor, onPago, onCancelar }: Props) {
   const titleId = `payment-title-${tipo}`;
   return (
     <div className="qr-overlay" onClick={onCancelar}>
       <div className="qr-card payment-card" role="dialog" aria-modal="true" aria-labelledby={titleId} onClick={(e) => e.stopPropagation()}>
         <span className="setup-eyebrow">Confirmar pagamento</span>
-        <h2 id={titleId}>{TITULO[tipo]} · {jogador}</h2>
+        <h2 id={titleId}>{titulo ?? TITULO[tipo]} · {jogador}</h2>
         <p className="kpi payment-value">{brl(valor)}</p>
         <div className="payment-actions">
           <button className="ghost" onClick={onCancelar}>Cancelar</button>

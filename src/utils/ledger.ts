@@ -100,7 +100,13 @@ export function chipCurveInputs(l: Ledger) {
 
 /** Fluxo legado (sem torneio persistente): contagem × preço da config, como sempre foi. */
 export function legacyInvested(
-  e: LocalEntry, prices: { buy_in_value: number; rebuy_value: number; addon_value: number },
+  e: LocalEntry,
+  prices: { buy_in_value: number; rebuy_value: number; addon_value: number; double_rebuy_value?: number },
 ): number {
-  return e.buyins * prices.buy_in_value + e.rebuys * prices.rebuy_value + e.addons * prices.addon_value;
+  // Rebuy duplo: os 2 rebuys do pacote saem pelo preço do pacote.
+  const duplos = Math.min(e.double_rebuys ?? 0, Math.floor(e.rebuys / 2));
+  return e.buyins * prices.buy_in_value
+    + (e.rebuys - 2 * duplos) * prices.rebuy_value
+    + duplos * (prices.double_rebuy_value || 2 * prices.rebuy_value) // 0 = 2 × rebuy, como a 0017
+    + e.addons * prices.addon_value;
 }

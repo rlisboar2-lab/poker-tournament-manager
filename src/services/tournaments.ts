@@ -14,6 +14,9 @@ export interface LocalEntry {
   nickname?: string;
   buyins: number;   // entradas primárias deste jogador (normalmente 1)
   rebuys: number;
+  // Pacotes de rebuy duplo (fluxo local). Cada um já conta 2 em `rebuys`; só
+  // muda o preço: um pacote custa double_rebuy_value, não 2 × rebuy_value.
+  double_rebuys?: number;
   addons: number;
   eliminated?: boolean;
   table?: number;   // mesa atribuída (1-based)
@@ -29,6 +32,8 @@ export interface SaveTournamentInput {
   total_prize_pool: number;
   buy_in_value: number;
   rebuy_value: number;
+  // Preço do pacote de rebuy duplo; o banco grava 1 transação por pacote (0017).
+  double_rebuy_value?: number;
   addon_value: number;
   initial_stack: number;
   curve_params: StoredCurveParams;

@@ -91,4 +91,11 @@ describe('legado', () => {
     const prices = { buy_in_value: 10, rebuy_value: 15, addon_value: 20 };
     expect(legacyInvested({ name: 'X', buyins: 1, rebuys: 2, addons: 1 }, prices)).toBe(60);
   });
+
+  it('rebuy duplo sai pelo preço do pacote', () => {
+    const prices = { buy_in_value: 20, rebuy_value: 30, addon_value: 0, double_rebuy_value: 50 };
+    expect(legacyInvested({ name: 'X', buyins: 1, rebuys: 2, double_rebuys: 1, addons: 0 }, prices)).toBe(70);
+    expect(legacyInvested({ name: 'X', buyins: 1, rebuys: 3, double_rebuys: 1, addons: 0 }, prices)).toBe(100);
+    expect(legacyInvested({ name: 'X', buyins: 1, rebuys: 2, addons: 0 }, prices)).toBe(80);
+  });
 });
